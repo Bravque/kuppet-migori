@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="KUPPET Migori Teachers Notice Board - Latest news, announcements, circulars, press releases, and events from KUPPET Migori Branch and the wider education sector.">
+  <title>Teachers Notice Board | KUPPET Migori</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Playfair+Display:wght@700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <link rel="stylesheet" href="/css/style.css">
+  <style>
+    .news-layout { display:grid; grid-template-columns:1fr 320px; gap:3rem; align-items:start; }
+    .news-sidebar { position:sticky; top:calc(var(--header-height) + 1.5rem); }
+    .sidebar-card { background:var(--bg-white); border:1px solid var(--border); border-radius:var(--radius-lg); padding:1.5rem; margin-bottom:1.5rem; }
+    .sidebar-card h4 { font-size:0.875rem; font-weight:700; color:var(--text); letter-spacing:0.06em; text-transform:uppercase; margin-bottom:1.25rem; padding-bottom:0.75rem; border-bottom:2px solid var(--gold); display:inline-block; }
+    .sidebar-recent-list { display:flex; flex-direction:column; gap:1rem; }
+    .sidebar-recent-item { display:flex; gap:0.75rem; }
+    .sidebar-recent-img { width:60px; height:60px; flex-shrink:0; background:var(--bg); border-radius:var(--radius); display:flex; align-items:center; justify-content:center; color:var(--text-muted); font-size:1.25rem; overflow:hidden; }
+    .sidebar-recent-img img { width:100%; height:100%; object-fit:cover; }
+    .sidebar-recent-info {}
+    .sidebar-recent-info .date { font-size:0.7rem; color:var(--text-light); margin-bottom:0.25rem; }
+    .sidebar-recent-info a { font-size:0.8375rem; color:var(--text); font-weight:500; line-height:1.35; }
+    .sidebar-recent-info a:hover { color:var(--primary); }
+    .sidebar-cats { display:flex; flex-direction:column; gap:0.5rem; }
+    .sidebar-cat { display:flex; align-items:center; justify-content:space-between; padding:0.625rem 0.875rem; border-radius:var(--radius); background:var(--bg); border:1px solid var(--border); cursor:pointer; transition:var(--transition); }
+    .sidebar-cat:hover { border-color:var(--primary); background:rgba(27,58,110,0.04); }
+    .sidebar-cat span { font-size:0.875rem; font-weight:500; color:var(--text); }
+    .sidebar-cat .count { font-size:0.75rem; background:var(--primary); color:#fff; padding:0.125rem 0.5rem; border-radius:var(--radius-full); }
+    @media(max-width:900px) { .news-layout { grid-template-columns:1fr; } .news-sidebar { position:static; } }
+  </style>
+</head>
+<body class="news-page">
+  <div class="nav-overlay" aria-hidden="true"></div>
+
+  <div class="topbar">
+    <div class="container topbar-inner">
+      <div class="topbar-left">
+        <span class="topbar-item"><i class="fas fa-phone-alt"></i><a href="tel:+254721808993">+254 721 808 993</a></span>
+        <span class="topbar-item"><i class="fas fa-envelope"></i><a href="mailto:info@kuppetmigori.co.ke">info@kuppetmigori.co.ke</a></span>
+      </div>
+      <div class="topbar-right">
+        <div class="social-links">
+          <a href="#" aria-label="Facebook"><i class="fab fa-facebook-f"></i></a>
+          <a href="#" aria-label="Twitter"><i class="fab fa-x-twitter"></i></a>
+          <a href="#" aria-label="WhatsApp"><i class="fab fa-whatsapp"></i></a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <header class="site-header">
+    <div class="container header-inner">
+      <a href="/" class="logo">
+        <div class="logo-icon">K</div>
+        <div class="logo-text">
+          <div class="name">KUPPET Migori</div>
+          <div class="tagline">Post Primary Education Teachers Union</div>
+        </div>
+      </a>
+      <nav class="main-nav" aria-label="Main navigation">
+        <ul class="nav-list">
+          <li><a href="/" class="nav-link">Home</a></li>
+          <li class="nav-item dropdown">
+            <a href="/pages/about.html" class="nav-link">About Us <i class="fas fa-chevron-down"></i></a>
+            <div class="dropdown-menu">
+              <a href="/pages/about.html#history" class="dropdown-item"><i class="fas fa-history"></i> Our History</a>
+              <a href="/pages/about.html#leadership" class="dropdown-item"><i class="fas fa-users"></i> Leadership</a>
+            </div>
+          </li>
+          <li><a href="/pages/news.html" class="nav-link active" aria-current="page">Notice Board</a></li>
+          <li><a href="/pages/resources.html" class="nav-link">Resources</a></li>
+          <li><a href="/pages/advocacy.html" class="nav-link">Advocacy</a></li>
+          <li><a href="/pages/scholarships.html" class="nav-link">Scholarships</a></li>
+          <li><a href="/pages/contact.html" class="nav-link">Contact</a></li>
+        </ul>
+      </nav>
+      <div class="header-cta">
+        <a href="/pages/contact.html" class="btn btn-outline btn-sm"><i class="fas fa-headset"></i> Get Help</a>
+        <a href="/#membership" class="btn btn-gold btn-sm"><i class="fas fa-user-plus"></i> Join KUPPET</a>
+        <button class="hamburger" aria-label="Toggle navigation"><span></span><span></span><span></span></button>
+      </div>
+    </div>
+  </header>
+
+  <section class="page-header">
+    <div class="page-header-pattern" aria-hidden="true"></div>
+    <div class="container page-header-content">
+      <nav class="breadcrumb" aria-label="Breadcrumb">
+        <a href="/">Home</a>
+        <span><i class="fas fa-chevron-right"></i></span>
+        <span aria-current="page">Teachers Notice Board</span>
+      </nav>
+      <h1>Teachers Notice Board</h1>
+      <p>Stay informed with the latest news, announcements, circulars, and updates from KUPPET Migori and the education sector.</p>
+    </div>
+  </section>
+
+  <main id="main-content">
+    <section class="section" style="background:var(--bg)">
+      <div class="container">
+        <!-- Search & Filter Bar -->
+        <div style="display:flex;gap:1rem;flex-wrap:wrap;align-items:center;justify-content:space-between;margin-bottom:2rem;background:var(--bg-white);padding:1.5rem;border-radius:var(--radius-lg);border:1px solid var(--border)">
+          <div class="search-bar" style="max-width:420px;flex:1">
+            <i class="fas fa-search" style="color:var(--text-light)"></i>
+            <input type="search" id="news-search" placeholder="Search news and announcements..." aria-label="Search news">
+            <button class="btn btn-primary btn-sm" id="news-search-btn">Search</button>
+          </div>
+          <div style="display:flex;align-items:center;gap:0.5rem;color:var(--text-muted);font-size:0.875rem">
+            <i class="fas fa-rss" style="color:var(--gold)"></i>
+            Subscribe to updates
+          </div>
+        </div>
+
+        <!-- Category Filter -->
+        <div class="filter-tabs" role="tablist" aria-label="Filter by category">
+          <button class="filter-tab active" data-category="" role="tab" aria-selected="true">All</button>
+          <button class="filter-tab" data-category="news" role="tab">News</button>
+          <button class="filter-tab" data-category="announcement" role="tab">Announcements</button>
+          <button class="filter-tab" data-category="circular" role="tab">Circulars</button>
+          <button class="filter-tab" data-category="press_release" role="tab">Press Releases</button>
+          <button class="filter-tab" data-category="event" role="tab">Events</button>
+        </div>
+
+        <div class="news-layout">
+          <div>
+            <div id="news-container">
+              <div class="loading"><div class="spinner"></div><p>Loading articles...</p></div>
+            </div>
+            <div id="news-pagination"></div>
+          </div>
+
+          <!-- Sidebar -->
+          <aside class="news-sidebar" aria-label="News sidebar">
+            <div class="sidebar-card">
+              <h4>Categories</h4>
+              <div class="sidebar-cats">
+                <div class="sidebar-cat" onclick="document.querySelector('.filter-tab[data-category=\\'\\']').click()">
+                  <span><i class="fas fa-th-list" style="color:var(--primary);margin-right:0.5rem"></i> All Articles</span>
+                  <span class="count">All</span>
+                </div>
+                <div class="sidebar-cat" onclick="document.querySelector('.filter-tab[data-category=\\'news\\']').click()">
+                  <span><i class="fas fa-newspaper" style="color:var(--primary);margin-right:0.5rem"></i> News</span>
+                </div>
+                <div class="sidebar-cat" onclick="document.querySelector('.filter-tab[data-category=\\'announcement\\']').click()">
+                  <span><i class="fas fa-bullhorn" style="color:var(--red);margin-right:0.5rem"></i> Announcements</span>
+                </div>
+                <div class="sidebar-cat" onclick="document.querySelector('.filter-tab[data-category=\\'circular\\']').click()">
+                  <span><i class="fas fa-file-alt" style="color:var(--gold-dark);margin-right:0.5rem"></i> Circulars</span>
+                </div>
+                <div class="sidebar-cat" onclick="document.querySelector('.filter-tab[data-category=\\'event\\']').click()">
+                  <span><i class="fas fa-calendar-alt" style="color:var(--green);margin-right:0.5rem"></i> Events</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="sidebar-card">
+              <h4>Quick Links</h4>
+              <div class="footer-links">
+                <a href="/pages/resources.html"><i class="fas fa-chevron-right"></i> Download Resources</a>
+                <a href="/pages/advocacy.html"><i class="fas fa-chevron-right"></i> Report an Issue</a>
+                <a href="/pages/scholarships.html"><i class="fas fa-chevron-right"></i> View Scholarships</a>
+                <a href="/pages/contact.html?category=bbf"><i class="fas fa-chevron-right"></i> BBF Claims</a>
+                <a href="/pages/contact.html"><i class="fas fa-chevron-right"></i> Contact Branch</a>
+              </div>
+            </div>
+
+            <div class="sidebar-card" style="background:var(--primary)">
+              <h4 style="color:#fff;border-bottom-color:var(--gold-light)">Need Assistance?</h4>
+              <p style="color:rgba(255,255,255,0.8);font-size:0.875rem;line-height:1.65;margin-bottom:1.25rem">Our branch office is open Monday to Friday, 8 AM – 5 PM. Walk in or call us.</p>
+              <a href="/pages/contact.html" class="btn btn-gold btn-sm" style="width:100%;justify-content:center">
+                <i class="fas fa-phone-alt"></i> Contact Us
+              </a>
+            </div>
+          </aside>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container">
+      <div class="footer-grid">
+        <div class="footer-brand">
+          <div class="footer-logo">
+            <div class="footer-logo-icon">K</div>
+            <div class="footer-logo-text">
+              <div class="name">KUPPET Migori</div>
+              <div class="tagline">Teachers Union</div>
+            </div>
+          </div>
+          <p>Kenya Union of Post Primary Education Teachers — Migori Branch.</p>
+          <div class="footer-social">
+            <a href="#" aria-label="Facebook"><i class="fab fa-facebook-f"></i></a>
+            <a href="#" aria-label="Twitter"><i class="fab fa-x-twitter"></i></a>
+            <a href="#" aria-label="WhatsApp"><i class="fab fa-whatsapp"></i></a>
+          </div>
+        </div>
+        <div class="footer-col">
+          <h4>Quick Links</h4>
+          <nav class="footer-links">
+            <a href="/"><i class="fas fa-chevron-right"></i> Home</a>
+            <a href="/pages/about.html"><i class="fas fa-chevron-right"></i> About Us</a>
+            <a href="/pages/resources.html"><i class="fas fa-chevron-right"></i> Resources</a>
+            <a href="/pages/advocacy.html"><i class="fas fa-chevron-right"></i> Advocacy</a>
+            <a href="/pages/scholarships.html"><i class="fas fa-chevron-right"></i> Scholarships</a>
+            <a href="/pages/contact.html"><i class="fas fa-chevron-right"></i> Contact</a>
+          </nav>
+        </div>
+        <div class="footer-col">
+          <h4>Contact Info</h4>
+          <address class="footer-contact-items" style="font-style:normal">
+            <div class="footer-contact-item">
+              <div class="footer-contact-icon"><i class="fas fa-phone-alt"></i></div>
+              <span><a href="tel:+254721808993">+254 721 808 993</a></span>
+            </div>
+            <div class="footer-contact-item">
+              <div class="footer-contact-icon"><i class="fas fa-envelope"></i></div>
+              <span><a href="mailto:info@kuppetmigori.co.ke">info@kuppetmigori.co.ke</a></span>
+            </div>
+          </address>
+        </div>
+        <div class="footer-col">
+          <h4>Office Hours</h4>
+          <address class="footer-contact-items" style="font-style:normal">
+            <div class="footer-contact-item">
+              <div class="footer-contact-icon"><i class="far fa-clock"></i></div>
+              <span>Monday – Friday<br>8:00 AM – 5:00 PM EAT</span>
+            </div>
+            <div class="footer-contact-item">
+              <div class="footer-contact-icon"><i class="fas fa-map-marker-alt"></i></div>
+              <span>KUPPET House, Migori Town<br>Migori County, Kenya</span>
+            </div>
+          </address>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <p>&copy; 2026 KUPPET Migori Branch. All rights reserved.</p>
+        <div class="footer-bottom-links">
+          <a href="#">Privacy Policy</a>
+          <a href="/pages/contact.html">Contact</a>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <script src="/js/api.js"></script>
+  <script src="/js/main.js"></script>
+</body>
+</html>

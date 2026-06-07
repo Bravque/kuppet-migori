@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="KUPPET Migori Scholarship Opportunities - Available scholarships for children of teachers and teacher members pursuing higher education. Eligibility, deadlines, and application information.">
+  <title>Scholarships | KUPPET Migori</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Playfair+Display:wght@700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <link rel="stylesheet" href="/css/style.css">
+  <style>
+    .scholarship-cards { display:grid; grid-template-columns:repeat(2,1fr); gap:1.5rem; }
+    .scholarship-details { font-size:0.875rem; color:var(--text-muted); line-height:1.7; }
+    .scholarship-details p { margin-bottom:0.5rem; }
+    .scholarship-type-tabs { display:flex; flex-wrap:wrap; gap:0.5rem; margin-bottom:2rem; }
+    .expired { opacity:0.65; }
+    .expired .scholarship-card-img { filter:grayscale(1); }
+    @media(max-width:700px) { .scholarship-cards { grid-template-columns:1fr; } }
+  </style>
+</head>
+<body class="scholarships-page">
+  <div class="nav-overlay" aria-hidden="true"></div>
+
+  <div class="topbar">
+    <div class="container topbar-inner">
+      <div class="topbar-left">
+        <span class="topbar-item"><i class="fas fa-phone-alt"></i><a href="tel:+254721808993">+254 721 808 993</a></span>
+        <span class="topbar-item"><i class="fas fa-envelope"></i><a href="mailto:info@kuppetmigori.co.ke">info@kuppetmigori.co.ke</a></span>
+      </div>
+      <div class="topbar-right">
+        <div class="social-links">
+          <a href="#" aria-label="Facebook"><i class="fab fa-facebook-f"></i></a>
+          <a href="#" aria-label="Twitter"><i class="fab fa-x-twitter"></i></a>
+          <a href="#" aria-label="WhatsApp"><i class="fab fa-whatsapp"></i></a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <header class="site-header">
+    <div class="container header-inner">
+      <a href="/" class="logo">
+        <div class="logo-icon">K</div>
+        <div class="logo-text">
+          <div class="name">KUPPET Migori</div>
+          <div class="tagline">Post Primary Education Teachers Union</div>
+        </div>
+      </a>
+      <nav class="main-nav" aria-label="Main navigation">
+        <ul class="nav-list">
+          <li><a href="/" class="nav-link">Home</a></li>
+          <li class="nav-item dropdown">
+            <a href="/pages/about.html" class="nav-link">About Us <i class="fas fa-chevron-down"></i></a>
+            <div class="dropdown-menu">
+              <a href="/pages/about.html#history" class="dropdown-item"><i class="fas fa-history"></i> Our History</a>
+              <a href="/pages/about.html#leadership" class="dropdown-item"><i class="fas fa-users"></i> Leadership</a>
+            </div>
+          </li>
+          <li><a href="/pages/news.html" class="nav-link">Notice Board</a></li>
+          <li><a href="/pages/resources.html" class="nav-link">Resources</a></li>
+          <li><a href="/pages/advocacy.html" class="nav-link">Advocacy</a></li>
+          <li><a href="/pages/scholarships.html" class="nav-link active" aria-current="page">Scholarships</a></li>
+          <li><a href="/pages/contact.html" class="nav-link">Contact</a></li>
+        </ul>
+      </nav>
+      <div class="header-cta">
+        <a href="/pages/contact.html" class="btn btn-outline btn-sm"><i class="fas fa-headset"></i> Get Help</a>
+        <a href="/#membership" class="btn btn-gold btn-sm"><i class="fas fa-user-plus"></i> Join KUPPET</a>
+        <button class="hamburger" aria-label="Toggle navigation"><span></span><span></span><span></span></button>
+      </div>
+    </div>
+  </header>
+
+  <section class="page-header">
+    <div class="page-header-pattern" aria-hidden="true"></div>
+    <div class="container page-header-content">
+      <nav class="breadcrumb" aria-label="Breadcrumb">
+        <a href="/">Home</a>
+        <span><i class="fas fa-chevron-right"></i></span>
+        <span aria-current="page">Scholarships</span>
+      </nav>
+      <h1>Scholarship Opportunities</h1>
+      <p>Supporting the education of teachers' children and continuing education for our members. Find and apply for scholarships available to KUPPET Migori members and their families.</p>
+    </div>
+  </section>
+
+  <main id="main-content">
+    <!-- Info Cards -->
+    <section class="section-sm" style="background:var(--bg-white);border-bottom:1px solid var(--border)">
+      <div class="container">
+        <div class="grid-3">
+          <div style="display:flex;align-items:center;gap:1rem;padding:1.25rem;background:rgba(27,58,110,0.05);border-radius:var(--radius-lg);border:1px solid rgba(27,58,110,0.1)">
+            <div style="width:48px;height:48px;background:var(--primary);border-radius:var(--radius);display:flex;align-items:center;justify-content:center;color:#fff;font-size:1.25rem;flex-shrink:0"><i class="fas fa-graduation-cap"></i></div>
+            <div>
+              <div style="font-size:1.5rem;font-weight:800;color:var(--primary)">5+</div>
+              <div style="font-size:0.8125rem;color:var(--text-muted)">Active Scholarships</div>
+            </div>
+          </div>
+          <div style="display:flex;align-items:center;gap:1rem;padding:1.25rem;background:rgba(200,150,42,0.07);border-radius:var(--radius-lg);border:1px solid rgba(200,150,42,0.2)">
+            <div style="width:48px;height:48px;background:var(--gold);border-radius:var(--radius);display:flex;align-items:center;justify-content:center;color:#fff;font-size:1.25rem;flex-shrink:0"><i class="fas fa-money-bill-wave"></i></div>
+            <div>
+              <div style="font-size:1.5rem;font-weight:800;color:var(--gold-dark)">KES 50K+</div>
+              <div style="font-size:0.8125rem;color:var(--text-muted)">Maximum Annual Award</div>
+            </div>
+          </div>
+          <div style="display:flex;align-items:center;gap:1rem;padding:1.25rem;background:rgba(26,115,64,0.06);border-radius:var(--radius-lg);border:1px solid rgba(26,115,64,0.15)">
+            <div style="width:48px;height:48px;background:var(--green);border-radius:var(--radius);display:flex;align-items:center;justify-content:center;color:#fff;font-size:1.25rem;flex-shrink:0"><i class="fas fa-calendar-check"></i></div>
+            <div>
+              <div style="font-size:1.5rem;font-weight:800;color:var(--green)">Jul 2026</div>
+              <div style="font-size:0.8125rem;color:var(--text-muted)">Next Closest Deadline</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" style="background:var(--bg)">
+      <div class="container">
+        <div class="section-title">
+          <span class="label">Education Support</span>
+          <h2>Available Scholarships &amp; Bursaries</h2>
+          <p>All scholarships listed here are available to KUPPET Migori members or their dependants. Check eligibility carefully before applying.</p>
+        </div>
+
+        <!-- Filter -->
+        <div class="scholarship-type-tabs" role="tablist">
+          <button class="filter-tab active" data-type="" role="tab">All Scholarships</button>
+          <button class="filter-tab" data-type="undergraduate" role="tab">Undergraduate</button>
+          <button class="filter-tab" data-type="postgraduate" role="tab">Postgraduate</button>
+          <button class="filter-tab" data-type="vocational" role="tab">Vocational/TVET</button>
+          <button class="filter-tab" data-type="international" role="tab">International</button>
+        </div>
+
+        <!-- Scholarships Grid -->
+        <div id="scholarships-container">
+          <div class="loading"><div class="spinner"></div><p>Loading scholarships...</p></div>
+        </div>
+
+        <!-- Application Tips -->
+        <div style="background:var(--bg-white);border:1px solid var(--border);border-radius:var(--radius-xl);padding:2.5rem;margin-top:3rem">
+          <h3 style="color:var(--primary);font-size:1.25rem;margin-bottom:1.5rem;display:flex;align-items:center;gap:0.625rem">
+            <i class="fas fa-lightbulb" style="color:var(--gold)"></i> Scholarship Application Tips
+          </h3>
+          <div class="grid-3">
+            <div>
+              <h4 style="font-size:0.9rem;color:var(--text);margin-bottom:0.625rem;display:flex;align-items:center;gap:0.5rem"><span style="background:var(--primary);color:#fff;width:22px;height:22px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:0.7rem;flex-shrink:0">1</span> Check Eligibility First</h4>
+              <p style="font-size:0.875rem;color:var(--text-muted);line-height:1.65">Read all eligibility criteria carefully before investing time in an application. Confirm your KUPPET membership status is current.</p>
+            </div>
+            <div>
+              <h4 style="font-size:0.9rem;color:var(--text);margin-bottom:0.625rem;display:flex;align-items:center;gap:0.5rem"><span style="background:var(--primary);color:#fff;width:22px;height:22px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:0.7rem;flex-shrink:0">2</span> Prepare Documents Early</h4>
+              <p style="font-size:0.875rem;color:var(--text-muted);line-height:1.65">Gather all required documents well before the deadline: KCSE certificates, admission letters, national ID, KUPPET membership proof, and bank details.</p>
+            </div>
+            <div>
+              <h4 style="font-size:0.9rem;color:var(--text);margin-bottom:0.625rem;display:flex;align-items:center;gap:0.5rem"><span style="background:var(--primary);color:#fff;width:22px;height:22px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:0.7rem;flex-shrink:0">3</span> Write a Strong Essay</h4>
+              <p style="font-size:0.875rem;color:var(--text-muted);line-height:1.65">Many scholarships require a personal statement. Visit the KUPPET branch office for guidance on writing compelling scholarship essays.</p>
+            </div>
+          </div>
+          <div style="margin-top:1.5rem;padding-top:1.5rem;border-top:1px solid var(--border);display:flex;align-items:center;gap:1rem;flex-wrap:wrap">
+            <i class="fas fa-headset" style="color:var(--primary);font-size:1.25rem"></i>
+            <p style="color:var(--text-muted);font-size:0.875rem;flex:1">Need help with your application? Visit the KUPPET Migori Branch office or call us during office hours. Our staff will assist you with the application process.</p>
+            <a href="/pages/contact.html" class="btn btn-primary btn-sm">Get Application Help</a>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container">
+      <div class="footer-grid">
+        <div class="footer-brand">
+          <div class="footer-logo">
+            <div class="footer-logo-icon">K</div>
+            <div class="footer-logo-text">
+              <div class="name">KUPPET Migori</div>
+              <div class="tagline">Teachers Union</div>
+            </div>
+          </div>
+          <p>Kenya Union of Post Primary Education Teachers — Migori Branch.</p>
+          <div class="footer-social">
+            <a href="#" aria-label="Facebook"><i class="fab fa-facebook-f"></i></a>
+            <a href="#" aria-label="Twitter"><i class="fab fa-x-twitter"></i></a>
+            <a href="#" aria-label="WhatsApp"><i class="fab fa-whatsapp"></i></a>
+          </div>
+        </div>
+        <div class="footer-col">
+          <h4>Quick Links</h4>
+          <nav class="footer-links">
+            <a href="/"><i class="fas fa-chevron-right"></i> Home</a>
+            <a href="/pages/about.html"><i class="fas fa-chevron-right"></i> About Us</a>
+            <a href="/pages/news.html"><i class="fas fa-chevron-right"></i> Notice Board</a>
+            <a href="/pages/resources.html"><i class="fas fa-chevron-right"></i> Resources</a>
+            <a href="/pages/advocacy.html"><i class="fas fa-chevron-right"></i> Advocacy</a>
+            <a href="/pages/contact.html"><i class="fas fa-chevron-right"></i> Contact</a>
+          </nav>
+        </div>
+        <div class="footer-col">
+          <h4>Contact Info</h4>
+          <address class="footer-contact-items" style="font-style:normal">
+            <div class="footer-contact-item">
+              <div class="footer-contact-icon"><i class="fas fa-phone-alt"></i></div>
+              <span><a href="tel:+254721808993">+254 721 808 993</a></span>
+            </div>
+            <div class="footer-contact-item">
+              <div class="footer-contact-icon"><i class="fas fa-envelope"></i></div>
+              <span><a href="mailto:info@kuppetmigori.co.ke">info@kuppetmigori.co.ke</a></span>
+            </div>
+          </address>
+        </div>
+        <div class="footer-col">
+          <h4>Office Hours</h4>
+          <address class="footer-contact-items" style="font-style:normal">
+            <div class="footer-contact-item">
+              <div class="footer-contact-icon"><i class="far fa-clock"></i></div>
+              <span>Monday – Friday<br>8:00 AM – 5:00 PM EAT</span>
+            </div>
+          </address>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <p>&copy; 2026 KUPPET Migori Branch. All rights reserved.</p>
+        <div class="footer-bottom-links">
+          <a href="#">Privacy Policy</a>
+          <a href="/pages/contact.html">Contact</a>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <script src="/js/api.js"></script>
+  <script src="/js/main.js"></script>
+  <script>
+    // Scholarship type filter tabs
+    document.querySelectorAll('.filter-tab[data-type]').forEach(tab => {
+      tab.addEventListener('click', async () => {
+        document.querySelectorAll('.filter-tab[data-type]').forEach(t => t.classList.remove('active'));
+        tab.classList.add('active');
+        const container = document.getElementById('scholarships-container');
+        if (!container) return;
+        container.innerHTML = '<div class="loading"><div class="spinner"></div><p>Loading...</p></div>';
+        try {
+          const params = {};
+          if (tab.dataset.type) params.type = tab.dataset.type;
+          const { data } = await api.scholarships.getAll(params);
+          if (!data.length) { container.innerHTML = '<div class="empty-state"><i class="fas fa-graduation-cap"></i><h3>No scholarships found</h3><p>No scholarships in this category at this time. Check back soon.</p></div>'; return; }
+          const html = data.map(s => {
+            const deadline = s.application_deadline ? new Date(s.application_deadline).toLocaleDateString('en-KE', { day:'numeric', month:'long', year:'numeric' }) : 'Open';
+            const isExpired = s.application_deadline && new Date(s.application_deadline) < new Date();
+            return `<div class="scholarship-card${isExpired ? ' expired' : ''}">
+              ${s.is_featured ? '<span class="scholarship-featured-badge"><i class="fas fa-star"></i> Featured</span>' : ''}
+              <p class="scholarship-provider">${s.provider}</p>
+              <h3>${s.title}</h3>
+              <p>${(s.description || '').substring(0, 220)}${(s.description||'').length > 220 ? '...' : ''}</p>
+              <div class="scholarship-meta">
+                <span class="scholarship-meta-item ${isExpired ? 'scholarship-deadline' : ''}">
+                  <i class="far fa-calendar-alt"></i> ${isExpired ? '<strong>Closed</strong>' : `Deadline: ${deadline}`}
+                </span>
+                <span class="scholarship-meta-item"><i class="fas fa-graduation-cap"></i> ${(s.scholarship_type||'').replace('_',' ')}</span>
+              </div>
+              <div style="display:flex;gap:0.75rem;flex-wrap:wrap">
+                ${s.application_link && !isExpired ? `<a href="${s.application_link}" target="_blank" rel="noopener" class="btn btn-primary btn-sm"><i class="fas fa-external-link-alt"></i> Apply Now</a>` : ''}
+                <button class="btn btn-outline btn-sm" onclick="this.closest('.scholarship-card').querySelector('.scholarship-details').classList.toggle('hidden')">View Details</button>
+              </div>
+              <div class="scholarship-details hidden" style="margin-top:1rem;padding-top:1rem;border-top:1px solid var(--border)">
+                ${s.eligibility ? `<p><strong>Eligibility:</strong> ${s.eligibility}</p>` : ''}
+                ${s.benefits ? `<p style="margin-top:0.5rem"><strong>Benefits:</strong> ${s.benefits}</p>` : ''}
+                ${s.contact_email ? `<p style="margin-top:0.5rem"><strong>Contact:</strong> <a href="mailto:${s.contact_email}">${s.contact_email}</a></p>` : ''}
+                ${s.contact_phone ? `<p style="margin-top:0.25rem"><strong>Phone:</strong> <a href="tel:${s.contact_phone}">${s.contact_phone}</a></p>` : ''}
+              </div>
+            </div>`;
+          }).join('');
+          container.innerHTML = `<div class="scholarship-cards">${html}</div>`;
+        } catch { container.innerHTML = '<div class="empty-state"><i class="fas fa-exclamation-circle"></i><h3>Failed to load</h3><p>Please refresh the page or contact our office.</p></div>'; }
+      });
+    });
+  </script>
+</body>
+</html>
