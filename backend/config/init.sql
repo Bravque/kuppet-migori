@@ -1,0 +1,234 @@
+-- KUPPET Migori Database Schema
+-- Run: mysql -u root -p < backend/config/init.sql
+
+CREATE DATABASE IF NOT EXISTS kuppet_migori CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+USE kuppet_migori;
+
+-- Admin users
+CREATE TABLE IF NOT EXISTS users (
+  id INT PRIMARY KEY AUTO_INCREMENT,
+  name VARCHAR(150) NOT NULL,
+  email VARCHAR(255) UNIQUE NOT NULL,
+  password VARCHAR(255) NOT NULL,
+  role ENUM('admin','editor','viewer') DEFAULT 'editor',
+  is_active BOOLEAN DEFAULT TRUE,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+
+-- Leadership/Officials
+CREATE TABLE IF NOT EXISTS leadership (
+  id INT PRIMARY KEY AUTO_INCREMENT,
+  name VARCHAR(150) NOT NULL,
+  position VARCHAR(200) NOT NULL,
+  position_category ENUM('executive','committee','trustee') DEFAULT 'executive',
+  photo_url VARCHAR(500),
+  bio TEXT,
+  email VARCHAR(255),
+  phone VARCHAR(30),
+  display_order INT DEFAULT 0,
+  is_active BOOLEAN DEFAULT TRUE,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+
+-- News articles
+CREATE TABLE IF NOT EXISTS news (
+  id INT PRIMARY KEY AUTO_INCREMENT,
+  title VARCHAR(500) NOT NULL,
+  slug VARCHAR(500) UNIQUE NOT NULL,
+  excerpt TEXT,
+  content LONGTEXT NOT NULL,
+  category ENUM('news','announcement','circular','press_release','event') DEFAULT 'news',
+  featured_image VARCHAR(500),
+  author VARCHAR(150) DEFAULT 'KUPPET Migori',
+  is_featured BOOLEAN DEFAULT FALSE,
+  is_published BOOLEAN DEFAULT TRUE,
+  views INT DEFAULT 0,
+  tags VARCHAR(500),
+  published_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+
+-- Events
+CREATE TABLE IF NOT EXISTS events (
+  id INT PRIMARY KEY AUTO_INCREMENT,
+  title VARCHAR(500) NOT NULL,
+  description TEXT,
+  event_date DATE NOT NULL,
+  event_time TIME,
+  end_date DATE,
+  venue VARCHAR(300),
+  venue_address VARCHAR(500),
+  event_type ENUM('meeting','workshop','seminar','agm','strike','other') DEFAULT 'meeting',
+  is_featured BOOLEAN DEFAULT FALSE,
+  is_published BOOLEAN DEFAULT TRUE,
+  registration_link VARCHAR(500),
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+
+-- Teaching resources
+CREATE TABLE IF NOT EXISTS resources (
+  id INT PRIMARY KEY AUTO_INCREMENT,
+  title VARCHAR(500) NOT NULL,
+  description TEXT,
+  category ENUM('curriculum','circular','moe_document','tsc_resource','professional_dev','teaching_material','legal','policy') DEFAULT 'teaching_material',
+  subject VARCHAR(150),
+  grade_level VARCHAR(100),
+  file_url VARCHAR(500),
+  file_type VARCHAR(20),
+  file_size VARCHAR(30),
+  external_url VARCHAR(500),
+  download_count INT DEFAULT 0,
+  is_featured BOOLEAN DEFAULT FALSE,
+  is_published BOOLEAN DEFAULT TRUE,
+  uploaded_by VARCHAR(150) DEFAULT 'KUPPET Migori',
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+
+-- Scholarships
+CREATE TABLE IF NOT EXISTS scholarships (
+  id INT PRIMARY KEY AUTO_INCREMENT,
+  title VARCHAR(500) NOT NULL,
+  provider VARCHAR(300) NOT NULL,
+  description TEXT NOT NULL,
+  eligibility TEXT,
+  benefits TEXT,
+  application_deadline DATE,
+  application_link VARCHAR(500),
+  contact_email VARCHAR(255),
+  contact_phone VARCHAR(30),
+  scholarship_type ENUM('undergraduate','postgraduate','vocational','research','international') DEFAULT 'undergraduate',
+  is_active BOOLEAN DEFAULT TRUE,
+  is_featured BOOLEAN DEFAULT FALSE,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+
+-- Advocacy items
+CREATE TABLE IF NOT EXISTS advocacy (
+  id INT PRIMARY KEY AUTO_INCREMENT,
+  title VARCHAR(500) NOT NULL,
+  slug VARCHAR(500) UNIQUE NOT NULL,
+  content LONGTEXT NOT NULL,
+  category ENUM('rights','legal','labour','policy','news','report') DEFAULT 'rights',
+  document_url VARCHAR(500),
+  is_featured BOOLEAN DEFAULT FALSE,
+  is_published BOOLEAN DEFAULT TRUE,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+
+-- Contact form submissions
+CREATE TABLE IF NOT EXISTS contacts (
+  id INT PRIMARY KEY AUTO_INCREMENT,
+  name VARCHAR(200) NOT NULL,
+  email VARCHAR(255) NOT NULL,
+  phone VARCHAR(30),
+  subject VARCHAR(300),
+  message TEXT NOT NULL,
+  category ENUM('general','membership','bbf','advocacy','resources','complaint','other') DEFAULT 'general',
+  status ENUM('new','read','replied','closed') DEFAULT 'new',
+  ip_address VARCHAR(45),
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+
+-- Site settings / stats
+CREATE TABLE IF NOT EXISTS settings (
+  id INT PRIMARY KEY AUTO_INCREMENT,
+  setting_key VARCHAR(100) UNIQUE NOT NULL,
+  setting_value TEXT,
+  description VARCHAR(300),
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+
+-- ============================================
+-- SEED DATA
+-- ============================================
+
+-- Default admin user (password: Admin@123 - CHANGE IN PRODUCTION)
+INSERT IGNORE INTO users (name, email, password, role) VALUES
+('Admin KUPPET', 'admin@kuppetmigori.co.ke', '$2b$10$YwQPKWUz5zxS9D4LyAEG3.HxEU6Hy1AoGjJ7kXpN1xDz2Wrl9RVGi', 'admin');
+
+-- Site settings
+INSERT IGNORE INTO settings (setting_key, setting_value, description) VALUES
+('total_members', '4500', 'Total union members'),
+('schools_covered', '320', 'Number of schools covered'),
+('years_serving', '30', 'Years in service'),
+('resources_count', '250', 'Number of resources available'),
+('chairman_message', 'On behalf of the KUPPET Migori Branch Executive Committee, I extend a warm welcome to all our members and visitors. Our union stands firmly committed to the professional welfare, rights, and dignity of every post-primary education teacher in Migori County. Together, we build a stronger, more equitable education system for Kenya.', 'Chairman welcome message'),
+('chairman_name', 'Br. John Otieno Ouma', 'Branch Chairman name'),
+('chairman_title', 'Branch Chairperson, KUPPET Migori', 'Chairman title');
+
+-- Leadership data
+INSERT IGNORE INTO leadership (name, position, position_category, bio, email, phone, display_order) VALUES
+('Br. James Otieno Odhiambo', 'Branch Executive Secretary', 'executive', 'Br. James Otieno Odhiambo has served KUPPET Migori with distinction for over 15 years. He holds a Masters degree in Education Administration and has been instrumental in championing teachers'' welfare across Migori County. Under his leadership, the branch has achieved significant milestones in salary negotiations and professional development.', 'bes@kuppetmigori.co.ke', '+254 721 808 993', 1),
+('Br. John Otieno Ouma', 'Branch Chairperson', 'executive', 'Br. John Otieno Ouma is a seasoned educator and union leader with over 20 years in the education sector. He holds a Bachelor of Education degree and has championed the rights of post-primary teachers in Migori County, successfully leading negotiations that resulted in improved working conditions for members.', 'chair@kuppetmigori.co.ke', '+254 700 000 002', 2),
+('Sr. Mary Achieng Onyango', 'Branch Vice Chairperson', 'executive', 'Sr. Mary Achieng Onyango brings over 18 years of teaching experience and union leadership to her role. She is passionate about gender equity in education and has spearheaded numerous programs supporting female educators in Migori County. She holds a Masters in Gender and Development Studies.', 'vchair@kuppetmigori.co.ke', '+254 700 000 003', 3),
+('Br. Peter Omondi Ayieko', 'Branch Treasurer', 'executive', 'Br. Peter Omondi Ayieko is a certified public accountant and educator with expertise in financial management. He ensures transparent and accountable management of union funds, and has introduced modern financial reporting systems that have enhanced member confidence in the branch.', 'treasurer@kuppetmigori.co.ke', '+254 700 000 004', 4),
+('Sr. Grace Adhiambo Odero', 'Executive Committee Member - Gender Affairs', 'committee', 'Sr. Grace Adhiambo Odero chairs the Gender and Social Affairs desk, advocating for inclusive policies that support women educators and vulnerable members. She has over 12 years of experience in gender advocacy within the education sector.', NULL, NULL, 5),
+('Br. David Ochieng Ombima', 'Executive Committee Member - Welfare', 'committee', 'Br. David Ochieng Ombima oversees the welfare desk, coordinating BBF claims processing and member welfare programs. He has streamlined claim processing timelines significantly since taking office.', NULL, NULL, 6),
+('Sr. Agnes Kerubo Mwangi', 'Executive Committee Member - Education', 'committee', 'Sr. Agnes Kerubo Mwangi manages professional development and continuing education programs for members. She holds a PhD in Curriculum Studies and has published several papers on teacher professional development.', NULL, NULL, 7),
+('Br. Robert Juma Ogola', 'Branch Trustee', 'trustee', 'Br. Robert Juma Ogola has served the branch as trustee for over 10 years, providing oversight and governance guidance. He is a retired principal with extensive experience in institutional management.', NULL, NULL, 8),
+('Sr. Beatrice Nyambura Kimani', 'Branch Trustee', 'trustee', 'Sr. Beatrice Nyambura Kimani brings legal expertise to the board, having practiced law for over 15 years before joining the education sector. She provides crucial legal guidance on member rights and union governance.', NULL, NULL, 9);
+
+-- News articles
+INSERT IGNORE INTO news (title, slug, excerpt, content, category, is_featured, author, published_at) VALUES
+('KUPPET Migori Secures 15% Salary Enhancement for Teachers', 'kuppet-migori-secures-salary-enhancement', 'After rigorous negotiations with the Teachers Service Commission, KUPPET Migori Branch has secured a significant salary enhancement for post-primary teachers in Migori County.', '<p>After months of rigorous negotiations with the Teachers Service Commission (TSC), the KUPPET Migori Branch is proud to announce a landmark achievement — a 15% salary enhancement for all post-primary teachers effective from the next financial year.</p><p>The Branch Executive Secretary, Br. James Otieno Odhiambo, led a dedicated negotiating team that presented compelling evidence of teachers'' contribution to national development and the cost of living adjustments required in Migori County.</p><p>"This is a victory for every teacher in Migori. We have been consistent in our advocacy, and today that persistence has paid off," said Br. James Otieno Odhiambo.</p><p>The salary enhancement will affect over 4,500 union members across Migori County, providing much-needed relief amid rising living costs.</p>', 'news', TRUE, 'KUPPET Migori Communications', '2026-05-15 09:00:00'),
+
+('Annual General Meeting 2026 - Notice to All Members', 'agm-2026-notice', 'The Branch Annual General Meeting is scheduled for July 20, 2026. All members are urged to attend this important assembly.', '<p>Dear KUPPET Migori Members,</p><p>This is to inform all branch members that the Annual General Meeting (AGM) for 2026 will be held on <strong>Saturday, July 20, 2026</strong>, at the Migori County Education Offices, Migori Town.</p><p>The AGM will cover the following agenda:</p><ul><li>Branch Chairperson''s Annual Report</li><li>Financial Report by the Branch Treasurer</li><li>Election of Executive Committee Members</li><li>Welfare Fund Updates</li><li>BBF Claims Status Report</li><li>Professional Development Programs Review</li><li>Any Other Business</li></ul><p>Registration begins at 8:00 AM. The meeting commences at 9:00 AM. Attendance is mandatory for all sub-branch representatives.</p>', 'announcement', TRUE, 'KUPPET Migori Secretariat', '2026-06-01 08:00:00'),
+
+('TSC Issues New Guidelines on Teacher Transfers', 'tsc-transfer-guidelines-2026', 'The Teachers Service Commission has released updated guidelines governing teacher transfers. Members are advised to familiarize themselves with these new regulations.', '<p>The Teachers Service Commission (TSC) has released updated guidelines governing teacher transfers effective June 2026. KUPPET Migori Branch has reviewed these guidelines and provides the following summary for members.</p><p><strong>Key Changes:</strong></p><ul><li>Transfer applications now processed online through TSC portal</li><li>Hardship allowance criteria expanded to include more remote areas</li><li>Spousal posting consideration now a formal policy</li><li>Processing time reduced from 90 to 60 days</li></ul><p>Members requiring assistance with transfer applications are encouraged to visit the branch office for support.</p>', 'circular', FALSE, 'KUPPET Migori', '2026-05-28 10:00:00'),
+
+('KUPPET Migori Launches Teacher Wellness Program', 'teacher-wellness-program-launch', 'The branch has launched a comprehensive wellness program addressing physical, mental, and financial health of our teacher members across Migori County.', '<p>KUPPET Migori Branch is pleased to announce the launch of the Teacher Wellness Program (TWP) — a holistic initiative designed to support the physical, mental, and financial well-being of our members.</p><p>The program, funded through the branch welfare fund with support from KUPPET National, will provide:</p><ul><li>Free medical check-ups twice annually</li><li>Mental health counseling services</li><li>Financial literacy workshops</li><li>Retirement planning guidance</li><li>Legal aid clinics</li></ul>', 'news', TRUE, 'KUPPET Migori', '2026-05-10 11:00:00'),
+
+('Circular: BBF Claim Processing - New Requirements', 'bbf-claim-processing-circular', 'Important circular regarding updated BBF claim processing requirements effective immediately.', '<p>To all KUPPET Migori Members,</p><p>This circular outlines the updated requirements for processing Benevolent and Burial Fund (BBF) claims effective June 2026.</p><p><strong>Required Documents:</strong></p><ul><li>Original death certificate (certified copy)</li><li>Deceased member''s TSC number confirmation</li><li>Next of kin identification documents</li><li>Bank account details of beneficiary</li><li>Completed BBF claim form (available at branch office)</li><li>Three passport photos of claimant</li></ul><p>Claims submitted without complete documentation will not be processed. Members are urged to advise their next of kin on the claim process.</p>', 'circular', FALSE, 'KUPPET Migori Secretariat', '2026-06-05 09:00:00');
+
+-- Events
+INSERT IGNORE INTO events (title, description, event_date, event_time, venue, event_type, is_featured) VALUES
+('KUPPET Migori Annual General Meeting 2026', 'Annual General Meeting for all KUPPET Migori branch members. Sub-branch representatives must attend. Items include election of officials, financial report, and strategic planning for 2026/2027.', '2026-07-20', '09:00:00', 'Migori County Education Offices, Migori Town', 'agm', TRUE),
+('Teacher Professional Development Workshop - CBC', 'A comprehensive workshop on Competency Based Curriculum (CBC) implementation strategies for secondary school teachers. Facilitated by KIE curriculum specialists.', '2026-06-28', '08:30:00', 'Ranen Technical Training Institute, Ranen', 'workshop', TRUE),
+('BBF Claims Awareness Seminar', 'Seminar to educate members on BBF claim procedures, documentation requirements, and beneficiary nomination. All members encouraged to attend.', '2026-07-05', '10:00:00', 'KUPPET Migori Branch Office, Migori Town', 'seminar', FALSE),
+('Sub-Branch Executive Meeting - July', 'Monthly sub-branch executives coordination meeting. Agenda includes membership updates, welfare cases, and advocacy updates.', '2026-07-12', '14:00:00', 'KUPPET Migori Branch Office', 'meeting', FALSE),
+('Labour Relations Legal Clinic', 'Free legal clinic for members facing workplace issues including unfair dismissal, harassment, and disciplinary matters. Facilitated by KUPPET legal team.', '2026-07-25', '09:00:00', 'Migori Law Courts, Migori Town', 'seminar', TRUE),
+('Inter-Schools Games - KUPPET Migori Cup', 'Annual inter-schools sports competition organized by KUPPET Migori for post-primary school students. Soccer, athletics, and volleyball categories.', '2026-08-10', '07:00:00', 'Migori Stadium, Migori Town', 'other', FALSE);
+
+-- Resources
+INSERT IGNORE INTO resources (title, description, category, subject, grade_level, file_type, is_featured) VALUES
+('KICD CBC Secondary School Curriculum Framework', 'Complete curriculum framework for Competency Based Curriculum implementation at secondary school level as issued by Kenya Institute of Curriculum Development.', 'curriculum', 'General', 'Secondary', 'PDF', TRUE),
+('TSC Code of Conduct and Ethics for Teachers 2023', 'Official Teachers Service Commission Code of Conduct and Ethics document that all teachers must adhere to.', 'tsc_resource', 'Professional', 'All', 'PDF', TRUE),
+('Ministry of Education Circular - School Examination Guidelines 2026', 'Updated examination guidelines and regulations from the Ministry of Education for the 2026 academic year.', 'moe_document', 'Examinations', 'All', 'PDF', TRUE),
+('Teachers'' Rights Under Kenyan Labour Law - Guide', 'Comprehensive guide to teacher rights under the Employment Act 2007, Labour Relations Act 2007, and TSC Act 2012.', 'legal', 'Legal', 'All', 'PDF', FALSE),
+('Effective Classroom Management Strategies', 'Professional development resource covering modern classroom management techniques for secondary school teachers.', 'professional_dev', 'Pedagogy', 'Secondary', 'PDF', FALSE),
+('KUPPET BBF Claim Form 2026', 'Official Benevolent and Burial Fund claim form for KUPPET members. Complete all sections before submission.', 'circular', 'Welfare', 'All', 'PDF', TRUE),
+('Grade 9 Mathematics Teacher Guide - CBC', 'Comprehensive teacher''s guide for delivering Grade 9 Mathematics under the CBC framework.', 'teaching_material', 'Mathematics', 'Grade 9', 'PDF', FALSE),
+('English Language Teaching Methodology - Secondary', 'Resource for English teachers on modern language teaching methodologies aligned with CBC objectives.', 'teaching_material', 'English', 'Secondary', 'PDF', FALSE),
+('Science Practical Work Safety Guidelines', 'Safety protocols and guidelines for conducting practical work in science laboratories in secondary schools.', 'teaching_material', 'Science', 'Secondary', 'PDF', FALSE),
+('Teacher Pension Guide - NSSF & NHIF 2026', 'Updated guide on NSSF and NHIF contributions, benefits, and retirement planning for teachers.', 'professional_dev', 'Welfare', 'All', 'PDF', FALSE);
+
+-- Scholarships
+INSERT IGNORE INTO scholarships (title, provider, description, eligibility, benefits, application_deadline, scholarship_type, is_featured, is_active) VALUES
+('KUPPET National Scholarship Fund 2026', 'KUPPET National', 'Annual scholarship fund for children of KUPPET members pursuing university education. Awarded based on academic merit and financial need.', 'Children of fully paid-up KUPPET members. Must have scored B+ or above in KCSE. Must be joining university for the first time. Family income below KES 50,000 per month.', 'KES 50,000 annual tuition support. Renewable for up to 4 years subject to academic performance. Priority placement in KUPPET mentorship program.', '2026-07-31', 'undergraduate', TRUE, TRUE),
+('Teachers Welfare Fund Education Grant', 'TSC Teachers Welfare Fund', 'Education grants for children of TSC teachers pursuing technical and vocational training or university education.', 'Children of TSC-employed teachers (KUPPET members). Must be enrolled in accredited institution. Must not be benefiting from another TSC scholarship.', 'KES 30,000 one-time grant. Applicable to tuition fees, books, and accommodation.', '2026-08-15', 'vocational', TRUE, TRUE),
+('Migori County Government Bursary Fund', 'Migori County Government', 'County government bursary for students from Migori County pursuing higher education, open to children of teachers among others.', 'Residents of Migori County. Must have joined Form 1 or university. Financial need demonstrated through affidavit. Priority to orphans and vulnerable children.', 'KES 10,000 - 30,000 depending on need assessment. Renewable annually subject to availability of funds.', '2026-09-30', 'undergraduate', FALSE, TRUE),
+('CBA Foundation Teacher Children Scholarship', 'CBA Foundation (Commercial Bank of Africa)', 'CBA Foundation scholarship targeting children of teachers across Kenya, promoting access to quality higher education.', 'Children of teachers (public or private). Scored minimum B plain in KCSE. Must be joining university or TVET. No age limit.', 'Full tuition for 4 years at public universities. KES 15,000 monthly stipend. Laptop and academic support.', '2026-06-30', 'undergraduate', TRUE, TRUE),
+('Government of Kenya Postgraduate Scholarship', 'Ministry of Education - HELB', 'Government postgraduate scholarship for Kenyan professionals including teachers seeking advanced degrees locally or internationally.', 'Kenyan citizen. Currently employed in public sector. Minimum 2 years work experience. Unconditional admission to accredited postgraduate program. Below 45 years of age.', 'Full tuition fees at public universities. KES 20,000 monthly stipend. Research allowance for PhD candidates.', '2026-07-15', 'postgraduate', FALSE, TRUE);
+
+-- Advocacy content
+INSERT IGNORE INTO advocacy (title, slug, content, category, is_featured, is_published) VALUES
+('Know Your Rights as a Teacher in Kenya', 'know-your-rights-teacher-kenya', '<h2>Constitutional Protections</h2><p>Every teacher in Kenya is protected under Article 41 of the Constitution which guarantees fair labour practices including the right to form and join trade unions, the right to strike, and the right to collective bargaining.</p><h2>Employment Act 2007</h2><p>Key protections under the Employment Act include:<br>• Right to a written employment contract<br>• Protection from unfair dismissal<br>• Maternity and paternity leave entitlements<br>• Annual leave of not less than 21 days<br>• Protection from workplace discrimination</p><h2>Labour Relations Act 2007</h2><p>This Act governs collective bargaining between KUPPET and TSC, establishing the framework for Collective Bargaining Agreements (CBAs) that determine salary scales, allowances, and working conditions for teachers.</p><h2>TSC Act 2012</h2><p>The TSC Act governs the employment, discipline, and career management of teachers. Key provisions include the right to appeal disciplinary decisions and the right to representation during disciplinary proceedings.</p>', 'rights', TRUE, TRUE),
+
+('How to Report Workplace Issues - Step by Step Guide', 'reporting-workplace-issues-guide', '<h2>When to Report</h2><p>You should report workplace issues when you experience or witness unfair treatment, harassment, unsafe working conditions, discrimination, or any violation of your employment rights.</p><h2>Internal Reporting Process</h2><p><strong>Step 1:</strong> Document the incident in writing with dates, times, witnesses, and description of events.</p><p><strong>Step 2:</strong> Report to your immediate supervisor or head of institution if appropriate.</p><p><strong>Step 3:</strong> If unresolved, escalate to the Sub-County Director of Education.</p><h2>Reporting to KUPPET</h2><p>Contact the KUPPET Migori Branch office with your documentation. Our advocacy team will review your case and advise on the best course of action, including whether to pursue the matter through the Labour Relations Court.</p><h2>Labour Relations Court</h2><p>For serious violations, cases may be filed with the Employment and Labour Relations Court (ELRC). KUPPET provides legal support to members pursuing cases at the ELRC.</p>', 'legal', TRUE, TRUE),
+
+('Understanding Your Collective Bargaining Agreement (CBA)', 'understanding-cba-teachers', '<h2>What is a CBA?</h2><p>A Collective Bargaining Agreement is a written agreement negotiated between KUPPET (representing teachers) and the Teachers Service Commission (TSC). It governs the terms and conditions of employment for all KUPPET members.</p><h2>Current CBA Key Provisions</h2><ul><li>Salary scales and progression</li><li>Housing allowance rates</li><li>Commuter allowance</li><li>Medical coverage</li><li>Professional development leave</li><li>Promotion criteria</li></ul><h2>Your Rights Under the CBA</h2><p>Every KUPPET member is entitled to the full benefits outlined in the current CBA. If you believe your entitlements are not being honored, contact the branch office immediately.</p>', 'labour', FALSE, TRUE);
+
+-- Index for performance
+CREATE INDEX IF NOT EXISTS idx_news_published ON news(is_published, published_at);
+CREATE INDEX IF NOT EXISTS idx_news_category ON news(category);
+CREATE INDEX IF NOT EXISTS idx_events_date ON events(event_date);
+CREATE INDEX IF NOT EXISTS idx_resources_category ON resources(category);
+CREATE INDEX IF NOT EXISTS idx_contacts_status ON contacts(status);
