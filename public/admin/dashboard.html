@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard — KUPPET Migori Admin</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <link rel="stylesheet" href="/css/style.css">
+  <link rel="stylesheet" href="/css/portal.css">
+</head>
+<body class="portal-body admin-dashboard-page">
+
+<div class="portal-layout">
+  <div id="sidebar-placeholder"></div>
+
+  <main class="portal-main">
+    <div id="topbar-placeholder"></div>
+
+    <div class="portal-content">
+      <div class="page-heading">
+        <div class="page-heading-text">
+          <h1>Dashboard</h1>
+          <p>Welcome back. Here's what's happening at KUPPET Migori.</p>
+        </div>
+        <div class="page-heading-actions">
+          <button class="btn btn-outline btn-sm" onclick="adminApi.analytics.exportPdf()">
+            <i class="fas fa-file-pdf"></i> Export Report
+          </button>
+        </div>
+      </div>
+
+      <!-- Stats Grid -->
+      <div class="stats-grid" id="stats-grid">
+        <div class="portal-loading"><i class="fas fa-spinner fa-spin"></i> Loading stats…</div>
+      </div>
+
+      <!-- Charts -->
+      <div class="grid-2" style="gap:1rem;margin-bottom:1.5rem">
+        <div class="chart-card">
+          <div class="chart-card-header">
+            <div class="chart-card-title"><i class="fas fa-users" style="color:var(--primary)"></i> New Members (12 months)</div>
+          </div>
+          <div class="chart-container"><canvas id="chart-members"></canvas></div>
+        </div>
+        <div class="chart-card">
+          <div class="chart-card-header">
+            <div class="chart-card-title"><i class="fas fa-hand-holding-heart" style="color:var(--gold)"></i> BBF Claims (12 months)</div>
+          </div>
+          <div class="chart-container"><canvas id="chart-bbf"></canvas></div>
+        </div>
+      </div>
+
+      <div class="grid-2" style="gap:1rem;margin-bottom:1.5rem">
+        <div class="chart-card">
+          <div class="chart-card-header">
+            <div class="chart-card-title"><i class="fas fa-sms" style="color:var(--green)"></i> SMS Sent (12 months)</div>
+          </div>
+          <div class="chart-container"><canvas id="chart-sms"></canvas></div>
+        </div>
+        <div class="data-card">
+          <div class="data-card-header">
+            <div class="data-card-title">Quick Actions</div>
+          </div>
+          <div style="padding:1.25rem;display:flex;flex-direction:column;gap:0.5rem">
+            <a href="/admin/members.html?tab=pending" class="btn btn-outline btn-sm"><i class="fas fa-user-clock"></i> Review Pending Members</a>
+            <a href="/admin/bbf.html?status=submitted" class="btn btn-outline btn-sm"><i class="fas fa-file-medical"></i> Review BBF Claims</a>
+            <a href="/admin/scholarship-apps.html?status=applied" class="btn btn-outline btn-sm"><i class="fas fa-award"></i> Review Scholarship Applications</a>
+            <a href="/admin/contacts.html?status=new" class="btn btn-outline btn-sm"><i class="fas fa-envelope"></i> View New Enquiries</a>
+            <a href="/admin/sms.html" class="btn btn-gold btn-sm"><i class="fas fa-sms"></i> Send Broadcast SMS</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="/admin/js/admin-api.js"></script>
+<script src="/admin/js/admin-portal.js"></script>
+<script>
+  // Inject sidebar + topbar
+  document.getElementById('sidebar-placeholder').outerHTML = getSidebarHtml();
+  document.getElementById('topbar-placeholder').outerHTML = getTopbarHtml('Dashboard');
+</script>
+</body>
+</html>

@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Scholarship Applications — KUPPET Migori Admin</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <link rel="stylesheet" href="/css/style.css"><link rel="stylesheet" href="/css/portal.css">
+</head>
+<body class="portal-body admin-schapp-page">
+<div class="portal-layout">
+  <div id="sidebar-placeholder"></div>
+  <main class="portal-main">
+    <div id="topbar-placeholder"></div>
+    <div class="portal-content">
+      <div class="page-heading"><div class="page-heading-text"><h1>Scholarship Applications</h1></div></div>
+      <div class="filter-tabs" id="sch-tabs">
+        <button class="filter-tab active" data-status="">All</button>
+        <button class="filter-tab" data-status="applied">Applied</button>
+        <button class="filter-tab" data-status="under_review">Under Review</button>
+        <button class="filter-tab" data-status="approved">Approved</button>
+        <button class="filter-tab" data-status="rejected">Rejected</button>
+      </div>
+      <div class="data-card">
+        <div class="data-table-wrap">
+          <table class="data-table">
+            <thead><tr><th>Application No</th><th>Member</th><th>Scholarship</th><th>Applicant</th><th>Status</th><th>Applied</th><th>Action</th></tr></thead>
+            <tbody id="sch-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+<script src="/admin/js/admin-api.js"></script><script src="/admin/js/admin-portal.js"></script>
+<script>
+  document.getElementById('sidebar-placeholder').outerHTML = getSidebarHtml();
+  document.getElementById('topbar-placeholder').outerHTML = getTopbarHtml('Scholarship Applications');
+  const user = requireAdminAuth(); if(user) initSidebar(user);
+  let currentStatus='';
+  async function loadApps(){
+    const tbody=document.getElementById('sch-tbody');
+    tbody.innerHTML='<tr><td colspan="7">'+renderLoading()+'</td></tr>';
+    try{
+      const res=await adminApi.schApps.getAll({status:currentStatus,limit:30});
+      if(!res.data.length){tbody.innerHTML='<tr><td colspan="7">'+renderEmpty()+'</td></tr>';return;}
+      tbody.innerHTML=res.data.map(a=>`<tr>
+        <td>${escHtml(a.application_number)}</td>
+        <td>${escHtml(a.full_name)}<br><small>${escHtml(a.member_number)}</small></td>
+        <td>${escHtml(a.scholarship_title)}</td>
+        <td>${escHtml(a.applicant_name)}</td>
+        <td>${statusBadge(a.status)}</td>
+        <td>${formatDate(a.created_at)}</td>
+        <td><a href="/admin/scholarship-app-detail.html?id=${a.id}" class="btn btn-outline btn-xs"><i class="fas fa-eye"></i> Review</a></td>
+      </tr>`).join('');
+    }catch(err){tbody.innerHTML='<tr><td colspan="7">'+escHtml(err.message)+'</td></tr>';}
+  }
+  document.querySelectorAll('#sch-tabs .filter-tab').forEach(t=>t.addEventListener('click',()=>{
+    document.querySelectorAll('#sch-tabs .filter-tab').forEach(x=>x.classList.remove('active'));t.classList.add('active');currentStatus=t.dataset.status;loadApps();
+  }));
+  loadApps();
+</script>
+</body>
+</html>

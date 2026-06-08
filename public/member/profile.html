@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>My Profile — KUPPET Migori</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <link rel="stylesheet" href="/css/style.css"><link rel="stylesheet" href="/css/portal.css">
+</head>
+<body class="portal-body member-profile-page">
+<div class="portal-layout">
+  <div id="sidebar-placeholder"></div>
+  <main class="portal-main">
+    <div id="topbar-placeholder"></div>
+    <div class="portal-content">
+      <div class="page-heading">
+        <div class="page-heading-text"><h1>My Profile</h1><p>Manage your membership information</p></div>
+      </div>
+      <div id="profile-msg" class="hidden"></div>
+
+      <!-- Photo + membership info -->
+      <div class="data-card" style="margin-bottom:1.25rem">
+        <div style="padding:1.5rem;display:flex;gap:1.5rem;align-items:flex-start;flex-wrap:wrap">
+          <div style="text-align:center">
+            <div class="profile-avatar" id="profile-photo"><i class="fas fa-user" style="font-size:2rem"></i></div>
+            <input type="file" id="photo-input" accept="image/jpeg,image/png,image/webp" style="display:none">
+            <button class="btn btn-outline btn-xs" style="margin-top:0.75rem;display:block" onclick="document.getElementById('photo-input').click()">
+              <i class="fas fa-camera"></i> Change Photo
+            </button>
+          </div>
+          <div>
+            <div style="font-size:0.75rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em">Member Number</div>
+            <div style="font-size:1.1rem;font-weight:800;margin-bottom:0.5rem" id="p-member-number">—</div>
+            <div style="display:flex;gap:0.5rem;flex-wrap:wrap">
+              <span id="p-status"></span>
+              <span style="font-size:0.78rem;color:var(--text-muted)">Since <span id="p-joined">—</span></span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Editable fields -->
+      <div class="data-card" style="margin-bottom:1.25rem">
+        <div class="data-card-header"><div class="data-card-title">Personal Information</div></div>
+        <div style="padding:1.25rem">
+          <div class="form-row">
+            <div class="form-group"><label>Full Name</label><input type="text" id="p-full-name" class="form-control" disabled></div>
+            <div class="form-group"><label>Email</label><input type="email" id="p-email" class="form-control" disabled></div>
+          </div>
+          <div class="form-row">
+            <div class="form-group"><label>Phone Number</label><input type="tel" id="p-phone" class="form-control"></div>
+            <div class="form-group"><label>Gender</label><input type="text" id="p-gender" class="form-control" disabled></div>
+          </div>
+          <div class="form-row">
+            <div class="form-group"><label>Date of Birth</label><input type="date" id="p-date-of-birth" class="form-control" disabled></div>
+            <div class="form-group"><label>National ID</label><input type="text" id="p-national-id" class="form-control" disabled></div>
+          </div>
+          <div class="form-row">
+            <div class="form-group"><label>TSC Number</label><input type="text" id="p-tsc-number" class="form-control" disabled></div>
+            <div class="form-group"><label>Employment Number</label><input type="text" id="p-employment-number" class="form-control"></div>
+          </div>
+          <div class="form-row">
+            <div class="form-group"><label>School Name</label><input type="text" id="p-school-name" class="form-control"></div>
+            <div class="form-group"><label>Sub-County</label>
+              <select id="p-sub-county" class="form-control">
+                <option>Migori</option><option>Suna East</option><option>Suna West</option><option>Rongo</option><option>Uriri</option><option>Nyatike</option><option>Kuria East</option><option>Kuria West</option>
+              </select>
+            </div>
+          </div>
+          <button id="btn-save-profile" class="btn btn-gold btn-sm"><i class="fas fa-save"></i> Save Changes</button>
+        </div>
+      </div>
+
+      <!-- Change password -->
+      <div class="data-card">
+        <div class="data-card-header"><div class="data-card-title">Change Password</div></div>
+        <div style="padding:1.25rem">
+          <div id="pw-msg" class="hidden"></div>
+          <div class="form-row">
+            <div class="form-group"><label>Current Password</label><input type="password" id="old-pw" class="form-control"></div>
+            <div class="form-group"><label>New Password (min 8 chars)</label><input type="password" id="new-pw" class="form-control"></div>
+          </div>
+          <button id="btn-change-pw" class="btn btn-outline btn-sm"><i class="fas fa-key"></i> Update Password</button>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+<script src="/member/js/member-api.js"></script><script src="/member/js/member-portal.js"></script>
+<script>
+  document.getElementById('sidebar-placeholder').outerHTML = getMemberSidebarHtml();
+  document.getElementById('topbar-placeholder').outerHTML = getMemberTopbarHtml('My Profile');
+</script>
+</body>
+</html>

@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>scholarship-app-detail — KUPPET Migori Admin</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <link rel="stylesheet" href="/css/style.css"><link rel="stylesheet" href="/css/portal.css">
+</head>
+<body class="portal-body admin-scholarship-app-detail-page">
+<div class="portal-layout">
+  <div id="sidebar-placeholder"></div>
+  <main class="portal-main">
+    <div id="topbar-placeholder"></div>
+    <div class="portal-content" id="page-content">
+      <div class="portal-loading"><i class="fas fa-spinner fa-spin"></i> Loading scholarship-app-detail…</div>
+    </div>
+  </main>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="/admin/js/admin-api.js"></script><script src="/admin/js/admin-portal.js"></script>
+<script src="/admin/js/admin-scholarship-app-detail.js" onerror="void 0"></script>
+<script>
+  document.getElementById('sidebar-placeholder').outerHTML = getSidebarHtml();
+  document.getElementById('topbar-placeholder').outerHTML = getTopbarHtml('scholarship-app-detail');
+  const user = requireAdminAuth(); if(user) initSidebar(user);
+</script>
+</body>
+</html>

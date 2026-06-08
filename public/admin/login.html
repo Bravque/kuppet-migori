@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Login — KUPPET Migori</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <link rel="stylesheet" href="/css/style.css">
+  <link rel="stylesheet" href="/css/portal.css">
+</head>
+<body class="portal-body portal-login-page admin-login-page">
+
+<div class="portal-login-card">
+  <div class="login-logo">
+    <div class="login-logo-icon"><i class="fas fa-graduation-cap"></i></div>
+    <h1>KUPPET Migori</h1>
+    <p>Admin Portal — Secure Access</p>
+  </div>
+
+  <!-- Step 1: credentials -->
+  <div id="step-credentials">
+    <div id="login-alert" class="alert alert-danger hidden"></div>
+
+    <div class="form-group">
+      <label for="email">Email Address</label>
+      <input type="email" id="email" class="form-control" placeholder="admin@kuppetmigori.co.ke" autocomplete="username">
+    </div>
+
+    <div class="form-group">
+      <label for="password">Password</label>
+      <div style="position:relative">
+        <input type="password" id="password" class="form-control" placeholder="Enter password" autocomplete="current-password" style="padding-right:2.5rem">
+        <button type="button" id="toggle-password" style="position:absolute;right:0.75rem;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--text-muted);cursor:pointer">
+          <i class="fas fa-eye"></i>
+        </button>
+      </div>
+    </div>
+
+    <button id="login-btn" class="btn btn-primary" style="width:100%;margin-top:0.5rem">
+      <i class="fas fa-sign-in-alt"></i> Sign In
+    </button>
+
+    <div style="text-align:center;margin-top:1.5rem">
+      <a href="/" style="font-size:0.8rem;color:var(--text-muted)"><i class="fas fa-arrow-left"></i> Back to website</a>
+    </div>
+  </div>
+
+  <!-- Step 2: TOTP -->
+  <div id="step-totp" style="display:none">
+    <div style="text-align:center;margin-bottom:1.5rem">
+      <div style="width:52px;height:52px;background:#EBF4FF;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:1.4rem;color:var(--primary);margin-bottom:0.75rem">
+        <i class="fas fa-shield-halved"></i>
+      </div>
+      <h3 style="margin:0 0 0.25rem;font-size:1rem;font-weight:700">Two-Factor Authentication</h3>
+      <p style="margin:0;font-size:0.82rem;color:var(--text-muted)">Enter the 6-digit code from your authenticator app</p>
+    </div>
+
+    <div id="totp-alert" class="alert alert-danger hidden"></div>
+
+    <div class="form-group">
+      <label for="totp-code">Authentication Code</label>
+      <input type="text" id="totp-code" class="form-control" placeholder="000000" maxlength="6" inputmode="numeric" pattern="[0-9]*" style="text-align:center;font-size:1.5rem;letter-spacing:0.3em">
+    </div>
+
+    <button id="totp-btn" class="btn btn-primary" style="width:100%">
+      <i class="fas fa-check"></i> Verify Code
+    </button>
+
+    <button type="button" id="back-to-credentials" style="width:100%;margin-top:0.75rem;background:none;border:none;font-size:0.82rem;color:var(--text-muted);cursor:pointer">
+      <i class="fas fa-arrow-left"></i> Back to login
+    </button>
+  </div>
+</div>
+
+<script src="/admin/js/admin-api.js"></script>
+<script>
+  // If already logged in, redirect
+  if (adminApi.getUser() && localStorage.getItem('adminToken')) {
+    window.location.href = '/admin/dashboard.html';
+  }
+
+  const emailEl = document.getElementById('email');
+  const passwordEl = document.getElementById('password');
+  const loginBtn = document.getElementById('login-btn');
+  const loginAlert = document.getElementById('login-alert');
+  const stepCreds = document.getElementById('step-credentials');
+  const stepTotp = document.getElementById('step-totp');
+  const totpInput = document.getElementById('totp-code');
+  const totpBtn = document.getElementById('totp-btn');
+  const totpAlert = document.getElementById('totp-alert');
+  let tempToken = null;
+
+  document.getElementById('toggle-password').addEventListener('click', () => {
+    const t = passwordEl.type === 'password' ? 'text' : 'password';
+    passwordEl.type = t;
+    document.querySelector('#toggle-password i').className = t === 'password' ? 'fas fa-eye' : 'fas fa-eye-slash';
+  });
+
+  async function doLogin() {
+    loginAlert.className = 'hidden';
+    loginBtn.disabled = true;
+    loginBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Signing in…';
+
+    try {
+      const res = await adminApi.auth.login(emailEl.value.trim(), passwordEl.value);
+      if (res.requires2fa) {
+        tempToken = res.tempToken;
+        stepCreds.style.display = 'none';
+        stepTotp.style.display = 'block';
+        setTimeout(() => totpInput.focus(), 50);
+        return;
+      }
+      adminApi.saveToken(res.token);
+      adminApi.saveUser(res.user);
+      window.location.href = '/admin/dashboard.html';
+    } catch (err) {
+      loginAlert.className = 'alert alert-danger';
+      loginAlert.textContent = err.message || 'Login failed';
+    } finally {
+      loginBtn.disabled = false;
+      loginBtn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Sign In';
+    }
+  }
+
+  loginBtn.addEventListener('click', doLogin);
+  passwordEl.addEventListener('keydown', (e) => { if (e.key === 'Enter') doLogin(); });
+
+  document.getElementById('back-to-credentials').addEventListener('click', () => {
+    stepTotp.style.display = 'none';
+    stepCreds.style.display = 'block';
+    tempToken = null;
+  });
+
+  async function doTotp() {
+    totpAlert.className = 'hidden';
+    totpBtn.disabled = true;
+    totpBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Verifying…';
+
+    try {
+      const res = await adminApi.auth.confirmTotp(tempToken, totpInput.value.trim());
+      adminApi.saveToken(res.token);
+      adminApi.saveUser(res.user);
+      window.location.href = '/admin/dashboard.html';
+    } catch (err) {
+      totpAlert.className = 'alert alert-danger';
+      totpAlert.textContent = err.message || 'Invalid code';
+      totpInput.value = '';
+      totpInput.focus();
+    } finally {
+      totpBtn.disabled = false;
+      totpBtn.innerHTML = '<i class="fas fa-check"></i> Verify Code';
+    }
+  }
+
+  totpBtn.addEventListener('click', doTotp);
+  totpInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') doTotp(); });
+</script>
+</body>
+</html>

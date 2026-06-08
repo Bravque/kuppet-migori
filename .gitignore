@@ -5,3 +5,7 @@ npm-debug.log*
 .DS_Store
 public/images/uploads/
 *.pid
+
+# Member uploads (sensitive documents)
+public/uploads/
+

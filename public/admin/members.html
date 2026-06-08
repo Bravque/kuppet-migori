@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Members — KUPPET Migori Admin</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <link rel="stylesheet" href="/css/style.css"><link rel="stylesheet" href="/css/portal.css">
+</head>
+<body class="portal-body admin-members-page">
+<div class="portal-layout">
+  <div id="sidebar-placeholder"></div>
+  <main class="portal-main">
+    <div id="topbar-placeholder"></div>
+    <div class="portal-content">
+      <div class="page-heading">
+        <div class="page-heading-text"><h1>Members</h1><p>Manage member registrations and accounts.</p></div>
+        <button class="btn btn-outline btn-sm" onclick="adminApi.members.exportExcel()"><i class="fas fa-file-excel"></i> Export</button>
+      </div>
+      <div class="filter-tabs" id="status-tabs">
+        <button class="filter-tab active" data-status="">All</button>
+        <button class="filter-tab" data-status="pending_approval">Pending Approval</button>
+        <button class="filter-tab" data-status="approved">Approved</button>
+        <button class="filter-tab" data-status="rejected">Rejected</button>
+        <button class="filter-tab" data-status="suspended">Suspended</button>
+      </div>
+      <div class="filter-bar">
+        <input type="search" class="form-control" id="member-search" placeholder="Search by name, TSC, email...">
+        <select class="form-control" id="subcounty-filter">
+          <option value="">All Sub-Counties</option>
+          <option>Migori</option><option>Suna East</option><option>Suna West</option><option>Rongo</option>
+          <option>Uriri</option><option>Nyatike</option><option>Kuria East</option><option>Kuria West</option>
+        </select>
+      </div>
+      <div class="data-card">
+        <div class="data-table-wrap">
+          <table class="data-table">
+            <thead><tr><th>Member</th><th>TSC No</th><th>School</th><th>Sub-County</th><th>Status</th><th>Registered</th><th>Actions</th></tr></thead>
+            <tbody id="members-tbody"><tr><td colspan="7" class="portal-loading"><i class="fas fa-spinner fa-spin"></i> Loading...</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+<div class="portal-modal-overlay" id="reject-modal">
+  <div class="portal-modal" style="max-width:440px">
+    <div class="portal-modal-header"><h3>Reject Member</h3><button class="modal-close-btn"><i class="fas fa-times"></i></button></div>
+    <div class="portal-modal-body">
+      <p style="font-size:0.85rem;color:var(--text-muted)">Provide a reason for rejection. This will be communicated to the applicant.</p>
+      <textarea id="reject-reason" class="form-control" rows="3" placeholder="Reason..."></textarea>
+    </div>
+    <div class="portal-modal-footer">
+      <button class="modal-close-btn btn btn-outline btn-sm">Cancel</button>
+      <button class="btn btn-sm" style="background:#FEE2E2;color:#991B1B" id="btn-confirm-reject">Reject</button>
+    </div>
+  </div>
+</div>
+<script src="/admin/js/admin-api.js"></script><script src="/admin/js/admin-portal.js"></script>
+<script>
+  document.getElementById('sidebar-placeholder').outerHTML = getSidebarHtml();
+  document.getElementById('topbar-placeholder').outerHTML = getTopbarHtml('Members');
+  const user = requireAdminAuth(); if(user) initSidebar(user);
+  let currentStatus='', currentSearch='', rejectingId=null;
+  async function loadMembers() {
+    const tbody = document.getElementById('members-tbody');
+    tbody.innerHTML = '<tr><td colspan="7">'+renderLoading()+'</td></tr>';
+    try {
+      const res = await adminApi.members.getAll({status:currentStatus,search:currentSearch,limit:25});
+      if(!res.data.length){tbody.innerHTML='<tr><td colspan="7">'+renderEmpty()+'</td></tr>';return;}
+      tbody.innerHTML = res.data.map(m=>`<tr>
+        <td><strong>${escHtml(m.full_name)}</strong><br><small>${escHtml(m.member_number)}</small></td>
+        <td>${escHtml(m.tsc_number)}</td>
+        <td>${escHtml(m.school_name)}</td>
+        <td>${escHtml(m.sub_county)}</td>
+        <td>${statusBadge(m.status)}</td>
+        <td>${formatDate(m.created_at)}</td>
+        <td style="display:flex;gap:0.3rem;flex-wrap:wrap">
+          <a href="/admin/member-detail.html?id=${m.id}" class="btn btn-outline btn-xs"><i class="fas fa-eye"></i></a>
+          ${m.status!=='approved'?`<button class="btn btn-xs" style="background:#DCFCE7;color:#166534" onclick="approveMember(${m.id})"><i class="fas fa-check"></i></button>`:''}
+          ${m.status!=='rejected'?`<button class="btn btn-xs" style="background:#FEE2E2;color:#991B1B" onclick="openReject(${m.id})"><i class="fas fa-times"></i></button>`:''}
+        </td></tr>`).join('');
+    } catch(err){tbody.innerHTML='<tr><td colspan="7">'+escHtml(err.message)+'</td></tr>';}
+  }
+  async function approveMember(id){if(!confirm('Approve?'))return;try{await adminApi.members.approve(id);loadMembers();}catch(e){alert(e.message);}}
+  function openReject(id){rejectingId=id;document.getElementById('reject-reason').value='';document.getElementById('reject-modal').classList.add('open');}
+  document.getElementById('btn-confirm-reject').addEventListener('click',async()=>{
+    try{await adminApi.members.reject(rejectingId,document.getElementById('reject-reason').value.trim());document.getElementById('reject-modal').classList.remove('open');loadMembers();}catch(e){alert(e.message);}
+  });
+  document.querySelectorAll('#status-tabs .filter-tab').forEach(t=>t.addEventListener('click',()=>{
+    document.querySelectorAll('#status-tabs .filter-tab').forEach(x=>x.classList.remove('active'));
+    t.classList.add('active');currentStatus=t.dataset.status;loadMembers();
+  }));
+  let st;document.getElementById('member-search').addEventListener('input',function(){clearTimeout(st);st=setTimeout(()=>{currentSearch=this.value;loadMembers();},400);});
+  const urlTab=new URLSearchParams(window.location.search).get('tab');
+  if(urlTab==='pending'){document.querySelector('[data-status="pending_approval"]').click();}else{loadMembers();}
+</script>
+</body>
+</html>

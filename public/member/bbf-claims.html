@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BBF Claims — KUPPET Migori</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <link rel="stylesheet" href="/css/style.css"><link rel="stylesheet" href="/css/portal.css">
+</head>
+<body class="portal-body member-bbf-page">
+<div class="portal-layout">
+  <div id="sidebar-placeholder"></div>
+  <main class="portal-main">
+    <div id="topbar-placeholder"></div>
+    <div class="portal-content">
+      <div class="page-heading">
+        <div class="page-heading-text"><h1>BBF Claims</h1><p>Submit and track your Benevolent & Burial Fund claims.</p></div>
+        <div class="page-heading-actions"><button id="btn-new-claim" class="btn btn-gold btn-sm"><i class="fas fa-plus"></i> New Claim</button></div>
+      </div>
+      <div id="bbf-list"><div class="portal-loading"><i class="fas fa-spinner fa-spin"></i> Loading…</div></div>
+    </div>
+  </main>
+</div>
+
+<!-- New claim modal -->
+<div class="portal-modal-overlay" id="new-claim-modal">
+  <div class="portal-modal">
+    <div class="portal-modal-header"><h3>Submit New BBF Claim</h3><button class="modal-close-btn"><i class="fas fa-times"></i></button></div>
+    <div class="portal-modal-body">
+      <div id="claim-msg" class="hidden"></div>
+      <form id="new-claim-form">
+        <div class="form-group">
+          <label>Claim Type <span class="required">*</span></label>
+          <select id="claim-type" class="form-control" required>
+            <option value="">Select claim type</option>
+            <option value="death_benefit">Death Benefit</option>
+            <option value="disability">Disability</option>
+            <option value="medical_emergency">Medical Emergency</option>
+            <option value="other">Other</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Description</label>
+          <textarea id="claim-desc" class="form-control" rows="3" placeholder="Brief description of the claim circumstances"></textarea>
+        </div>
+        <div class="form-group">
+          <label>Amount Requested (KES)</label>
+          <input type="number" id="claim-amount" class="form-control" min="0" placeholder="e.g. 50000">
+        </div>
+        <div style="padding:0.75rem;background:var(--bg);border-radius:8px;font-size:0.8rem;color:var(--text-muted)">
+          <i class="fas fa-info-circle" style="color:var(--primary)"></i>
+          After creating the claim, you will need to upload supporting documents before submitting for review.
+        </div>
+      </form>
+    </div>
+    <div class="portal-modal-footer">
+      <button class="modal-close-btn btn btn-outline btn-sm">Cancel</button>
+      <button id="btn-create-claim" class="btn btn-gold btn-sm"><i class="fas fa-plus"></i> Create Claim</button>
+    </div>
+  </div>
+</div>
+
+<script src="/member/js/member-api.js"></script><script src="/member/js/member-portal.js"></script>
+<script>
+  document.getElementById('sidebar-placeholder').outerHTML = getMemberSidebarHtml();
+  document.getElementById('topbar-placeholder').outerHTML = getMemberTopbarHtml('BBF Claims');
+</script>
+</body>
+</html>

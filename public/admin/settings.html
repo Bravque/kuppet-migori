@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Settings — KUPPET Migori Admin</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <link rel="stylesheet" href="/css/style.css"><link rel="stylesheet" href="/css/portal.css">
+</head>
+<body class="portal-body admin-settings-page">
+<div class="portal-layout">
+  <div id="sidebar-placeholder"></div>
+  <main class="portal-main">
+    <div id="topbar-placeholder"></div>
+    <div class="portal-content">
+      <div class="page-heading">
+        <div class="page-heading-text"><h1>Settings</h1><p>Manage site settings and security.</p></div>
+      </div>
+      <div id="settings-alert" class="hidden" style="max-width:680px"></div>
+
+      <!-- Site stats -->
+      <div class="data-card" style="max-width:680px;margin-bottom:1.5rem">
+        <div class="data-card-header"><div class="data-card-title">Public Site Statistics</div></div>
+        <div style="padding:1.25rem">
+          <div class="form-row">
+            <div class="form-group"><label>Total Members</label><input type="text" class="form-control" data-setting="total_members"></div>
+            <div class="form-group"><label>Schools Covered</label><input type="text" class="form-control" data-setting="schools_covered"></div>
+          </div>
+          <div class="form-row">
+            <div class="form-group"><label>Years Serving</label><input type="text" class="form-control" data-setting="years_serving"></div>
+            <div class="form-group"><label>Resources Count</label><input type="text" class="form-control" data-setting="resources_count"></div>
+          </div>
+          <div class="form-group"><label>Chairman Name</label><input type="text" class="form-control" data-setting="chairman_name"></div>
+          <div class="form-group"><label>Chairman Title</label><input type="text" class="form-control" data-setting="chairman_title"></div>
+          <div class="form-group"><label>Chairman Message</label><textarea class="form-control" rows="4" data-setting="chairman_message"></textarea></div>
+          <button class="btn btn-gold btn-sm" onclick="['total_members','schools_covered','years_serving','resources_count','chairman_name','chairman_title','chairman_message'].forEach(k=>saveSetting(k))">
+            <i class="fas fa-save"></i> Save Settings
+          </button>
+        </div>
+      </div>
+
+      <!-- 2FA -->
+      <div class="data-card" style="max-width:680px;margin-bottom:1.5rem">
+        <div class="data-card-header"><div class="data-card-title"><i class="fas fa-shield-halved"></i> Two-Factor Authentication</div></div>
+        <div style="padding:1.25rem">
+          <div class="flex items-center gap-3" style="margin-bottom:1rem">
+            <span>2FA Status:</span>
+            <span id="twofa-status"></span>
+          </div>
+          <button id="btn-setup-2fa" class="btn btn-outline btn-sm" onclick="setup2FA()"><i class="fas fa-qrcode"></i> Set Up 2FA</button>
+          <button id="btn-disable-2fa" class="btn btn-sm" style="display:none;background:#FEE2E2;color:#991B1B" onclick="disable2FA()"><i class="fas fa-shield-xmark"></i> Disable 2FA</button>
+
+          <div id="setup-2fa-panel" style="display:none;margin-top:1.5rem">
+            <p style="font-size:0.85rem;color:var(--text-muted);margin-bottom:1rem">Scan this QR code with Google Authenticator, Authy, or any TOTP app.</p>
+            <img id="qr-code-img" src="" alt="QR Code" style="border:1px solid var(--border);border-radius:8px;max-width:200px">
+            <div style="margin-top:0.75rem">
+              <small style="color:var(--text-muted)">Manual key: </small>
+              <code id="manual-key" style="font-size:0.8rem;background:var(--bg);padding:0.25rem 0.5rem;border-radius:4px"></code>
+            </div>
+            <div class="form-group" style="margin-top:1rem;max-width:200px">
+              <label>Verify setup — enter code from app</label>
+              <input type="text" id="totp-setup-code" class="form-control" maxlength="6" placeholder="000000">
+            </div>
+            <button class="btn btn-gold btn-sm" onclick="enable2FA()"><i class="fas fa-check"></i> Enable 2FA</button>
+            <div style="margin-top:1rem;padding:0.75rem;background:var(--bg);border-radius:8px">
+              <small style="font-weight:700;color:var(--text-muted);display:block;margin-bottom:0.25rem">Backup Codes (save these securely):</small>
+              <code id="backup-codes" style="font-size:0.75rem;word-break:break-all"></code>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Change password -->
+      <div class="data-card" style="max-width:680px">
+        <div class="data-card-header"><div class="data-card-title">Change Password</div></div>
+        <div style="padding:1.25rem">
+          <div id="pw-alert" class="hidden"></div>
+          <div class="form-group"><label>Current Password</label><input type="password" id="old-pw" class="form-control" style="max-width:320px"></div>
+          <div class="form-group"><label>New Password</label><input type="password" id="new-pw" class="form-control" style="max-width:320px"></div>
+          <button class="btn btn-outline btn-sm" onclick="changePassword()"><i class="fas fa-key"></i> Update Password</button>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+<script src="/admin/js/admin-api.js"></script><script src="/admin/js/admin-portal.js"></script>
+<script>
+  document.getElementById('sidebar-placeholder').outerHTML = getSidebarHtml();
+  document.getElementById('topbar-placeholder').outerHTML = getTopbarHtml('Settings');
+
+  async function changePassword() {
+    const oldPw = document.getElementById('old-pw').value;
+    const newPw = document.getElementById('new-pw').value;
+    try {
+      await adminApi.auth.changePassword(oldPw, newPw);
+      showAlert('pw-alert', 'Password updated successfully', 'success');
+      document.getElementById('old-pw').value = '';
+      document.getElementById('new-pw').value = '';
+    } catch (err) { showAlert('pw-alert', err.message); }
+  }
+</script>
+</body>
+</html>

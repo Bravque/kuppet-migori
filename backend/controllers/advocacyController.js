@@ -27,4 +27,56 @@ const getOne = async (req, res) => {
   }
 };
 
-module.exports = { getAll, getOne };
+function slugify(str) {
+  return str.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+}
+
+const adminCreate = async (req, res) => {
+  try {
+    const { title, content, category, document_url, is_featured, is_published } = req.body;
+    if (!title || !content) return res.status(400).json({ success: false, message: 'Title and content required' });
+    let slug = slugify(title);
+    const [[{ count }]] = await db.query('SELECT COUNT(*) as count FROM advocacy WHERE slug LIKE ?', [`${slug}%`]);
+    if (count > 0) slug = `${slug}-${Date.now()}`;
+    const [result] = await db.query(
+      'INSERT INTO advocacy (title, slug, content, category, document_url, is_featured, is_published) VALUES (?, ?, ?, ?, ?, ?, ?)',
+      [title, slug, content, category || 'rights', document_url || null, is_featured ? 1 : 0, is_published !== false ? 1 : 0]
+    );
+    const [[row]] = await db.query('SELECT * FROM advocacy WHERE id = ?', [result.insertId]);
+    res.status(201).json({ success: true, data: row });
+  } catch (err) {
+    res.status(500).json({ success: false, message: 'Failed to create content', error: err.message });
+  }
+};
+
+const adminUpdate = async (req, res) => {
+  try {
+    const [[existing]] = await db.query('SELECT id FROM advocacy WHERE id = ?', [req.params.id]);
+    if (!existing) return res.status(404).json({ success: false, message: 'Content not found' });
+    const allowed = ['title','content','category','document_url','is_featured','is_published'];
+    const fields = [], params = [];
+    for (const key of allowed) {
+      if (req.body[key] !== undefined) { fields.push(`${key} = ?`); params.push(req.body[key]); }
+    }
+    if (!fields.length) return res.status(400).json({ success: false, message: 'No fields to update' });
+    params.push(req.params.id);
+    await db.query(`UPDATE advocacy SET ${fields.join(', ')} WHERE id = ?`, params);
+    const [[row]] = await db.query('SELECT * FROM advocacy WHERE id = ?', [req.params.id]);
+    res.json({ success: true, data: row });
+  } catch (err) {
+    res.status(500).json({ success: false, message: 'Failed to update content', error: err.message });
+  }
+};
+
+const adminRemove = async (req, res) => {
+  try {
+    const [[existing]] = await db.query('SELECT id FROM advocacy WHERE id = ?', [req.params.id]);
+    if (!existing) return res.status(404).json({ success: false, message: 'Content not found' });
+    await db.query('DELETE FROM advocacy WHERE id = ?', [req.params.id]);
+    res.json({ success: true, message: 'Content deleted' });
+  } catch (err) {
+    res.status(500).json({ success: false, message: 'Failed to delete content', error: err.message });
+  }
+};
+
+module.exports = { getAll, getOne, adminCreate, adminUpdate, adminRemove };

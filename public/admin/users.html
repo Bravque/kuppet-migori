@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Users — KUPPET Migori Admin</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <link rel="stylesheet" href="/css/style.css"><link rel="stylesheet" href="/css/portal.css">
+</head>
+<body class="portal-body admin-users-page">
+<div class="portal-layout">
+  <div id="sidebar-placeholder"></div>
+  <main class="portal-main">
+    <div id="topbar-placeholder"></div>
+    <div class="portal-content">
+      <div class="page-heading">
+        <div class="page-heading-text"><h1>Admin Users</h1><p>Manage administrator accounts.</p></div>
+        <button class="btn btn-gold btn-sm" onclick="document.getElementById('user-modal').classList.add('open');document.getElementById('user-form').reset();editingUserId=null"><i class="fas fa-plus"></i> New Admin</button>
+      </div>
+      <div id="users-alert" class="hidden" style="margin-bottom:1rem"></div>
+      <div class="data-card">
+        <div class="data-table-wrap">
+          <table class="data-table">
+            <thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Status</th><th>Last Login</th><th>Actions</th></tr></thead>
+            <tbody id="users-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+<div class="portal-modal-overlay" id="user-modal">
+  <div class="portal-modal" style="max-width:480px">
+    <div class="portal-modal-header"><h3 id="user-modal-title">New Admin User</h3><button class="modal-close-btn"><i class="fas fa-times"></i></button></div>
+    <div class="portal-modal-body">
+      <form id="user-form">
+        <div class="form-group"><label>Full Name</label><input type="text" name="name" class="form-control" required></div>
+        <div class="form-group"><label>Email</label><input type="email" name="email" class="form-control" required></div>
+        <div class="form-group"><label>Password (leave blank to keep existing)</label><input type="password" name="password" class="form-control" placeholder="Min 8 characters"></div>
+        <div class="form-group"><label>Role</label>
+          <select name="role" class="form-control">
+            <option value="branch_officer">Branch Officer</option>
+            <option value="super_admin">Super Admin</option>
+            <option value="editor">Editor</option>
+            <option value="viewer">Viewer</option>
+          </select>
+        </div>
+      </form>
+    </div>
+    <div class="portal-modal-footer">
+      <button class="modal-close-btn btn btn-outline btn-sm">Cancel</button>
+      <button class="btn btn-gold btn-sm" onclick="saveUser()"><i class="fas fa-save"></i> Save</button>
+    </div>
+  </div>
+</div>
+<script src="/admin/js/admin-api.js"></script><script src="/admin/js/admin-portal.js"></script>
+<script>
+  document.getElementById('sidebar-placeholder').outerHTML = getSidebarHtml();
+  document.getElementById('topbar-placeholder').outerHTML = getTopbarHtml('Admin Users');
+  const user = requireAdminAuth(); if(user) initSidebar(user);
+  let editingUserId = null;
+  async function loadUsers(){
+    const tbody=document.getElementById('users-tbody');
+    tbody.innerHTML='<tr><td colspan="6">'+renderLoading()+'</td></tr>';
+    try{
+      const res=await adminApi.users.getAll();
+      tbody.innerHTML=res.data.map(u=>`<tr>
+        <td><strong>${escHtml(u.name)}</strong></td>
+        <td>${escHtml(u.email)}</td>
+        <td>${statusBadge(u.role)}</td>
+        <td>${statusBadge(u.is_active?'approved':'suspended')}</td>
+        <td>${formatDate(u.last_login)}</td>
+        <td>
+          <button class="btn btn-outline btn-xs" onclick="editUser(${JSON.stringify(u).replace(/"/g,'&quot;')})"><i class="fas fa-edit"></i></button>
+          <button class="btn btn-xs" style="background:#FEE2E2;color:#991B1B" onclick="deleteUser(${u.id})"><i class="fas fa-trash"></i></button>
+        </td>
+      </tr>`).join('');
+    }catch(err){showAlert('users-alert',err.message);}
+  }
+  function editUser(u){
+    editingUserId=u.id;
+    const form=document.getElementById('user-form');
+    form.querySelector('[name=name]').value=u.name;
+    form.querySelector('[name=email]').value=u.email;
+    form.querySelector('[name=role]').value=u.role;
+    form.querySelector('[name=password]').value='';
+    document.getElementById('user-modal-title').textContent='Edit Admin User';
+    document.getElementById('user-modal').classList.add('open');
+  }
+  async function saveUser(){
+    const form=document.getElementById('user-form');
+    const data={name:form.querySelector('[name=name]').value,email:form.querySelector('[name=email]').value,role:form.querySelector('[name=role]').value};
+    const pw=form.querySelector('[name=password]').value;
+    if(pw) data.password=pw;
+    if(!editingUserId && !pw){showAlert('users-alert','Password required for new users');return;}
+    try{
+      editingUserId ? await adminApi.users.update(editingUserId,data) : await adminApi.users.create(data);
+      document.getElementById('user-modal').classList.remove('open');
+      loadUsers();
+    }catch(err){showAlert('users-alert',err.message);}
+  }
+  async function deleteUser(id){
+    if(!confirm('Delete this admin user?'))return;
+    try{await adminApi.users.remove(id);loadUsers();}catch(e){showAlert('users-alert',e.message);}
+  }
+  loadUsers();
+</script>
+</body>
+</html>

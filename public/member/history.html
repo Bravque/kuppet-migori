@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Activity History — KUPPET Migori</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <link rel="stylesheet" href="/css/style.css"><link rel="stylesheet" href="/css/portal.css">
+</head>
+<body class="portal-body member-history-page">
+<div class="portal-layout">
+  <div id="sidebar-placeholder"></div>
+  <main class="portal-main">
+    <div id="topbar-placeholder"></div>
+    <div class="portal-content">
+      <div class="page-heading"><div class="page-heading-text"><h1>Activity History</h1></div></div>
+      <div class="data-card" style="margin-bottom:1.25rem">
+        <div class="data-card-header"><div class="data-card-title">BBF Claims History</div></div>
+        <div class="data-table-wrap">
+          <table class="data-table">
+            <thead><tr><th>Claim No</th><th>Type</th><th>Status</th><th>Submitted</th><th>Resolved</th></tr></thead>
+            <tbody id="bbf-history-tbody"><tr><td colspan="5" class="portal-loading"><i class="fas fa-spinner fa-spin"></i></td></tr></tbody>
+          </table>
+        </div>
+      </div>
+      <div class="data-card">
+        <div class="data-card-header"><div class="data-card-title">Scholarship Applications History</div></div>
+        <div class="data-table-wrap">
+          <table class="data-table">
+            <thead><tr><th>Application No</th><th>Scholarship</th><th>Status</th><th>Applied</th><th>Reviewed</th></tr></thead>
+            <tbody id="sch-history-tbody"><tr><td colspan="5" class="portal-loading"><i class="fas fa-spinner fa-spin"></i></td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+<script src="/member/js/member-api.js"></script><script src="/member/js/member-portal.js"></script>
+<script>
+  document.getElementById('sidebar-placeholder').outerHTML = getMemberSidebarHtml();
+  document.getElementById('topbar-placeholder').outerHTML = getMemberTopbarHtml('Activity History');
+</script>
+</body>
+</html>

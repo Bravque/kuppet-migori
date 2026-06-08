@@ -1,0 +1,165 @@
+const db = require('../config/database');
+const XLSX = require('xlsx');
+const notificationService = require('../services/notificationService');
+
+const VALID_TRANSITIONS = {
+  submitted:    ['under_review'],
+  under_review: ['approved', 'rejected'],
+  approved:     ['paid'],
+};
+
+async function addTimeline(claimId, fromStatus, toStatus, comment, adminId) {
+  await db.query(
+    'INSERT INTO bbf_claim_timeline (claim_id, from_status, to_status, comment, changed_by, changed_by_type) VALUES (?, ?, ?, ?, ?, "admin")',
+    [claimId, fromStatus, toStatus, comment || null, adminId]
+  );
+}
+
+async function getAll(req, res) {
+  try {
+    const { status, limit = 25, offset = 0, search } = req.query;
+    let query = `SELECT bc.*, m.full_name, m.member_number, m.phone
+                 FROM bbf_claims bc JOIN members m ON bc.member_id = m.id WHERE 1=1`;
+    const params = [];
+    if (status) { query += ' AND bc.status = ?'; params.push(status); }
+    if (search) { query += ' AND (bc.claim_number LIKE ? OR m.full_name LIKE ?)'; params.push(`%${search}%`, `%${search}%`); }
+    query += ' ORDER BY bc.created_at DESC LIMIT ? OFFSET ?';
+    params.push(parseInt(limit), parseInt(offset));
+
+    const [rows] = await db.query(query, params);
+    res.json({ success: true, data: rows });
+  } catch (err) {
+    res.status(500).json({ success: false, message: 'Failed to fetch claims', error: err.message });
+  }
+}
+
+async function getOne(req, res) {
+  try {
+    const [[claim]] = await db.query(
+      `SELECT bc.*, m.full_name, m.member_number, m.phone, m.email
+       FROM bbf_claims bc JOIN members m ON bc.member_id = m.id WHERE bc.id = ?`,
+      [req.params.id]
+    );
+    if (!claim) return res.status(404).json({ success: false, message: 'Claim not found' });
+
+    const [docs] = await db.query('SELECT * FROM bbf_claim_documents WHERE claim_id = ?', [claim.id]);
+    const [timeline] = await db.query('SELECT * FROM bbf_claim_timeline WHERE claim_id = ? ORDER BY created_at ASC', [claim.id]);
+    res.json({ success: true, data: { ...claim, documents: docs, timeline } });
+  } catch (err) {
+    res.status(500).json({ success: false, message: 'Failed to fetch claim', error: err.message });
+  }
+}
+
+async function startReview(req, res) {
+  try {
+    const [[claim]] = await db.query('SELECT id, status, member_id, claim_number FROM bbf_claims WHERE id = ?', [req.params.id]);
+    if (!claim) return res.status(404).json({ success: false, message: 'Claim not found' });
+    if (!VALID_TRANSITIONS[claim.status]?.includes('under_review')) {
+      return res.status(400).json({ success: false, message: `Cannot move from ${claim.status} to under_review` });
+    }
+    await db.query('UPDATE bbf_claims SET status = "under_review", assigned_to = ?, reviewed_at = NOW() WHERE id = ?', [req.user.id, claim.id]);
+    await addTimeline(claim.id, claim.status, 'under_review', req.body.notes, req.user.id);
+    res.json({ success: true, message: 'Claim marked under review' });
+  } catch (err) {
+    res.status(500).json({ success: false, message: 'Failed to update', error: err.message });
+  }
+}
+
+async function approveClaim(req, res) {
+  try {
+    const { amount, notes } = req.body;
+    const [[claim]] = await db.query('SELECT id, status, member_id, claim_number FROM bbf_claims WHERE id = ?', [req.params.id]);
+    if (!claim) return res.status(404).json({ success: false, message: 'Claim not found' });
+    if (!VALID_TRANSITIONS[claim.status]?.includes('approved')) {
+      return res.status(400).json({ success: false, message: `Cannot approve from status ${claim.status}` });
+    }
+    await db.query(
+      'UPDATE bbf_claims SET status = "approved", amount_approved = ?, reviewed_by = ?, reviewer_notes = ?, resolved_at = NOW() WHERE id = ?',
+      [amount || null, req.user.id, notes || null, claim.id]
+    );
+    await addTimeline(claim.id, claim.status, 'approved', notes, req.user.id);
+    await notificationService.createNotification({
+      memberId: claim.member_id,
+      type: 'bbf_claim',
+      title: 'BBF Claim Approved',
+      body: `Your BBF claim ${claim.claim_number} has been approved${amount ? `. Approved amount: KES ${Number(amount).toLocaleString()}` : ''}.`,
+      referenceId: claim.id,
+      adminId: req.user.id,
+      smsMessage: `Dear member, your BBF claim ${claim.claim_number} has been APPROVED${amount ? `. Amount: KES ${Number(amount).toLocaleString()}` : ''}. Payment will be processed shortly. - KUPPET Migori`,
+    });
+    res.json({ success: true, message: 'Claim approved' });
+  } catch (err) {
+    res.status(500).json({ success: false, message: 'Failed to approve', error: err.message });
+  }
+}
+
+async function rejectClaim(req, res) {
+  try {
+    const { notes } = req.body;
+    const [[claim]] = await db.query('SELECT id, status, member_id, claim_number FROM bbf_claims WHERE id = ?', [req.params.id]);
+    if (!claim) return res.status(404).json({ success: false, message: 'Claim not found' });
+    await db.query(
+      'UPDATE bbf_claims SET status = "rejected", reviewed_by = ?, reviewer_notes = ?, resolved_at = NOW() WHERE id = ?',
+      [req.user.id, notes || null, claim.id]
+    );
+    await addTimeline(claim.id, claim.status, 'rejected', notes, req.user.id);
+    await notificationService.createNotification({
+      memberId: claim.member_id,
+      type: 'bbf_claim',
+      title: 'BBF Claim Not Approved',
+      body: `Your BBF claim ${claim.claim_number} could not be approved at this time. ${notes ? `Reason: ${notes}` : ''}`,
+      referenceId: claim.id,
+      adminId: req.user.id,
+      smsMessage: `Dear member, your BBF claim ${claim.claim_number} was not approved. ${notes ? `Reason: ${notes}` : 'Contact welfare desk for details.'}  - KUPPET Migori`,
+    });
+    res.json({ success: true, message: 'Claim rejected' });
+  } catch (err) {
+    res.status(500).json({ success: false, message: 'Failed to reject', error: err.message });
+  }
+}
+
+async function markPaid(req, res) {
+  try {
+    const { ref } = req.body;
+    const [[claim]] = await db.query('SELECT id, status, member_id, claim_number FROM bbf_claims WHERE id = ?', [req.params.id]);
+    if (!claim) return res.status(404).json({ success: false, message: 'Claim not found' });
+    if (claim.status !== 'approved') return res.status(400).json({ success: false, message: 'Only approved claims can be marked paid' });
+    await db.query(
+      'UPDATE bbf_claims SET status = "paid", payment_reference = ?, payment_date = CURDATE() WHERE id = ?',
+      [ref || null, claim.id]
+    );
+    await addTimeline(claim.id, 'approved', 'paid', `Payment reference: ${ref || 'N/A'}`, req.user.id);
+    await notificationService.createNotification({
+      memberId: claim.member_id,
+      type: 'bbf_claim',
+      title: 'BBF Claim Payment Processed',
+      body: `Your BBF claim ${claim.claim_number} payment has been processed.`,
+      referenceId: claim.id,
+      adminId: req.user.id,
+    });
+    res.json({ success: true, message: 'Claim marked as paid' });
+  } catch (err) {
+    res.status(500).json({ success: false, message: 'Failed to mark paid', error: err.message });
+  }
+}
+
+async function exportExcel(req, res) {
+  try {
+    const [rows] = await db.query(
+      `SELECT bc.claim_number, m.full_name, m.member_number, bc.claim_type, bc.status,
+              bc.amount_requested, bc.amount_approved, DATE(bc.submitted_at) as submitted,
+              DATE(bc.resolved_at) as resolved
+       FROM bbf_claims bc JOIN members m ON bc.member_id = m.id ORDER BY bc.created_at DESC`
+    );
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(rows), 'BBF Claims');
+    const buf = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
+    res.setHeader('Content-Disposition', 'attachment; filename="bbf-claims.xlsx"');
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.send(buf);
+  } catch (err) {
+    res.status(500).json({ success: false, message: 'Export failed', error: err.message });
+  }
+}
+
+module.exports = { getAll, getOne, startReview, approveClaim, rejectClaim, markPaid, exportExcel };

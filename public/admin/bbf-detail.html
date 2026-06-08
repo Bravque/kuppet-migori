@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BBF Claim Detail — KUPPET Migori Admin</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <link rel="stylesheet" href="/css/style.css"><link rel="stylesheet" href="/css/portal.css">
+</head>
+<body class="portal-body admin-bbf-detail-page">
+<div class="portal-layout">
+  <div id="sidebar-placeholder"></div>
+  <main class="portal-main">
+    <div id="topbar-placeholder"></div>
+    <div class="portal-content">
+      <div class="page-heading">
+        <div class="page-heading-text"><h1 id="claim-number">BBF Claim</h1><div id="claim-status"></div></div>
+        <div class="page-heading-actions">
+          <a href="/admin/bbf.html" class="btn btn-outline btn-sm"><i class="fas fa-arrow-left"></i> Back</a>
+        </div>
+      </div>
+      <div id="action-alert" class="hidden" style="margin-bottom:1rem"></div>
+      <div id="action-buttons" style="display:flex;gap:0.5rem;flex-wrap:wrap;margin-bottom:1rem"></div>
+      <div class="grid-2" style="gap:1rem">
+        <div>
+          <div class="data-card" style="margin-bottom:1rem">
+            <div class="data-card-header"><div class="data-card-title">Claim Details</div></div>
+            <div style="padding:1.25rem"><table style="width:100%;font-size:0.85rem;border-collapse:collapse" id="claim-table"></table></div>
+          </div>
+          <div class="data-card">
+            <div class="data-card-header"><div class="data-card-title">Documents</div></div>
+            <div style="padding:1.25rem"><ul class="doc-list" id="doc-list"></ul></div>
+          </div>
+        </div>
+        <div class="data-card">
+          <div class="data-card-header"><div class="data-card-title">Status Timeline</div></div>
+          <div style="padding:1.25rem"><div class="timeline" id="timeline"></div></div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+<script src="/admin/js/admin-api.js"></script><script src="/admin/js/admin-portal.js"></script>
+<script>
+  document.getElementById('sidebar-placeholder').outerHTML = getSidebarHtml();
+  document.getElementById('topbar-placeholder').outerHTML = getTopbarHtml('BBF Claim Detail');
+  const user = requireAdminAuth(); if(user) initSidebar(user);
+  const id = new URLSearchParams(window.location.search).get('id');
+  if(!id){window.location.href='/admin/bbf.html';}
+  (async()=>{
+    try {
+      const res = await adminApi.bbf.getOne(id);
+      const c = res.data;
+      document.getElementById('claim-number').textContent = c.claim_number;
+      document.getElementById('claim-status').innerHTML = statusBadge(c.status);
+      const rows=[['Claim No',c.claim_number],['Member',c.full_name+' ('+c.member_number+')'],['Phone',c.phone],['Email',c.email],
+        ['Type',c.claim_type.replace(/_/g,' ')],['Status',statusBadge(c.status)],['Amount Req',c.amount_requested?'KES '+Number(c.amount_requested).toLocaleString():'—'],
+        ['Amount Approved',c.amount_approved?'KES '+Number(c.amount_approved).toLocaleString():'—'],
+        ['Submitted',formatDate(c.submitted_at)],['Reviewed',formatDate(c.reviewed_at)],['Resolved',formatDate(c.resolved_at)],
+        ['Notes',c.reviewer_notes||'—'],['Payment Ref',c.payment_reference||'—']];
+      document.getElementById('claim-table').innerHTML = rows.map(([k,v])=>`<tr><td style="padding:0.4rem 0;color:var(--text-muted);width:40%">${k}</td><td>${v||'—'}</td></tr>`).join('');
+      document.getElementById('doc-list').innerHTML = c.documents.length ? c.documents.map(d=>`<li class="doc-item"><i class="fas fa-file doc-icon"></i><span class="doc-name">${escHtml(d.file_name||d.file_url)}</span><span class="doc-size">${escHtml(d.doc_type)}</span><a href="${d.file_url}" target="_blank" class="btn btn-outline btn-xs">View</a></li>`).join('') : '<li style="padding:0.5rem;color:var(--text-muted)">No documents</li>';
+      document.getElementById('timeline').innerHTML = c.timeline.map(e=>`<div class="timeline-item status-${e.to_status}"><div class="timeline-dot"><i class="fas fa-circle" style="font-size:0.45rem"></i></div><div class="timeline-content"><div class="timeline-status">${escHtml(e.to_status.replace(/_/g,' '))}</div><div class="timeline-meta">${formatDateTime(e.created_at)} by ${escHtml(e.changed_by_type)}</div>${e.comment?`<div class="timeline-comment">${escHtml(e.comment)}</div>`:''}</div></div>`).join('');
+
+      // Action buttons based on status
+      const btns = document.getElementById('action-buttons');
+      if(c.status==='submitted'){btns.innerHTML=`<button class="btn btn-outline btn-sm" onclick="doAction('review')"><i class="fas fa-search"></i> Start Review</button>`;}
+      if(c.status==='under_review'){btns.innerHTML=`<button class="btn btn-sm" style="background:#DCFCE7;color:#166534" onclick="doAction('approve')"><i class="fas fa-check"></i> Approve</button><button class="btn btn-sm" style="background:#FEE2E2;color:#991B1B" onclick="doAction('reject')"><i class="fas fa-times"></i> Reject</button>`;}
+      if(c.status==='approved'){btns.innerHTML=`<button class="btn btn-gold btn-sm" onclick="doAction('paid')"><i class="fas fa-money-bill"></i> Mark as Paid</button>`;}
+
+      async function doAction(action) {
+        const notes = action==='paid' ? prompt('Payment reference (optional):') || '' : (action==='reject' ? prompt('Reason for rejection:') || '' : '');
+        const amount = action==='approve' ? prompt('Approved amount (KES, leave blank for requested amount):') || null : null;
+        try {
+          if(action==='review') await adminApi.bbf.startReview(id, notes);
+          if(action==='approve') await adminApi.bbf.approve(id, amount, notes);
+          if(action==='reject') await adminApi.bbf.reject(id, notes);
+          if(action==='paid') await adminApi.bbf.markPaid(id, notes);
+          showAlert('action-alert','Action completed successfully','success');
+          setTimeout(()=>window.location.reload(),1500);
+        } catch(e){showAlert('action-alert',e.message);}
+      }
+    } catch(err){showAlert('action-alert',err.message);}
+  })();
+</script>
+</body>
+</html>

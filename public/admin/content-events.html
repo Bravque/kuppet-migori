@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Events — KUPPET Migori Admin</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <link rel="stylesheet" href="/css/style.css"><link rel="stylesheet" href="/css/portal.css">
+</head>
+<body class="portal-body admin-events-page">
+<div class="portal-layout">
+  <div id="sidebar-placeholder"></div>
+  <main class="portal-main">
+    <div id="topbar-placeholder"></div>
+    <div class="portal-content">
+      <div class="page-heading">
+        <div class="page-heading-text"><h1>Events</h1><p>Manage union events, meetings, and workshops.</p></div>
+        <div class="page-heading-actions">
+          <button id="btn-new-event" class="btn btn-gold btn-sm"><i class="fas fa-plus"></i> New Event</button>
+        </div>
+      </div>
+      <div class="data-card">
+        <div class="data-table-wrap">
+          <table class="data-table">
+            <thead><tr><th>Title</th><th>Type</th><th>Date</th><th>Venue</th><th>Status</th><th></th></tr></thead>
+            <tbody id="events-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<div class="portal-modal-overlay" id="event-modal">
+  <div class="portal-modal">
+    <div class="portal-modal-header">
+      <h3 id="event-modal-title">New Event</h3>
+      <button class="modal-close-btn"><i class="fas fa-times"></i></button>
+    </div>
+    <div class="portal-modal-body">
+      <form id="event-form">
+        <div class="form-group"><label>Title <span class="required">*</span></label><input type="text" name="title" class="form-control" required></div>
+        <div class="form-row">
+          <div class="form-group"><label>Date <span class="required">*</span></label><input type="date" name="event_date" class="form-control" required></div>
+          <div class="form-group"><label>Time</label><input type="time" name="event_time" class="form-control"></div>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label>Type</label><select name="event_type" class="form-control"><option value="meeting">Meeting</option><option value="workshop">Workshop</option><option value="seminar">Seminar</option><option value="agm">AGM</option><option value="other">Other</option></select></div>
+          <div class="form-group"><label>Venue</label><input type="text" name="venue" class="form-control"></div>
+        </div>
+        <div class="form-group"><label>Description</label><textarea name="description" class="form-control" rows="3"></textarea></div>
+        <div class="form-group"><label>Registration Link</label><input type="url" name="registration_link" class="form-control"></div>
+        <div class="flex gap-2">
+          <label style="display:flex;align-items:center;gap:0.4rem;font-size:0.82rem"><input type="checkbox" name="is_featured"> Featured</label>
+          <label style="display:flex;align-items:center;gap:0.4rem;font-size:0.82rem"><input type="checkbox" name="is_published" checked> Published</label>
+        </div>
+      </form>
+    </div>
+    <div class="portal-modal-footer">
+      <button class="btn btn-outline btn-sm modal-close-btn">Cancel</button>
+      <button class="btn btn-gold btn-sm" onclick="saveEvent()"><i class="fas fa-save"></i> Save Event</button>
+    </div>
+  </div>
+</div>
+
+<script src="/admin/js/admin-api.js"></script><script src="/admin/js/admin-portal.js"></script>
+<script>
+  document.getElementById('sidebar-placeholder').outerHTML = getSidebarHtml();
+  document.getElementById('topbar-placeholder').outerHTML = getTopbarHtml('Events');
+</script>
+</body>
+</html>

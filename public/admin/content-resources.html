@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>content-resources — KUPPET Migori Admin</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <link rel="stylesheet" href="/css/style.css"><link rel="stylesheet" href="/css/portal.css">
+</head>
+<body class="portal-body admin-content-resources-page">
+<div class="portal-layout">
+  <div id="sidebar-placeholder"></div>
+  <main class="portal-main">
+    <div id="topbar-placeholder"></div>
+    <div class="portal-content">
+      <div class="page-heading">
+        <div class="page-heading-text"><h1>content-resources</h1></div>
+        <div class="page-heading-actions"><button id="btn-new" class="btn btn-gold btn-sm"><i class="fas fa-plus"></i> New</button></div>
+      </div>
+      <div class="data-card">
+        <div class="data-table-wrap">
+          <table class="data-table">
+            <thead><tr><th>Title</th><th>Category</th><th>Status</th><th>Date</th><th></th></tr></thead>
+            <tbody id="content-tbody"><tr><td colspan="5" class="portal-loading"><i class="fas fa-spinner fa-spin"></i> Loading…</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+<script src="/admin/js/admin-api.js"></script><script src="/admin/js/admin-portal.js"></script>
+<script>
+  document.getElementById('sidebar-placeholder').outerHTML = getSidebarHtml();
+  document.getElementById('topbar-placeholder').outerHTML = getTopbarHtml('content-resources');
+  const user = requireAdminAuth(); if(user) initSidebar(user);
+  // Load content
+  (async()=>{
+    const tbody = document.getElementById('content-tbody');
+    try {
+      const section = 'content-resources'.replace('content-','');
+      const res = await adminApi[section]?.getAll?.() || {data:[]};
+      if(!res.data?.length){ tbody.innerHTML='<tr><td colspan="5">'+renderEmpty()+'</td></tr>'; return; }
+      tbody.innerHTML = res.data.map(r=>`<tr>
+        <td><strong>${escHtml(r.title)}</strong></td>
+        <td>${escHtml(r.category||r.scholarship_type||r.position_category||'')}</td>
+        <td>${statusBadge(r.is_published===1||r.is_active===1?'approved':'draft')}</td>
+        <td>${formatDate(r.created_at||r.application_deadline)}</td>
+        <td><button class="btn btn-outline btn-xs" onclick="alert('Edit: '+r.id)"><i class="fas fa-edit"></i></button></td>
+      </tr>`).join('');
+    } catch(err){ tbody.innerHTML='<tr><td colspan="5">'+escHtml(err.message)+'</td></tr>'; }
+  })();
+</script>
+</body>
+</html>

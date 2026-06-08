@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BBF Claim Detail — KUPPET Migori</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <link rel="stylesheet" href="/css/style.css"><link rel="stylesheet" href="/css/portal.css">
+</head>
+<body class="portal-body member-bbf-detail-page">
+<div class="portal-layout">
+  <div id="sidebar-placeholder"></div>
+  <main class="portal-main">
+    <div id="topbar-placeholder"></div>
+    <div class="portal-content">
+      <div class="page-heading">
+        <div class="page-heading-text"><h1 id="claim-number">BBF Claim</h1></div>
+        <div class="page-heading-actions">
+          <a href="/member/bbf-claims.html" class="btn btn-outline btn-sm"><i class="fas fa-arrow-left"></i> All Claims</a>
+          <button id="btn-submit-claim" class="btn btn-gold btn-sm" style="display:none"><i class="fas fa-paper-plane"></i> Submit for Review</button>
+        </div>
+      </div>
+      <div id="detail-msg" class="hidden"></div>
+
+      <div class="grid-2" style="gap:1rem">
+        <!-- Claim info -->
+        <div>
+          <div class="data-card" style="margin-bottom:1rem">
+            <div class="data-card-header"><div class="data-card-title">Claim Details</div></div>
+            <div style="padding:1.25rem">
+              <table style="width:100%;font-size:0.85rem;border-collapse:collapse">
+                <tr><td style="padding:0.4rem 0;color:var(--text-muted);width:40%">Type</td><td id="claim-type" style="font-weight:600"></td></tr>
+                <tr><td style="padding:0.4rem 0;color:var(--text-muted)">Status</td><td id="claim-status"></td></tr>
+                <tr><td style="padding:0.4rem 0;color:var(--text-muted)">Date Submitted</td><td id="claim-date"></td></tr>
+                <tr><td style="padding:0.4rem 0;color:var(--text-muted)">Amount Requested</td><td id="claim-amount"></td></tr>
+              </table>
+              <div style="margin-top:0.75rem">
+                <div style="font-size:0.78rem;color:var(--text-muted);margin-bottom:0.3rem">Description</div>
+                <div id="claim-desc" style="font-size:0.85rem"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Documents -->
+          <div class="data-card">
+            <div class="data-card-header">
+              <div class="data-card-title">Supporting Documents</div>
+            </div>
+            <div style="padding:1.25rem">
+              <ul class="doc-list" id="doc-list"></ul>
+              <div id="doc-msg" class="hidden" style="margin-top:0.5rem"></div>
+              <div style="margin-top:1rem;padding-top:1rem;border-top:1px solid var(--border)">
+                <label style="font-size:0.82rem;font-weight:600;display:block;margin-bottom:0.5rem">Upload Document</label>
+                <select id="doc-type" class="form-control" style="margin-bottom:0.5rem">
+                  <option value="death_certificate">Death Certificate</option>
+                  <option value="id_copy">ID Copy</option>
+                  <option value="bank_details">Bank Details</option>
+                  <option value="medical_report">Medical Report</option>
+                  <option value="other">Other</option>
+                </select>
+                <div style="display:flex;gap:0.5rem;align-items:center">
+                  <input type="file" id="doc-input" accept="image/jpeg,image/png,application/pdf" style="display:none">
+                  <button class="btn btn-outline btn-sm" onclick="document.getElementById('doc-input').click()"><i class="fas fa-paperclip"></i> Choose File</button>
+                  <span id="doc-upload-name" style="font-size:0.78rem;color:var(--text-muted)"></span>
+                  <button id="btn-upload-doc" class="btn btn-gold btn-xs"><i class="fas fa-upload"></i> Upload</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Timeline -->
+        <div class="data-card">
+          <div class="data-card-header"><div class="data-card-title">Status Timeline</div></div>
+          <div style="padding:1.25rem">
+            <div class="timeline" id="timeline"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+<script src="/member/js/member-api.js"></script><script src="/member/js/member-portal.js"></script>
+<script>
+  document.getElementById('sidebar-placeholder').outerHTML = getMemberSidebarHtml();
+  document.getElementById('topbar-placeholder').outerHTML = getMemberTopbarHtml('Claim Detail');
+</script>
+</body>
+</html>

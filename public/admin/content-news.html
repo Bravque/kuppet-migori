@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>News &amp; Circulars — KUPPET Migori Admin</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <link rel="stylesheet" href="/css/style.css">
+  <link rel="stylesheet" href="/css/portal.css">
+</head>
+<body class="portal-body admin-news-page">
+<div class="portal-layout">
+  <div id="sidebar-placeholder"></div>
+  <main class="portal-main">
+    <div id="topbar-placeholder"></div>
+    <div class="portal-content">
+      <div class="page-heading">
+        <div class="page-heading-text"><h1>News &amp; Circulars</h1><p>Manage all news articles, announcements, and circulars.</p></div>
+        <div class="page-heading-actions">
+          <button id="btn-new-news" class="btn btn-gold btn-sm"><i class="fas fa-plus"></i> New Article</button>
+        </div>
+      </div>
+
+      <div class="filter-bar">
+        <select class="form-control" id="filter-category" onchange="loadNewsTable({category:this.value})">
+          <option value="">All Categories</option>
+          <option value="news">News</option>
+          <option value="announcement">Announcement</option>
+          <option value="circular">Circular</option>
+          <option value="press_release">Press Release</option>
+        </select>
+        <input type="search" class="form-control" id="news-search" placeholder="Search articles…" oninput="loadNewsTable({search:this.value})">
+      </div>
+
+      <div class="data-card">
+        <div class="data-table-wrap">
+          <table class="data-table">
+            <thead><tr><th>Title</th><th>Category</th><th>Author</th><th>Status</th><th>Date</th><th></th></tr></thead>
+            <tbody id="news-tbody"><tr><td colspan="6" class="portal-loading"><i class="fas fa-spinner fa-spin"></i> Loading…</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- News modal -->
+<div class="portal-modal-overlay" id="news-modal">
+  <div class="portal-modal" style="max-width:700px">
+    <div class="portal-modal-header">
+      <h3 id="news-modal-title">New Article</h3>
+      <button class="modal-close-btn"><i class="fas fa-times"></i></button>
+    </div>
+    <div class="portal-modal-body">
+      <div id="news-form-alert" class="hidden"></div>
+      <form id="news-form">
+        <div class="form-group">
+          <label>Title <span class="required">*</span></label>
+          <input type="text" name="title" class="form-control" placeholder="Article title" required>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Category</label>
+            <select name="category" class="form-control">
+              <option value="news">News</option>
+              <option value="announcement">Announcement</option>
+              <option value="circular">Circular</option>
+              <option value="press_release">Press Release</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Author</label>
+            <input type="text" name="author" class="form-control" value="KUPPET Migori">
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Excerpt</label>
+          <textarea name="excerpt" class="form-control" rows="2" placeholder="Short summary (optional)"></textarea>
+        </div>
+        <div class="form-group">
+          <label>Content <span class="required">*</span></label>
+          <textarea name="content" class="form-control" rows="8" placeholder="Full article content (HTML supported)" required></textarea>
+        </div>
+        <div class="flex gap-2" style="flex-wrap:wrap">
+          <label style="display:flex;align-items:center;gap:0.4rem;font-size:0.82rem;cursor:pointer">
+            <input type="checkbox" name="is_featured"> Featured article
+          </label>
+          <label style="display:flex;align-items:center;gap:0.4rem;font-size:0.82rem;cursor:pointer">
+            <input type="checkbox" name="is_published" checked> Published
+          </label>
+        </div>
+      </form>
+    </div>
+    <div class="portal-modal-footer">
+      <button class="btn btn-outline btn-sm modal-close-btn-footer">Cancel</button>
+      <button class="btn btn-gold btn-sm" onclick="saveNews()"><i class="fas fa-save"></i> Save Article</button>
+    </div>
+  </div>
+</div>
+
+<script src="/admin/js/admin-api.js"></script>
+<script src="/admin/js/admin-portal.js"></script>
+<script>
+  document.getElementById('sidebar-placeholder').outerHTML = getSidebarHtml();
+  document.getElementById('topbar-placeholder').outerHTML = getTopbarHtml('News & Circulars');
+  document.querySelectorAll('.modal-close-btn-footer').forEach(b => b.addEventListener('click', () => document.getElementById('news-modal').classList.remove('open')));
+</script>
+</body>
+</html>

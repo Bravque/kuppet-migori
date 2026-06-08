@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Join KUPPET — Member Registration</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <link rel="stylesheet" href="/css/style.css">
+  <link rel="stylesheet" href="/css/portal.css">
+</head>
+<body class="portal-body member-register-page">
+<div style="min-height:100vh;background:linear-gradient(135deg,var(--bg-dark,#0F1B2D) 0%,var(--primary,#1B3A6E) 100%);display:flex;align-items:flex-start;justify-content:center;padding:2rem 1rem">
+
+<div style="background:#fff;border-radius:24px;width:100%;max-width:680px;padding:2.5rem;box-shadow:0 20px 40px rgba(0,0,0,0.2);margin:auto">
+
+  <!-- Header -->
+  <div style="text-align:center;margin-bottom:2rem">
+    <div style="width:56px;height:56px;background:var(--gold,#C8962A);border-radius:14px;display:inline-flex;align-items:center;justify-content:center;font-size:1.5rem;color:#fff;margin-bottom:1rem">
+      <i class="fas fa-graduation-cap"></i>
+    </div>
+    <h1 style="font-size:1.4rem;font-weight:800;margin:0 0 0.3rem">Join KUPPET Migori</h1>
+    <p style="margin:0;font-size:0.85rem;color:var(--text-muted)">Complete the form below to apply for membership. Admin approval required.</p>
+  </div>
+
+  <!-- Step indicator -->
+  <div class="step-indicator" id="step-indicator">
+    <div class="step-item active" data-step="1"><div class="step-num"><span>1</span></div><div class="step-label">Personal Info</div></div>
+    <div class="step-item" data-step="2"><div class="step-num"><span>2</span></div><div class="step-label">Employment</div></div>
+    <div class="step-item" data-step="3"><div class="step-num"><span>3</span></div><div class="step-label">Documents</div></div>
+  </div>
+
+  <div id="reg-alert" class="hidden" style="margin-bottom:1rem"></div>
+
+  <form id="reg-form" enctype="multipart/form-data">
+
+    <!-- Step 1: Personal Info -->
+    <div class="step-panel active" id="panel-1">
+      <div class="form-group">
+        <label>Full Name <span class="required">*</span></label>
+        <input type="text" name="full_name" class="form-control" placeholder="As per National ID" required>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Gender <span class="required">*</span></label>
+          <select name="gender" class="form-control" required>
+            <option value="">Select gender</option>
+            <option value="male">Male</option>
+            <option value="female">Female</option>
+            <option value="other">Other</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Date of Birth <span class="required">*</span></label>
+          <input type="date" name="date_of_birth" class="form-control" required>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Phone Number <span class="required">*</span></label>
+          <input type="tel" name="phone" class="form-control" placeholder="+254 7XX XXX XXX" required>
+        </div>
+        <div class="form-group">
+          <label>Email Address <span class="required">*</span></label>
+          <input type="email" name="email" class="form-control" placeholder="your@email.com" required>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Password <span class="required">*</span></label>
+          <input type="password" name="password" class="form-control" placeholder="Minimum 8 characters" required minlength="8">
+        </div>
+        <div class="form-group">
+          <label>Confirm Password <span class="required">*</span></label>
+          <input type="password" name="confirm_password" class="form-control" placeholder="Repeat password" required>
+        </div>
+      </div>
+    </div>
+
+    <!-- Step 2: Employment -->
+    <div class="step-panel" id="panel-2">
+      <div class="form-row">
+        <div class="form-group">
+          <label>TSC Number <span class="required">*</span></label>
+          <input type="text" name="tsc_number" class="form-control" placeholder="e.g. 00123456" required>
+        </div>
+        <div class="form-group">
+          <label>National ID Number <span class="required">*</span></label>
+          <input type="text" name="national_id" class="form-control" placeholder="e.g. 12345678" required>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Employment Number</label>
+        <input type="text" name="employment_number" class="form-control" placeholder="Optional">
+      </div>
+      <div class="form-group">
+        <label>School Name <span class="required">*</span></label>
+        <input type="text" name="school_name" class="form-control" placeholder="Name of your school" required>
+      </div>
+      <div class="form-group">
+        <label>Sub-County <span class="required">*</span></label>
+        <select name="sub_county" class="form-control" required>
+          <option value="">Select sub-county</option>
+          <option>Migori</option>
+          <option>Suna East</option>
+          <option>Suna West</option>
+          <option>Rongo</option>
+          <option>Uriri</option>
+          <option>Nyatike</option>
+          <option>Kuria East</option>
+          <option>Kuria West</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Step 3: Documents -->
+    <div class="step-panel" id="panel-3">
+      <p style="font-size:0.85rem;color:var(--text-muted);margin-bottom:1.25rem">
+        Upload clear, legible copies of your documents. Accepted formats: JPG, PNG, PDF (max 5 MB each).
+      </p>
+      <div class="form-group">
+        <label>Passport Photo <span class="required">*</span></label>
+        <div class="file-dropzone" id="drop-passport" onclick="document.getElementById('inp-passport').click()">
+          <div class="dropzone-icon"><i class="fas fa-camera"></i></div>
+          <div class="dropzone-text">Click to upload passport photo</div>
+          <div class="dropzone-hint">JPG, PNG — max 5 MB</div>
+        </div>
+        <input type="file" id="inp-passport" name="passport_photo" accept="image/jpeg,image/png" style="display:none">
+        <div id="prev-passport" style="display:none" class="file-preview">
+          <i class="fas fa-image file-icon"></i>
+          <span class="file-name" id="name-passport"></span>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>National ID Copy <span class="required">*</span></label>
+        <div class="file-dropzone" id="drop-nid" onclick="document.getElementById('inp-nid').click()">
+          <div class="dropzone-icon"><i class="fas fa-id-card"></i></div>
+          <div class="dropzone-text">Click to upload National ID copy</div>
+          <div class="dropzone-hint">JPG, PNG, PDF — max 5 MB</div>
+        </div>
+        <input type="file" id="inp-nid" name="national_id_scan" accept="image/jpeg,image/png,application/pdf" style="display:none">
+        <div id="prev-nid" style="display:none" class="file-preview">
+          <i class="fas fa-file file-icon"></i>
+          <span class="file-name" id="name-nid"></span>
+        </div>
+      </div>
+      <div style="padding:1rem;background:var(--bg);border-radius:8px;font-size:0.8rem;color:var(--text-muted)">
+        <i class="fas fa-lock" style="color:var(--primary)"></i>
+        Your documents are stored securely and only accessible to authorised administrators for verification purposes.
+      </div>
+    </div>
+
+  </form>
+
+  <!-- Navigation buttons -->
+  <div style="display:flex;justify-content:space-between;margin-top:1.5rem">
+    <button id="btn-prev" class="btn btn-outline btn-sm" style="visibility:hidden"><i class="fas fa-arrow-left"></i> Previous</button>
+    <button id="btn-next" class="btn btn-gold btn-sm">Next <i class="fas fa-arrow-right"></i></button>
+    <button id="btn-submit" class="btn btn-primary btn-sm" style="display:none"><i class="fas fa-paper-plane"></i> Submit Application</button>
+  </div>
+
+  <div style="text-align:center;margin-top:1.25rem;font-size:0.8rem;color:var(--text-muted)">
+    Already registered? <a href="/member/login.html" style="color:var(--primary);font-weight:600">Sign in here</a>
+  </div>
+
+</div>
+</div>
+
+<script src="/member/js/member-api.js"></script>
+<script>
+  let currentStep = 1;
+  const totalSteps = 3;
+
+  function updateStepUI() {
+    for (let i = 1; i <= totalSteps; i++) {
+      const panel = document.getElementById(`panel-${i}`);
+      const item = document.querySelector(`[data-step="${i}"]`);
+      panel.classList.toggle('active', i === currentStep);
+      item.classList.remove('active','done');
+      if (i === currentStep) item.classList.add('active');
+      else if (i < currentStep) item.classList.add('done');
+    }
+    document.getElementById('btn-prev').style.visibility = currentStep === 1 ? 'hidden' : 'visible';
+    document.getElementById('btn-next').style.display = currentStep < totalSteps ? '' : 'none';
+    document.getElementById('btn-submit').style.display = currentStep === totalSteps ? '' : 'none';
+  }
+
+  function validateStep(step) {
+    const panel = document.getElementById(`panel-${step}`);
+    const inputs = panel.querySelectorAll('[required]');
+    for (const inp of inputs) {
+      if (!inp.value.trim()) {
+        inp.focus();
+        showReg('Please fill in all required fields', 'danger');
+        return false;
+      }
+    }
+    if (step === 1) {
+      const pw = panel.querySelector('[name=password]').value;
+      const cpw = panel.querySelector('[name=confirm_password]').value;
+      if (pw !== cpw) { showReg('Passwords do not match', 'danger'); return false; }
+    }
+    return true;
+  }
+
+  function showReg(msg, type = 'danger') {
+    const el = document.getElementById('reg-alert');
+    el.className = `alert alert-${type}`;
+    el.textContent = msg;
+    el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+
+  document.getElementById('btn-next').addEventListener('click', () => {
+    if (!validateStep(currentStep)) return;
+    document.getElementById('reg-alert').className = 'hidden';
+    currentStep++;
+    updateStepUI();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  });
+
+  document.getElementById('btn-prev').addEventListener('click', () => {
+    currentStep--;
+    updateStepUI();
+  });
+
+  // File upload previews
+  function setupFilePreview(inputId, previewId, nameId) {
+    document.getElementById(inputId).addEventListener('change', function() {
+      const file = this.files[0];
+      if (!file) return;
+      document.getElementById(previewId).style.display = 'flex';
+      document.getElementById(nameId).textContent = file.name;
+    });
+  }
+  setupFilePreview('inp-passport', 'prev-passport', 'name-passport');
+  setupFilePreview('inp-nid', 'prev-nid', 'name-nid');
+
+  document.getElementById('btn-submit').addEventListener('click', async () => {
+    if (!validateStep(3)) return;
+    const btn = document.getElementById('btn-submit');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Submitting…';
+
+    const form = document.getElementById('reg-form');
+    const data = new FormData(form);
+    data.delete('confirm_password');
+
+    try {
+      const res = await memberApi.auth.register(data);
+      document.getElementById('reg-alert').className = 'hidden';
+      document.querySelector('[id^=panel]').closest('form').style.display = 'none';
+      document.getElementById('step-indicator').style.display = 'none';
+      document.querySelectorAll('#btn-prev,#btn-next,#btn-submit').forEach(b => b.style.display = 'none');
+      showReg(res.message || 'Application submitted successfully! You will receive a notification once reviewed.', 'success');
+    } catch (err) {
+      showReg(err.message || 'Registration failed. Please try again.');
+    } finally {
+      btn.disabled = false;
+      btn.innerHTML = '<i class="fas fa-paper-plane"></i> Submit Application';
+    }
+  });
+</script>
+</body>
+</html>

@@ -1,0 +1,590 @@
+/* KUPPET Migori — Admin Portal Logic
+   Shared auth guard, sidebar, utilities and per-page init functions. */
+
+// ── Utilities ─────────────────────────────────────────────────────────────────
+function escHtml(s) {
+  if (s == null) return '';
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+
+function formatDate(d, opts = {}) {
+  if (!d) return '—';
+  return new Date(d).toLocaleDateString('en-KE', { day: 'numeric', month: 'short', year: 'numeric', ...opts });
+}
+
+function formatDateTime(d) {
+  if (!d) return '—';
+  return new Date(d).toLocaleString('en-KE', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+}
+
+function formatMoney(n) {
+  if (n == null) return '—';
+  return 'KES ' + Number(n).toLocaleString('en-KE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+function statusBadge(status) {
+  if (!status) return '';
+  const label = status.replace(/_/g, ' ');
+  return `<span class="status-badge status-badge--${escHtml(status)}">${escHtml(label)}</span>`;
+}
+
+function renderLoading() {
+  return `<div class="portal-loading"><i class="fas fa-spinner fa-spin"></i> Loading…</div>`;
+}
+
+function renderEmpty(msg = 'No records found') {
+  return `<div class="portal-empty"><i class="fas fa-inbox"></i><h3>${escHtml(msg)}</h3></div>`;
+}
+
+function showAlert(elId, msg, type = 'danger') {
+  const el = document.getElementById(elId);
+  if (!el) return;
+  el.className = `alert alert-${type}`;
+  el.textContent = msg;
+}
+
+function hideAlert(elId) {
+  const el = document.getElementById(elId);
+  if (el) el.className = 'hidden';
+}
+
+// ── Auth guard ────────────────────────────────────────────────────────────────
+function requireAdminAuth() {
+  const token = localStorage.getItem('adminToken');
+  const user = adminApi.getUser();
+  if (!token || !user) {
+    window.location.href = '/admin/login.html';
+    return null;
+  }
+  return user;
+}
+
+// ── Sidebar ───────────────────────────────────────────────────────────────────
+function initSidebar(user) {
+  if (!user) return;
+
+  // Set user display
+  const nameEl = document.getElementById('sidebar-user-name');
+  const roleEl = document.getElementById('sidebar-user-role');
+  const avatarEl = document.getElementById('sidebar-user-avatar');
+  if (nameEl) nameEl.textContent = user.name;
+  if (roleEl) roleEl.textContent = user.role.replace(/_/g, ' ');
+  if (avatarEl) avatarEl.textContent = user.name ? user.name[0].toUpperCase() : 'A';
+
+  // Hide super_admin-only items for branch_officer
+  if (user.role === 'branch_officer') {
+    document.querySelectorAll('[data-super-only]').forEach(el => {
+      el.style.display = 'none';
+    });
+  }
+
+  // Mark active nav item
+  const current = window.location.pathname;
+  document.querySelectorAll('.sidebar-nav-item[href]').forEach(link => {
+    if (link.getAttribute('href') === current) link.classList.add('active');
+  });
+
+  // Mobile sidebar toggle
+  const toggle = document.getElementById('sidebar-toggle');
+  const sidebar = document.getElementById('portal-sidebar');
+  const overlay = document.getElementById('portal-overlay');
+
+  if (toggle && sidebar) {
+    toggle.addEventListener('click', () => {
+      sidebar.classList.toggle('open');
+      overlay && overlay.classList.toggle('visible');
+    });
+    overlay && overlay.addEventListener('click', () => {
+      sidebar.classList.remove('open');
+      overlay.classList.remove('visible');
+    });
+  }
+
+  // Logout
+  document.querySelectorAll('.logout-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      adminApi.clearAuth();
+      window.location.href = '/admin/login.html';
+    });
+  });
+}
+
+// ── Shared sidebar HTML ───────────────────────────────────────────────────────
+function getSidebarHtml() {
+  return `
+<aside class="portal-sidebar" id="portal-sidebar">
+  <a href="/admin/dashboard.html" class="sidebar-brand">
+    <div class="sidebar-brand-icon"><i class="fas fa-graduation-cap"></i></div>
+    <div class="sidebar-brand-text">
+      <strong>KUPPET Migori</strong>
+      <span>Admin Portal</span>
+    </div>
+  </a>
+
+  <div class="sidebar-user">
+    <div class="sidebar-user-avatar" id="sidebar-user-avatar">A</div>
+    <div class="sidebar-user-info">
+      <div class="sidebar-user-name" id="sidebar-user-name">Admin</div>
+      <div class="sidebar-user-role" id="sidebar-user-role">Administrator</div>
+    </div>
+  </div>
+
+  <nav class="sidebar-nav">
+    <div class="sidebar-nav-section">Overview</div>
+    <a href="/admin/dashboard.html" class="sidebar-nav-item">
+      <i class="fas fa-chart-pie"></i> Dashboard
+    </a>
+
+    <div class="sidebar-nav-section">Members</div>
+    <a href="/admin/members.html" class="sidebar-nav-item">
+      <i class="fas fa-users"></i> All Members
+    </a>
+    <a href="/admin/members.html?tab=pending" class="sidebar-nav-item">
+      <i class="fas fa-user-clock"></i> Pending Approval
+      <span class="nav-badge" id="pending-count-badge" style="display:none"></span>
+    </a>
+
+    <div class="sidebar-nav-section">Welfare</div>
+    <a href="/admin/bbf.html" class="sidebar-nav-item">
+      <i class="fas fa-hand-holding-heart"></i> BBF Claims
+    </a>
+    <a href="/admin/scholarship-apps.html" class="sidebar-nav-item">
+      <i class="fas fa-award"></i> Scholarship Applications
+    </a>
+
+    <div class="sidebar-nav-section">Content</div>
+    <a href="/admin/content-news.html" class="sidebar-nav-item">
+      <i class="fas fa-newspaper"></i> News & Circulars
+    </a>
+    <a href="/admin/content-events.html" class="sidebar-nav-item">
+      <i class="fas fa-calendar-alt"></i> Events
+    </a>
+    <a href="/admin/content-resources.html" class="sidebar-nav-item">
+      <i class="fas fa-folder-open"></i> Resources
+    </a>
+    <a href="/admin/content-leadership.html" class="sidebar-nav-item">
+      <i class="fas fa-user-tie"></i> Leadership
+    </a>
+    <a href="/admin/content-scholarships.html" class="sidebar-nav-item">
+      <i class="fas fa-graduation-cap"></i> Scholarships
+    </a>
+    <a href="/admin/content-advocacy.html" class="sidebar-nav-item">
+      <i class="fas fa-gavel"></i> Advocacy
+    </a>
+    <a href="/admin/contacts.html" class="sidebar-nav-item">
+      <i class="fas fa-envelope"></i> Contact Inbox
+      <span class="nav-badge" id="new-contacts-badge" style="display:none"></span>
+    </a>
+
+    <div class="sidebar-nav-section">Communications</div>
+    <a href="/admin/sms.html" class="sidebar-nav-item">
+      <i class="fas fa-sms"></i> Send SMS
+    </a>
+    <a href="/admin/sms-logs.html" class="sidebar-nav-item">
+      <i class="fas fa-list-alt"></i> SMS Logs
+    </a>
+    <a href="/admin/sms-templates.html" class="sidebar-nav-item">
+      <i class="fas fa-file-alt"></i> SMS Templates
+    </a>
+
+    <div class="sidebar-nav-section" data-super-only>Administration</div>
+    <a href="/admin/audit-logs.html" class="sidebar-nav-item" data-super-only>
+      <i class="fas fa-shield-alt"></i> Audit Logs
+    </a>
+    <a href="/admin/users.html" class="sidebar-nav-item" data-super-only>
+      <i class="fas fa-user-cog"></i> Admin Users
+    </a>
+    <a href="/admin/settings.html" class="sidebar-nav-item" data-super-only>
+      <i class="fas fa-cog"></i> Settings
+    </a>
+  </nav>
+
+  <div class="sidebar-footer">
+    <button class="logout-btn sidebar-nav-item" style="color:rgba(255,255,255,0.5)">
+      <i class="fas fa-sign-out-alt"></i> Sign Out
+    </button>
+  </div>
+</aside>
+<div class="portal-overlay" id="portal-overlay"></div>`;
+}
+
+function getTopbarHtml(title) {
+  return `
+<div class="portal-topbar">
+  <div class="topbar-left">
+    <button class="sidebar-toggle topbar-icon-btn" id="sidebar-toggle">
+      <i class="fas fa-bars"></i>
+    </button>
+    <span class="topbar-title">${escHtml(title)}</span>
+  </div>
+  <div class="topbar-right">
+    <a href="/" target="_blank" class="topbar-icon-btn" title="View website">
+      <i class="fas fa-external-link-alt"></i>
+    </a>
+    <button class="logout-btn topbar-icon-btn" title="Sign out">
+      <i class="fas fa-sign-out-alt"></i>
+    </button>
+  </div>
+</div>`;
+}
+
+// ── Dashboard ─────────────────────────────────────────────────────────────────
+async function initDashboard() {
+  if (!document.querySelector('.admin-dashboard-page')) return;
+  const user = requireAdminAuth();
+  if (!user) return;
+  initSidebar(user);
+
+  try {
+    const [summary, monthly] = await Promise.all([
+      adminApi.analytics.getSummary(),
+      adminApi.analytics.getMonthly(),
+    ]);
+    renderSummaryCards(summary.data || {});
+    renderCharts(monthly.data || {});
+  } catch (err) {
+    console.error('Dashboard load failed:', err.message);
+  }
+}
+
+function renderSummaryCards(d) {
+  const cards = [
+    { id: 'stat-total-members',    value: d.total_members || 0,    label: 'Total Members',          icon: 'users',           color: 'blue' },
+    { id: 'stat-active-members',   value: d.active_members || 0,   label: 'Active Members',         icon: 'user-check',      color: 'green' },
+    { id: 'stat-pending',          value: d.pending_members || 0,  label: 'Pending Approval',        icon: 'user-clock',      color: 'gold' },
+    { id: 'stat-bbf-submitted',    value: d.bbf_submitted || 0,    label: 'BBF Claims Submitted',   icon: 'file-medical',    color: 'purple' },
+    { id: 'stat-bbf-approved',     value: d.bbf_approved || 0,     label: 'BBF Claims Approved',    icon: 'check-circle',    color: 'green' },
+    { id: 'stat-sch-applications', value: d.sch_applications || 0, label: 'Scholarship Applications',icon: 'award',          color: 'teal' },
+    { id: 'stat-sms-sent',         value: d.sms_sent || 0,         label: 'SMS Sent This Month',    icon: 'sms',             color: 'gold' },
+    { id: 'stat-new-contacts',     value: d.new_contacts || 0,     label: 'New Enquiries',           icon: 'envelope',       color: 'red' },
+  ];
+  const grid = document.getElementById('stats-grid');
+  if (!grid) return;
+  grid.innerHTML = cards.map(c => `
+    <div class="stat-card">
+      <div class="stat-icon ${c.color}"><i class="fas fa-${c.icon}"></i></div>
+      <div class="stat-info">
+        <div class="stat-value">${c.value.toLocaleString()}</div>
+        <div class="stat-label">${c.label}</div>
+      </div>
+    </div>`).join('');
+}
+
+function renderCharts(monthly) {
+  if (typeof Chart === 'undefined') return;
+  const months = monthly.labels || [];
+  const memberData = monthly.members || [];
+  const bbfData = monthly.bbf_claims || [];
+  const smsData = monthly.sms || [];
+
+  const opts = (label, data, color) => ({
+    type: 'line',
+    data: {
+      labels: months,
+      datasets: [{ label, data, borderColor: color, backgroundColor: color + '20', tension: 0.4, fill: true, pointRadius: 3 }],
+    },
+    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, grid: { color: '#f0f0f0' } }, x: { grid: { display: false } } } },
+  });
+
+  const memberCtx = document.getElementById('chart-members');
+  if (memberCtx) new Chart(memberCtx, opts('New Members', memberData, '#1B3A6E'));
+  const bbfCtx = document.getElementById('chart-bbf');
+  if (bbfCtx) new Chart(bbfCtx, opts('BBF Claims', bbfData, '#C8962A'));
+  const smsCtx = document.getElementById('chart-sms');
+  if (smsCtx) new Chart(smsCtx, opts('SMS Sent', smsData, '#1a7340'));
+}
+
+// ── News admin ────────────────────────────────────────────────────────────────
+async function initAdminNews() {
+  if (!document.querySelector('.admin-news-page')) return;
+  const user = requireAdminAuth();
+  if (!user) return;
+  initSidebar(user);
+  loadNewsTable();
+  document.getElementById('btn-new-news')?.addEventListener('click', () => openNewsModal(null));
+}
+
+async function loadNewsTable(params = {}) {
+  const tbody = document.getElementById('news-tbody');
+  if (!tbody) return;
+  tbody.innerHTML = `<tr><td colspan="6">${renderLoading()}</td></tr>`;
+  try {
+    const res = await adminApi.news.getAll({ limit: 20, ...params });
+    if (!res.data.length) { tbody.innerHTML = `<tr><td colspan="6">${renderEmpty()}</td></tr>`; return; }
+    tbody.innerHTML = res.data.map(n => `
+      <tr>
+        <td><strong>${escHtml(n.title)}</strong><br><small class="text-muted">${escHtml(n.slug)}</small></td>
+        <td><span class="badge badge-${n.category}">${escHtml(n.category)}</span></td>
+        <td>${escHtml(n.author)}</td>
+        <td>${statusBadge(n.is_published ? 'approved' : 'draft')}</td>
+        <td>${formatDate(n.published_at)}</td>
+        <td>
+          <button class="btn btn-outline btn-xs" onclick="openNewsModal(${n.id})"><i class="fas fa-edit"></i></button>
+          <button class="btn btn-xs" style="background:#FEE2E2;color:#991B1B" onclick="deleteNews(${n.id})"><i class="fas fa-trash"></i></button>
+        </td>
+      </tr>`).join('');
+  } catch (err) {
+    tbody.innerHTML = `<tr><td colspan="6"><div class="alert alert-danger">${escHtml(err.message)}</div></td></tr>`;
+  }
+}
+
+let editingNewsId = null;
+async function openNewsModal(id) {
+  editingNewsId = id;
+  const modal = document.getElementById('news-modal');
+  if (!modal) return;
+  document.getElementById('news-modal-title').textContent = id ? 'Edit Article' : 'New Article';
+  document.getElementById('news-form-alert').className = 'hidden';
+  if (id) {
+    try {
+      const rows = await adminApi.news.getAll({ limit: 1 });
+      // Fetch individual from full list for simplicity
+    } catch (_) {}
+  } else {
+    document.getElementById('news-form').reset();
+  }
+  modal.classList.add('open');
+}
+
+async function saveNews() {
+  const form = document.getElementById('news-form');
+  const alertEl = document.getElementById('news-form-alert');
+  alertEl.className = 'hidden';
+  const data = {
+    title: form.querySelector('[name=title]').value.trim(),
+    excerpt: form.querySelector('[name=excerpt]').value.trim(),
+    content: form.querySelector('[name=content]').value.trim(),
+    category: form.querySelector('[name=category]').value,
+    author: form.querySelector('[name=author]').value.trim(),
+    is_featured: form.querySelector('[name=is_featured]').checked,
+    is_published: form.querySelector('[name=is_published]').checked,
+  };
+  if (!data.title || !data.content) {
+    alertEl.className = 'alert alert-danger';
+    alertEl.textContent = 'Title and content are required';
+    return;
+  }
+  try {
+    if (editingNewsId) {
+      await adminApi.news.update(editingNewsId, data);
+    } else {
+      await adminApi.news.create(data);
+    }
+    document.getElementById('news-modal').classList.remove('open');
+    loadNewsTable();
+  } catch (err) {
+    alertEl.className = 'alert alert-danger';
+    alertEl.textContent = err.message;
+  }
+}
+
+async function deleteNews(id) {
+  if (!confirm('Delete this article? This cannot be undone.')) return;
+  try {
+    await adminApi.news.remove(id);
+    loadNewsTable();
+  } catch (err) {
+    alert(err.message);
+  }
+}
+
+// ── Generic table loaders for Events, Resources, Scholarships, etc. ───────────
+// (Reused across multiple pages via the same function signature)
+
+async function initAdminEvents() {
+  if (!document.querySelector('.admin-events-page')) return;
+  const user = requireAdminAuth(); if (!user) return; initSidebar(user);
+  loadEventsTable();
+  document.getElementById('btn-new-event')?.addEventListener('click', () => openEventModal(null));
+}
+
+async function loadEventsTable(params = {}) {
+  const tbody = document.getElementById('events-tbody');
+  if (!tbody) return;
+  tbody.innerHTML = `<tr><td colspan="6">${renderLoading()}</td></tr>`;
+  try {
+    const res = await adminApi.events.getAll({ limit: 30, ...params });
+    if (!res.data.length) { tbody.innerHTML = `<tr><td colspan="6">${renderEmpty()}</td></tr>`; return; }
+    tbody.innerHTML = res.data.map(e => `
+      <tr>
+        <td><strong>${escHtml(e.title)}</strong></td>
+        <td><span class="badge">${escHtml(e.event_type)}</span></td>
+        <td>${formatDate(e.event_date)}</td>
+        <td>${escHtml(e.venue || '—')}</td>
+        <td>${statusBadge(e.is_published ? 'approved' : 'draft')}</td>
+        <td>
+          <button class="btn btn-outline btn-xs" onclick="openEventModal(${e.id})"><i class="fas fa-edit"></i></button>
+          <button class="btn btn-xs" style="background:#FEE2E2;color:#991B1B" onclick="deleteEvent(${e.id})"><i class="fas fa-trash"></i></button>
+        </td>
+      </tr>`).join('');
+  } catch (err) { tbody.innerHTML = `<tr><td colspan="6">${escHtml(err.message)}</td></tr>`; }
+}
+
+let editingEventId = null;
+function openEventModal(id) {
+  editingEventId = id;
+  const modal = document.getElementById('event-modal');
+  if (!modal) return;
+  document.getElementById('event-modal-title').textContent = id ? 'Edit Event' : 'New Event';
+  if (!id) document.getElementById('event-form').reset();
+  modal.classList.add('open');
+}
+
+async function saveEvent() {
+  const form = document.getElementById('event-form');
+  const data = {};
+  ['title','description','event_date','event_time','venue','venue_address','event_type','registration_link'].forEach(k => {
+    const el = form.querySelector(`[name=${k}]`);
+    if (el) data[k] = el.value.trim() || null;
+  });
+  ['is_featured','is_published'].forEach(k => {
+    const el = form.querySelector(`[name=${k}]`);
+    if (el) data[k] = el.checked;
+  });
+  try {
+    editingEventId ? await adminApi.events.update(editingEventId, data) : await adminApi.events.create(data);
+    document.getElementById('event-modal').classList.remove('open');
+    loadEventsTable();
+  } catch (err) { alert(err.message); }
+}
+
+async function deleteEvent(id) {
+  if (!confirm('Delete this event?')) return;
+  try { await adminApi.events.remove(id); loadEventsTable(); } catch (err) { alert(err.message); }
+}
+
+// ── Contacts inbox ────────────────────────────────────────────────────────────
+async function initAdminContacts() {
+  if (!document.querySelector('.admin-contacts-page')) return;
+  const user = requireAdminAuth(); if (!user) return; initSidebar(user);
+  loadContactsTable();
+  document.querySelectorAll('.filter-tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+      document.querySelectorAll('.filter-tab').forEach(t => t.classList.remove('active'));
+      tab.classList.add('active');
+      loadContactsTable({ status: tab.dataset.status });
+    });
+  });
+}
+
+async function loadContactsTable(params = {}) {
+  const tbody = document.getElementById('contacts-tbody');
+  if (!tbody) return;
+  tbody.innerHTML = `<tr><td colspan="6">${renderLoading()}</td></tr>`;
+  try {
+    const res = await adminApi.contacts.getAll({ limit: 30, ...params });
+    if (!res.data.length) { tbody.innerHTML = `<tr><td colspan="6">${renderEmpty()}</td></tr>`; return; }
+    tbody.innerHTML = res.data.map(c => `
+      <tr>
+        <td><strong>${escHtml(c.name)}</strong><br><small>${escHtml(c.email)}</small></td>
+        <td>${escHtml(c.phone || '—')}</td>
+        <td><span class="badge">${escHtml(c.category)}</span></td>
+        <td title="${escHtml(c.message)}">${escHtml(c.message.substring(0, 60))}…</td>
+        <td>${statusBadge(c.status)}</td>
+        <td>
+          <select class="form-control" style="padding:0.3rem;font-size:0.75rem" onchange="updateContactStatus(${c.id},this.value)">
+            <option value="new" ${c.status==='new'?'selected':''}>New</option>
+            <option value="read" ${c.status==='read'?'selected':''}>Read</option>
+            <option value="replied" ${c.status==='replied'?'selected':''}>Replied</option>
+            <option value="closed" ${c.status==='closed'?'selected':''}>Closed</option>
+          </select>
+        </td>
+      </tr>`).join('');
+  } catch (err) { tbody.innerHTML = `<tr><td colspan="6">${escHtml(err.message)}</td></tr>`; }
+}
+
+async function updateContactStatus(id, status) {
+  try { await adminApi.contacts.updateStatus(id, status); } catch (err) { alert(err.message); }
+}
+
+// ── Settings page ─────────────────────────────────────────────────────────────
+async function initAdminSettings() {
+  if (!document.querySelector('.admin-settings-page')) return;
+  const user = requireAdminAuth(); if (!user) return; initSidebar(user);
+  loadSettings();
+  init2FASection();
+}
+
+async function loadSettings() {
+  try {
+    const res = await adminApi.settings.getAll();
+    (res.data || []).forEach(s => {
+      const el = document.querySelector(`[data-setting="${s.setting_key}"]`);
+      if (el) el.value = s.setting_value;
+    });
+  } catch (err) { console.error('Settings load:', err.message); }
+}
+
+async function saveSetting(key) {
+  const el = document.querySelector(`[data-setting="${key}"]`);
+  if (!el) return;
+  try {
+    await adminApi.settings.update(key, el.value);
+    showAlert('settings-alert', 'Saved successfully', 'success');
+  } catch (err) { showAlert('settings-alert', err.message); }
+}
+
+async function init2FASection() {
+  try {
+    const res = await adminApi.auth.me();
+    const enabled = res.data?.twofa_enabled;
+    const statusEl = document.getElementById('twofa-status');
+    if (statusEl) statusEl.innerHTML = enabled
+      ? `<span class="status-badge status-badge--approved">Enabled</span>`
+      : `<span class="status-badge status-badge--pending">Not enabled</span>`;
+    document.getElementById('btn-setup-2fa') && (document.getElementById('btn-setup-2fa').style.display = enabled ? 'none' : '');
+    document.getElementById('btn-disable-2fa') && (document.getElementById('btn-disable-2fa').style.display = enabled ? '' : 'none');
+  } catch (_) {}
+}
+
+async function setup2FA() {
+  try {
+    const res = await adminApi.auth.setup2fa();
+    document.getElementById('qr-code-img').src = res.qrCode;
+    document.getElementById('manual-key').textContent = res.manualKey;
+    document.getElementById('setup-2fa-panel').style.display = 'block';
+    document.getElementById('backup-codes').textContent = res.backupCodes.join('  |  ');
+  } catch (err) { alert(err.message); }
+}
+
+async function enable2FA() {
+  const code = document.getElementById('totp-setup-code').value.trim();
+  try {
+    await adminApi.auth.enable2fa(code);
+    showAlert('settings-alert', '2FA enabled successfully', 'success');
+    document.getElementById('setup-2fa-panel').style.display = 'none';
+    init2FASection();
+  } catch (err) { showAlert('settings-alert', err.message); }
+}
+
+async function disable2FA() {
+  if (!confirm('Disable 2FA? This reduces account security.')) return;
+  try {
+    await adminApi.auth.disable2fa();
+    showAlert('settings-alert', '2FA disabled', 'success');
+    init2FASection();
+  } catch (err) { showAlert('settings-alert', err.message); }
+}
+
+// ── DOMContentLoaded ──────────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+  initDashboard();
+  initAdminNews();
+  initAdminEvents();
+  initAdminContacts();
+  initAdminSettings();
+
+  // Close modals on overlay click
+  document.querySelectorAll('.portal-modal-overlay').forEach(overlay => {
+    overlay.addEventListener('click', (e) => {
+      if (e.target === overlay) overlay.classList.remove('open');
+    });
+  });
+
+  document.querySelectorAll('.modal-close-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      btn.closest('.portal-modal-overlay')?.classList.remove('open');
+    });
+  });
+});

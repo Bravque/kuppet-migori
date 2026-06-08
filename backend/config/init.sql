@@ -1,8 +1,13 @@
 -- KUPPET Migori Database Schema
 -- Run: mysql -u root -p < backend/config/init.sql
+-- Re-runnable: uses IF NOT EXISTS / INSERT IGNORE / ADD COLUMN IF NOT EXISTS (MySQL 8.0+)
 
 CREATE DATABASE IF NOT EXISTS kuppet_migori CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 USE kuppet_migori;
+
+-- ============================================
+-- CORE TABLES
+-- ============================================
 
 -- Admin users
 CREATE TABLE IF NOT EXISTS users (
@@ -10,8 +15,11 @@ CREATE TABLE IF NOT EXISTS users (
   name VARCHAR(150) NOT NULL,
   email VARCHAR(255) UNIQUE NOT NULL,
   password VARCHAR(255) NOT NULL,
-  role ENUM('admin','editor','viewer') DEFAULT 'editor',
+  role ENUM('super_admin','branch_officer','editor','viewer') DEFAULT 'editor',
   is_active BOOLEAN DEFAULT TRUE,
+  failed_login_attempts INT DEFAULT 0,
+  locked_until TIMESTAMP NULL,
+  last_login TIMESTAMP NULL,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
@@ -147,12 +155,222 @@ CREATE TABLE IF NOT EXISTS settings (
 );
 
 -- ============================================
+-- MEMBERSHIP TABLES
+-- ============================================
+
+-- Registered teacher-members
+CREATE TABLE IF NOT EXISTS members (
+  id INT PRIMARY KEY AUTO_INCREMENT,
+  member_number VARCHAR(20) UNIQUE NOT NULL,
+  full_name VARCHAR(200) NOT NULL,
+  tsc_number VARCHAR(50) UNIQUE NOT NULL,
+  national_id VARCHAR(30) UNIQUE NOT NULL,
+  employment_number VARCHAR(50),
+  phone VARCHAR(30) NOT NULL,
+  email VARCHAR(255) UNIQUE NOT NULL,
+  password VARCHAR(255) NOT NULL,
+  gender ENUM('male','female','other') NOT NULL,
+  date_of_birth DATE NOT NULL,
+  school_name VARCHAR(300) NOT NULL,
+  sub_county VARCHAR(150) NOT NULL,
+  passport_photo_url VARCHAR(500),
+  national_id_url VARCHAR(500),
+  status ENUM('pending_approval','approved','rejected','suspended') DEFAULT 'pending_approval',
+  rejection_reason TEXT,
+  approved_by INT,
+  approved_at TIMESTAMP NULL,
+  last_login TIMESTAMP NULL,
+  failed_login_attempts INT DEFAULT 0,
+  locked_until TIMESTAMP NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+
+-- BBF (Benevolent & Burial Fund) Claims
+CREATE TABLE IF NOT EXISTS bbf_claims (
+  id INT PRIMARY KEY AUTO_INCREMENT,
+  claim_number VARCHAR(20) UNIQUE NOT NULL,
+  member_id INT NOT NULL,
+  claim_type ENUM('death_benefit','disability','medical_emergency','other') NOT NULL,
+  description TEXT,
+  amount_requested DECIMAL(12,2),
+  amount_approved DECIMAL(12,2),
+  status ENUM('draft','submitted','under_review','approved','rejected','paid') DEFAULT 'draft',
+  assigned_to INT,
+  reviewed_by INT,
+  reviewer_notes TEXT,
+  payment_reference VARCHAR(100),
+  payment_date DATE,
+  submitted_at TIMESTAMP NULL,
+  reviewed_at TIMESTAMP NULL,
+  resolved_at TIMESTAMP NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+
+-- Supporting documents for BBF claims
+CREATE TABLE IF NOT EXISTS bbf_claim_documents (
+  id INT PRIMARY KEY AUTO_INCREMENT,
+  claim_id INT NOT NULL,
+  doc_type ENUM('death_certificate','id_copy','bank_details','medical_report','other') NOT NULL,
+  file_url VARCHAR(500) NOT NULL,
+  file_name VARCHAR(255),
+  file_size INT,
+  uploaded_by INT NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Append-only status transition log for BBF claims
+CREATE TABLE IF NOT EXISTS bbf_claim_timeline (
+  id INT PRIMARY KEY AUTO_INCREMENT,
+  claim_id INT NOT NULL,
+  from_status VARCHAR(30),
+  to_status VARCHAR(30) NOT NULL,
+  comment TEXT,
+  changed_by INT NOT NULL,
+  changed_by_type ENUM('admin','member') NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Member scholarship applications
+CREATE TABLE IF NOT EXISTS scholarship_applications (
+  id INT PRIMARY KEY AUTO_INCREMENT,
+  application_number VARCHAR(20) UNIQUE NOT NULL,
+  member_id INT NOT NULL,
+  scholarship_id INT NOT NULL,
+  applicant_name VARCHAR(200) NOT NULL,
+  institution VARCHAR(300),
+  course VARCHAR(300),
+  year_of_study TINYINT,
+  academic_year VARCHAR(10),
+  essay TEXT,
+  status ENUM('applied','under_review','approved','rejected') DEFAULT 'applied',
+  reviewer_notes TEXT,
+  reviewed_by INT,
+  reviewed_at TIMESTAMP NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+
+-- Supporting documents for scholarship applications
+CREATE TABLE IF NOT EXISTS scholarship_application_documents (
+  id INT PRIMARY KEY AUTO_INCREMENT,
+  application_id INT NOT NULL,
+  doc_type ENUM('kcse_cert','admission_letter','fee_structure','recommendation','other') NOT NULL,
+  file_url VARCHAR(500) NOT NULL,
+  file_name VARCHAR(255),
+  file_size INT,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- In-app notifications for members
+CREATE TABLE IF NOT EXISTS notifications (
+  id INT PRIMARY KEY AUTO_INCREMENT,
+  member_id INT NOT NULL,
+  type ENUM('bbf_claim','scholarship','general','system') NOT NULL,
+  title VARCHAR(300) NOT NULL,
+  body TEXT,
+  reference_id INT,
+  is_read BOOLEAN DEFAULT FALSE,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- ============================================
+-- SMS & COMMUNICATION TABLES
+-- ============================================
+
+-- SMS delivery log (TalkSasa)
+CREATE TABLE IF NOT EXISTS sms_logs (
+  id INT PRIMARY KEY AUTO_INCREMENT,
+  recipient_phone VARCHAR(30) NOT NULL,
+  recipient_name VARCHAR(200),
+  member_id INT,
+  message TEXT NOT NULL,
+  message_type ENUM('individual','bulk','group','template') DEFAULT 'individual',
+  template_id INT,
+  status ENUM('queued','sent','delivered','failed') DEFAULT 'queued',
+  talksasa_ref VARCHAR(100),
+  error_message TEXT,
+  sent_by INT NOT NULL,
+  sent_at TIMESTAMP NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Reusable SMS templates
+CREATE TABLE IF NOT EXISTS sms_templates (
+  id INT PRIMARY KEY AUTO_INCREMENT,
+  name VARCHAR(150) NOT NULL,
+  body TEXT NOT NULL,
+  category ENUM('bbf','scholarship','general','system') DEFAULT 'general',
+  created_by INT NOT NULL,
+  is_active BOOLEAN DEFAULT TRUE,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+
+-- ============================================
+-- SECURITY & AUDIT TABLES
+-- ============================================
+
+-- Append-only audit trail for all mutations
+CREATE TABLE IF NOT EXISTS audit_logs (
+  id INT PRIMARY KEY AUTO_INCREMENT,
+  actor_id INT NOT NULL,
+  actor_type ENUM('admin','member') NOT NULL,
+  actor_name VARCHAR(200),
+  action VARCHAR(100) NOT NULL,
+  resource VARCHAR(100),
+  resource_id INT,
+  old_value JSON,
+  new_value JSON,
+  ip_address VARCHAR(45),
+  user_agent VARCHAR(500),
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Login history for both admin and member accounts
+CREATE TABLE IF NOT EXISTS login_history (
+  id INT PRIMARY KEY AUTO_INCREMENT,
+  user_id INT NOT NULL,
+  user_type ENUM('admin','member') NOT NULL,
+  ip_address VARCHAR(45),
+  user_agent VARCHAR(500),
+  status ENUM('success','failed','locked') DEFAULT 'success',
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Admin 2FA secrets (AES-256-GCM encrypted)
+CREATE TABLE IF NOT EXISTS admin_2fa (
+  id INT PRIMARY KEY AUTO_INCREMENT,
+  user_id INT UNIQUE NOT NULL,
+  secret VARCHAR(500) NOT NULL,
+  is_enabled BOOLEAN DEFAULT FALSE,
+  backup_codes TEXT,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+
+-- ============================================
+-- MIGRATION (idempotent for existing installs, MySQL 8.0+)
+-- ============================================
+
+-- Add new columns to users if upgrading from old schema
+ALTER TABLE users ADD COLUMN IF NOT EXISTS failed_login_attempts INT DEFAULT 0;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS locked_until TIMESTAMP NULL;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS last_login TIMESTAMP NULL;
+
+-- Rename admin role to super_admin (two-step: expand ENUM, update rows, contract ENUM)
+ALTER TABLE users MODIFY COLUMN role ENUM('super_admin','branch_officer','admin','editor','viewer') DEFAULT 'editor';
+UPDATE users SET role = 'super_admin' WHERE role = 'admin';
+ALTER TABLE users MODIFY COLUMN role ENUM('super_admin','branch_officer','editor','viewer') DEFAULT 'editor';
+
+-- ============================================
 -- SEED DATA
 -- ============================================
 
--- Default admin user (password: Admin@123 - CHANGE IN PRODUCTION)
+-- Default super admin (password: Admin@123 — CHANGE IN PRODUCTION)
 INSERT IGNORE INTO users (name, email, password, role) VALUES
-('Admin KUPPET', 'admin@kuppetmigori.co.ke', '$2b$10$YwQPKWUz5zxS9D4LyAEG3.HxEU6Hy1AoGjJ7kXpN1xDz2Wrl9RVGi', 'admin');
+('Admin KUPPET', 'admin@kuppetmigori.co.ke', '$2b$10$YwQPKWUz5zxS9D4LyAEG3.HxEU6Hy1AoGjJ7kXpN1xDz2Wrl9RVGi', 'super_admin');
 
 -- Site settings
 INSERT IGNORE INTO settings (setting_key, setting_value, description) VALUES
@@ -162,7 +380,10 @@ INSERT IGNORE INTO settings (setting_key, setting_value, description) VALUES
 ('resources_count', '250', 'Number of resources available'),
 ('chairman_message', 'On behalf of the KUPPET Migori Branch Executive Committee, I extend a warm welcome to all our members and visitors. Our union stands firmly committed to the professional welfare, rights, and dignity of every post-primary education teacher in Migori County. Together, we build a stronger, more equitable education system for Kenya.', 'Chairman welcome message'),
 ('chairman_name', 'Br. John Otieno Ouma', 'Branch Chairman name'),
-('chairman_title', 'Branch Chairperson, KUPPET Migori', 'Chairman title');
+('chairman_title', 'Branch Chairperson, KUPPET Migori', 'Chairman title'),
+('member_seq', '0', 'Member number sequence counter'),
+('bbf_seq', '0', 'BBF claim number sequence counter'),
+('schapp_seq', '0', 'Scholarship application number sequence counter');
 
 -- Leadership data
 INSERT IGNORE INTO leadership (name, position, position_category, bio, email, phone, display_order) VALUES
@@ -179,13 +400,9 @@ INSERT IGNORE INTO leadership (name, position, position_category, bio, email, ph
 -- News articles
 INSERT IGNORE INTO news (title, slug, excerpt, content, category, is_featured, author, published_at) VALUES
 ('KUPPET Migori Secures 15% Salary Enhancement for Teachers', 'kuppet-migori-secures-salary-enhancement', 'After rigorous negotiations with the Teachers Service Commission, KUPPET Migori Branch has secured a significant salary enhancement for post-primary teachers in Migori County.', '<p>After months of rigorous negotiations with the Teachers Service Commission (TSC), the KUPPET Migori Branch is proud to announce a landmark achievement — a 15% salary enhancement for all post-primary teachers effective from the next financial year.</p><p>The Branch Executive Secretary, Br. James Otieno Odhiambo, led a dedicated negotiating team that presented compelling evidence of teachers'' contribution to national development and the cost of living adjustments required in Migori County.</p><p>"This is a victory for every teacher in Migori. We have been consistent in our advocacy, and today that persistence has paid off," said Br. James Otieno Odhiambo.</p><p>The salary enhancement will affect over 4,500 union members across Migori County, providing much-needed relief amid rising living costs.</p>', 'news', TRUE, 'KUPPET Migori Communications', '2026-05-15 09:00:00'),
-
 ('Annual General Meeting 2026 - Notice to All Members', 'agm-2026-notice', 'The Branch Annual General Meeting is scheduled for July 20, 2026. All members are urged to attend this important assembly.', '<p>Dear KUPPET Migori Members,</p><p>This is to inform all branch members that the Annual General Meeting (AGM) for 2026 will be held on <strong>Saturday, July 20, 2026</strong>, at the Migori County Education Offices, Migori Town.</p><p>The AGM will cover the following agenda:</p><ul><li>Branch Chairperson''s Annual Report</li><li>Financial Report by the Branch Treasurer</li><li>Election of Executive Committee Members</li><li>Welfare Fund Updates</li><li>BBF Claims Status Report</li><li>Professional Development Programs Review</li><li>Any Other Business</li></ul><p>Registration begins at 8:00 AM. The meeting commences at 9:00 AM. Attendance is mandatory for all sub-branch representatives.</p>', 'announcement', TRUE, 'KUPPET Migori Secretariat', '2026-06-01 08:00:00'),
-
 ('TSC Issues New Guidelines on Teacher Transfers', 'tsc-transfer-guidelines-2026', 'The Teachers Service Commission has released updated guidelines governing teacher transfers. Members are advised to familiarize themselves with these new regulations.', '<p>The Teachers Service Commission (TSC) has released updated guidelines governing teacher transfers effective June 2026. KUPPET Migori Branch has reviewed these guidelines and provides the following summary for members.</p><p><strong>Key Changes:</strong></p><ul><li>Transfer applications now processed online through TSC portal</li><li>Hardship allowance criteria expanded to include more remote areas</li><li>Spousal posting consideration now a formal policy</li><li>Processing time reduced from 90 to 60 days</li></ul><p>Members requiring assistance with transfer applications are encouraged to visit the branch office for support.</p>', 'circular', FALSE, 'KUPPET Migori', '2026-05-28 10:00:00'),
-
 ('KUPPET Migori Launches Teacher Wellness Program', 'teacher-wellness-program-launch', 'The branch has launched a comprehensive wellness program addressing physical, mental, and financial health of our teacher members across Migori County.', '<p>KUPPET Migori Branch is pleased to announce the launch of the Teacher Wellness Program (TWP) — a holistic initiative designed to support the physical, mental, and financial well-being of our members.</p><p>The program, funded through the branch welfare fund with support from KUPPET National, will provide:</p><ul><li>Free medical check-ups twice annually</li><li>Mental health counseling services</li><li>Financial literacy workshops</li><li>Retirement planning guidance</li><li>Legal aid clinics</li></ul>', 'news', TRUE, 'KUPPET Migori', '2026-05-10 11:00:00'),
-
 ('Circular: BBF Claim Processing - New Requirements', 'bbf-claim-processing-circular', 'Important circular regarding updated BBF claim processing requirements effective immediately.', '<p>To all KUPPET Migori Members,</p><p>This circular outlines the updated requirements for processing Benevolent and Burial Fund (BBF) claims effective June 2026.</p><p><strong>Required Documents:</strong></p><ul><li>Original death certificate (certified copy)</li><li>Deceased member''s TSC number confirmation</li><li>Next of kin identification documents</li><li>Bank account details of beneficiary</li><li>Completed BBF claim form (available at branch office)</li><li>Three passport photos of claimant</li></ul><p>Claims submitted without complete documentation will not be processed. Members are urged to advise their next of kin on the claim process.</p>', 'circular', FALSE, 'KUPPET Migori Secretariat', '2026-06-05 09:00:00');
 
 -- Events
@@ -220,15 +437,54 @@ INSERT IGNORE INTO scholarships (title, provider, description, eligibility, bene
 
 -- Advocacy content
 INSERT IGNORE INTO advocacy (title, slug, content, category, is_featured, is_published) VALUES
-('Know Your Rights as a Teacher in Kenya', 'know-your-rights-teacher-kenya', '<h2>Constitutional Protections</h2><p>Every teacher in Kenya is protected under Article 41 of the Constitution which guarantees fair labour practices including the right to form and join trade unions, the right to strike, and the right to collective bargaining.</p><h2>Employment Act 2007</h2><p>Key protections under the Employment Act include:<br>• Right to a written employment contract<br>• Protection from unfair dismissal<br>• Maternity and paternity leave entitlements<br>• Annual leave of not less than 21 days<br>• Protection from workplace discrimination</p><h2>Labour Relations Act 2007</h2><p>This Act governs collective bargaining between KUPPET and TSC, establishing the framework for Collective Bargaining Agreements (CBAs) that determine salary scales, allowances, and working conditions for teachers.</p><h2>TSC Act 2012</h2><p>The TSC Act governs the employment, discipline, and career management of teachers. Key provisions include the right to appeal disciplinary decisions and the right to representation during disciplinary proceedings.</p>', 'rights', TRUE, TRUE),
-
+('Know Your Rights as a Teacher in Kenya', 'know-your-rights-teacher-kenya', '<h2>Constitutional Protections</h2><p>Every teacher in Kenya is protected under Article 41 of the Constitution which guarantees fair labour practices including the right to form and join trade unions, the right to strike, and the right to collective bargaining.</p><h2>Employment Act 2007</h2><p>Key protections under the Employment Act include:<br>• Right to a written employment contract<br>• Protection from unfair dismissal<br>• Maternity and paternity leave entitlements<br>• Annual leave of not less than 21 days<br>• Protection from discrimination</p><h2>Labour Relations Act 2007</h2><p>This Act governs collective bargaining between KUPPET and TSC, establishing the framework for Collective Bargaining Agreements (CBAs) that determine salary scales, allowances, and working conditions for teachers.</p><h2>TSC Act 2012</h2><p>The TSC Act governs the employment, discipline, and career management of teachers. Key provisions include the right to appeal disciplinary decisions and the right to representation during disciplinary proceedings.</p>', 'rights', TRUE, TRUE),
 ('How to Report Workplace Issues - Step by Step Guide', 'reporting-workplace-issues-guide', '<h2>When to Report</h2><p>You should report workplace issues when you experience or witness unfair treatment, harassment, unsafe working conditions, discrimination, or any violation of your employment rights.</p><h2>Internal Reporting Process</h2><p><strong>Step 1:</strong> Document the incident in writing with dates, times, witnesses, and description of events.</p><p><strong>Step 2:</strong> Report to your immediate supervisor or head of institution if appropriate.</p><p><strong>Step 3:</strong> If unresolved, escalate to the Sub-County Director of Education.</p><h2>Reporting to KUPPET</h2><p>Contact the KUPPET Migori Branch office with your documentation. Our advocacy team will review your case and advise on the best course of action, including whether to pursue the matter through the Labour Relations Court.</p><h2>Labour Relations Court</h2><p>For serious violations, cases may be filed with the Employment and Labour Relations Court (ELRC). KUPPET provides legal support to members pursuing cases at the ELRC.</p>', 'legal', TRUE, TRUE),
-
 ('Understanding Your Collective Bargaining Agreement (CBA)', 'understanding-cba-teachers', '<h2>What is a CBA?</h2><p>A Collective Bargaining Agreement is a written agreement negotiated between KUPPET (representing teachers) and the Teachers Service Commission (TSC). It governs the terms and conditions of employment for all KUPPET members.</p><h2>Current CBA Key Provisions</h2><ul><li>Salary scales and progression</li><li>Housing allowance rates</li><li>Commuter allowance</li><li>Medical coverage</li><li>Professional development leave</li><li>Promotion criteria</li></ul><h2>Your Rights Under the CBA</h2><p>Every KUPPET member is entitled to the full benefits outlined in the current CBA. If you believe your entitlements are not being honored, contact the branch office immediately.</p>', 'labour', FALSE, TRUE);
 
--- Index for performance
+-- Default SMS templates
+INSERT IGNORE INTO sms_templates (name, body, category, created_by) VALUES
+('Registration Approved', 'Dear {{member_name}}, your KUPPET Migori membership application has been approved. Your member number is {{member_number}}. Welcome to the union! - KUPPET Migori', 'general', 1),
+('Registration Rejected', 'Dear {{member_name}}, your KUPPET Migori membership application could not be approved at this time. Reason: {{reason}}. Please visit our office for assistance. - KUPPET Migori', 'general', 1),
+('BBF Claim Submitted', 'Dear {{member_name}}, your BBF claim {{claim_number}} has been received and is under processing. You will be notified of updates. - KUPPET Migori', 'bbf', 1),
+('BBF Claim Approved', 'Dear {{member_name}}, your BBF claim {{claim_number}} has been APPROVED. Amount: KES {{amount}}. Payment will be processed shortly. - KUPPET Migori', 'bbf', 1),
+('BBF Claim Rejected', 'Dear {{member_name}}, your BBF claim {{claim_number}} could not be approved. Reason: {{reason}}. Contact the welfare desk for guidance. - KUPPET Migori', 'bbf', 1),
+('Scholarship Application Approved', 'Dear {{member_name}}, the scholarship application for {{applicant_name}} ({{scholarship_title}}) has been APPROVED. Congratulations! - KUPPET Migori', 'scholarship', 1),
+('Scholarship Application Rejected', 'Dear {{member_name}}, the scholarship application for {{applicant_name}} was unsuccessful this time. Keep applying for future opportunities. - KUPPET Migori', 'scholarship', 1),
+('Event Reminder', 'Dear {{member_name}}, reminder: {{event_title}} is scheduled for {{event_date}} at {{event_venue}}. Your attendance is important. - KUPPET Migori', 'general', 1);
+
+-- ============================================
+-- INDEXES
+-- ============================================
+
 CREATE INDEX IF NOT EXISTS idx_news_published ON news(is_published, published_at);
 CREATE INDEX IF NOT EXISTS idx_news_category ON news(category);
 CREATE INDEX IF NOT EXISTS idx_events_date ON events(event_date);
 CREATE INDEX IF NOT EXISTS idx_resources_category ON resources(category);
 CREATE INDEX IF NOT EXISTS idx_contacts_status ON contacts(status);
+
+CREATE INDEX IF NOT EXISTS idx_members_status ON members(status);
+CREATE INDEX IF NOT EXISTS idx_members_tsc ON members(tsc_number);
+CREATE INDEX IF NOT EXISTS idx_members_email ON members(email);
+
+CREATE INDEX IF NOT EXISTS idx_bbf_member ON bbf_claims(member_id);
+CREATE INDEX IF NOT EXISTS idx_bbf_status ON bbf_claims(status);
+CREATE INDEX IF NOT EXISTS idx_bbf_number ON bbf_claims(claim_number);
+
+CREATE INDEX IF NOT EXISTS idx_bbf_docs_claim ON bbf_claim_documents(claim_id);
+CREATE INDEX IF NOT EXISTS idx_bbf_timeline_claim ON bbf_claim_timeline(claim_id);
+
+CREATE INDEX IF NOT EXISTS idx_schapp_member ON scholarship_applications(member_id);
+CREATE INDEX IF NOT EXISTS idx_schapp_scholarship ON scholarship_applications(scholarship_id);
+CREATE INDEX IF NOT EXISTS idx_schapp_status ON scholarship_applications(status);
+
+CREATE INDEX IF NOT EXISTS idx_notifications_member ON notifications(member_id, is_read);
+
+CREATE INDEX IF NOT EXISTS idx_sms_logs_member ON sms_logs(member_id);
+CREATE INDEX IF NOT EXISTS idx_sms_logs_status ON sms_logs(status);
+
+CREATE INDEX IF NOT EXISTS idx_audit_actor ON audit_logs(actor_id, actor_type);
+CREATE INDEX IF NOT EXISTS idx_audit_action ON audit_logs(action);
+CREATE INDEX IF NOT EXISTS idx_audit_created ON audit_logs(created_at);
+
+CREATE INDEX IF NOT EXISTS idx_login_user ON login_history(user_id, user_type);
+CREATE INDEX IF NOT EXISTS idx_login_ip ON login_history(ip_address, created_at);

@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Scholarships — KUPPET Migori</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <link rel="stylesheet" href="/css/style.css"><link rel="stylesheet" href="/css/portal.css">
+</head>
+<body class="portal-body member-scholarships-page">
+<div class="portal-layout">
+  <div id="sidebar-placeholder"></div>
+  <main class="portal-main">
+    <div id="topbar-placeholder"></div>
+    <div class="portal-content">
+      <div class="page-heading">
+        <div class="page-heading-text"><h1>Available Scholarships</h1><p>Browse and apply for scholarship opportunities.</p></div>
+        <a href="/member/scholarship-applications.html" class="btn btn-outline btn-sm"><i class="fas fa-list"></i> My Applications</a>
+      </div>
+      <div id="sch-msg" class="hidden" style="margin-bottom:1rem"></div>
+      <div id="scholarships-list"></div>
+    </div>
+  </main>
+</div>
+<div class="portal-modal-overlay" id="apply-modal">
+  <div class="portal-modal" style="max-width:600px">
+    <div class="portal-modal-header"><h3>Apply: <span id="apply-scholarship-title"></span></h3><button class="modal-close-btn"><i class="fas fa-times"></i></button></div>
+    <div class="portal-modal-body">
+      <div id="apply-msg" class="hidden"></div>
+      <form id="apply-form">
+        <div class="form-group"><label>Applicant Name (Child's Name) <span class="required">*</span></label><input type="text" name="applicant_name" class="form-control" required></div>
+        <div class="form-row">
+          <div class="form-group"><label>Institution</label><input type="text" name="institution" class="form-control"></div>
+          <div class="form-group"><label>Course</label><input type="text" name="course" class="form-control"></div>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label>Year of Study</label><input type="number" name="year_of_study" class="form-control" min="1" max="8"></div>
+          <div class="form-group"><label>Academic Year</label><input type="text" name="academic_year" class="form-control" placeholder="e.g. 2026/2027"></div>
+        </div>
+        <div class="form-group"><label>Personal Essay / Statement</label><textarea name="essay" class="form-control" rows="4"></textarea></div>
+        <div class="form-group"><label>Supporting Documents</label>
+          <input type="file" id="apply-docs" accept="application/pdf,image/jpeg,image/png" multiple style="display:block;margin-top:0.3rem">
+          <div class="form-hint">Upload KCSE certificate, admission letter, fee structure etc. (PDF or image)</div>
+        </div>
+      </form>
+    </div>
+    <div class="portal-modal-footer">
+      <button class="modal-close-btn btn btn-outline btn-sm">Cancel</button>
+      <button class="btn btn-gold btn-sm" onclick="submitApplication()"><i class="fas fa-paper-plane"></i> Submit Application</button>
+    </div>
+  </div>
+</div>
+<script src="/member/js/member-api.js"></script><script src="/member/js/member-portal.js"></script>
+<script>
+  document.getElementById('sidebar-placeholder').outerHTML = getMemberSidebarHtml();
+  document.getElementById('topbar-placeholder').outerHTML = getMemberTopbarHtml('Scholarships');
+</script>
+</body>
+</html>

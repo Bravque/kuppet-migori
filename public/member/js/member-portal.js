@@ -1,0 +1,508 @@
+/* KUPPET Migori — Member Portal Logic */
+
+function escHtml(s) {
+  if (s == null) return '';
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+function formatDate(d) { if (!d) return '—'; return new Date(d).toLocaleDateString('en-KE', {day:'numeric',month:'short',year:'numeric'}); }
+function formatDateTime(d) { if (!d) return '—'; return new Date(d).toLocaleString('en-KE', {day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}); }
+
+function statusBadge(s) {
+  if (!s) return '';
+  return `<span class="status-badge status-badge--${escHtml(s)}">${escHtml(s.replace(/_/g,' '))}</span>`;
+}
+
+function requireMemberAuth() {
+  if (!localStorage.getItem('memberToken') || !memberApi.getMember()) {
+    window.location.href = '/member/login.html';
+    return null;
+  }
+  return memberApi.getMember();
+}
+
+function initMemberSidebar(member) {
+  if (!member) return;
+  const nameEl = document.getElementById('sb-member-name');
+  const numEl  = document.getElementById('sb-member-number');
+  const avEl   = document.getElementById('sb-avatar');
+  if (nameEl) nameEl.textContent = member.full_name;
+  if (numEl)  numEl.textContent  = member.member_number;
+  if (avEl)   avEl.textContent   = member.full_name ? member.full_name[0].toUpperCase() : 'M';
+
+  const current = window.location.pathname;
+  document.querySelectorAll('.sidebar-nav-item[href]').forEach(l => {
+    if (l.getAttribute('href') === current) l.classList.add('active');
+  });
+
+  const toggle = document.getElementById('sidebar-toggle');
+  const sidebar = document.getElementById('portal-sidebar');
+  const overlay = document.getElementById('portal-overlay');
+  if (toggle && sidebar) {
+    toggle.addEventListener('click', () => { sidebar.classList.toggle('open'); overlay?.classList.toggle('visible'); });
+    overlay?.addEventListener('click', () => { sidebar.classList.remove('open'); overlay.classList.remove('visible'); });
+  }
+
+  document.querySelectorAll('.logout-btn').forEach(b => b.addEventListener('click', () => {
+    memberApi.clearAuth(); window.location.href = '/member/login.html';
+  }));
+}
+
+function getMemberSidebarHtml() {
+  return `
+<aside class="portal-sidebar" id="portal-sidebar">
+  <a href="/member/dashboard.html" class="sidebar-brand">
+    <div class="sidebar-brand-icon"><i class="fas fa-graduation-cap"></i></div>
+    <div class="sidebar-brand-text"><strong>KUPPET Migori</strong><span>Member Portal</span></div>
+  </a>
+  <div class="sidebar-user">
+    <div class="sidebar-user-avatar" id="sb-avatar">M</div>
+    <div class="sidebar-user-info">
+      <div class="sidebar-user-name" id="sb-member-name">Member</div>
+      <div class="sidebar-user-role" id="sb-member-number"></div>
+    </div>
+  </div>
+  <nav class="sidebar-nav">
+    <a href="/member/dashboard.html" class="sidebar-nav-item"><i class="fas fa-home"></i> Dashboard</a>
+    <a href="/member/profile.html" class="sidebar-nav-item"><i class="fas fa-user"></i> My Profile</a>
+    <div class="sidebar-nav-section">Welfare Services</div>
+    <a href="/member/bbf-claims.html" class="sidebar-nav-item"><i class="fas fa-hand-holding-heart"></i> BBF Claims</a>
+    <a href="/member/scholarships.html" class="sidebar-nav-item"><i class="fas fa-award"></i> Scholarships</a>
+    <a href="/member/scholarship-applications.html" class="sidebar-nav-item"><i class="fas fa-file-alt"></i> My Applications</a>
+    <div class="sidebar-nav-section">Account</div>
+    <a href="/member/notifications.html" class="sidebar-nav-item"><i class="fas fa-bell"></i> Notifications <span class="nav-badge" id="notif-badge" style="display:none"></span></a>
+    <a href="/member/history.html" class="sidebar-nav-item"><i class="fas fa-history"></i> Activity History</a>
+  </nav>
+  <div class="sidebar-footer">
+    <a href="/" class="sidebar-nav-item" style="color:rgba(255,255,255,0.5)"><i class="fas fa-globe"></i> Public Website</a>
+    <button class="logout-btn sidebar-nav-item" style="color:rgba(255,255,255,0.5)"><i class="fas fa-sign-out-alt"></i> Sign Out</button>
+  </div>
+</aside>
+<div class="portal-overlay" id="portal-overlay"></div>`;
+}
+
+function getMemberTopbarHtml(title) {
+  return `
+<div class="portal-topbar">
+  <div class="topbar-left">
+    <button class="sidebar-toggle topbar-icon-btn" id="sidebar-toggle"><i class="fas fa-bars"></i></button>
+    <span class="topbar-title">${escHtml(title)}</span>
+  </div>
+  <div class="topbar-right">
+    <a href="/member/notifications.html" class="topbar-icon-btn" title="Notifications">
+      <i class="fas fa-bell"></i>
+      <span class="topbar-notif-dot" id="notif-dot" style="display:none"></span>
+    </a>
+    <button class="logout-btn topbar-icon-btn" title="Sign out"><i class="fas fa-sign-out-alt"></i></button>
+  </div>
+</div>`;
+}
+
+async function loadNotifCount() {
+  try {
+    const res = await memberApi.notifications.getAll({ limit: 1 });
+    const count = res.unreadCount || 0;
+    const badge = document.getElementById('notif-badge');
+    const dot = document.getElementById('notif-dot');
+    if (count > 0) {
+      if (badge) { badge.style.display = ''; badge.textContent = count; }
+      if (dot) dot.style.display = '';
+    }
+  } catch (_) {}
+}
+
+// ── Dashboard ─────────────────────────────────────────────────────────────────
+async function initMemberDashboard() {
+  if (!document.querySelector('.member-dashboard-page')) return;
+  const member = requireMemberAuth(); if (!member) return;
+  initMemberSidebar(member);
+  loadNotifCount();
+
+  document.getElementById('dash-name').textContent = member.full_name.split(' ')[0];
+  document.getElementById('dash-member-number').textContent = member.member_number;
+
+  try {
+    const [bbfRes, schRes, notifRes] = await Promise.all([
+      memberApi.bbf.getAll().catch(() => ({ data: [] })),
+      memberApi.scholarships.getApplications().catch(() => ({ data: [] })),
+      memberApi.notifications.getAll({ limit: 5 }).catch(() => ({ data: [], unreadCount: 0 })),
+    ]);
+    document.getElementById('dash-bbf-count').textContent = bbfRes.data.length;
+    document.getElementById('dash-sch-count').textContent = schRes.data.length;
+    document.getElementById('dash-notif-count').textContent = notifRes.unreadCount || 0;
+    renderRecentNotifications(notifRes.data.slice(0, 4));
+  } catch (_) {}
+}
+
+function renderRecentNotifications(notifs) {
+  const el = document.getElementById('recent-notifs');
+  if (!el) return;
+  if (!notifs.length) { el.innerHTML = '<div class="portal-empty" style="padding:1.5rem"><p>No notifications yet</p></div>'; return; }
+  el.innerHTML = notifs.map(n => `
+    <div style="padding:0.75rem 1.25rem;border-bottom:1px solid var(--border);display:flex;gap:0.75rem;align-items:flex-start${!n.is_read ? ';background:#FAFBFF' : ''}">
+      <div style="width:8px;height:8px;border-radius:50%;background:${!n.is_read ? 'var(--primary)' : 'transparent'};margin-top:6px;flex-shrink:0"></div>
+      <div>
+        <div style="font-size:0.82rem;font-weight:${!n.is_read ? '600' : '400'}">${escHtml(n.title)}</div>
+        <div style="font-size:0.72rem;color:var(--text-muted);margin-top:0.15rem">${formatDateTime(n.created_at)}</div>
+      </div>
+    </div>`).join('');
+}
+
+// ── Profile ───────────────────────────────────────────────────────────────────
+async function initMemberProfile() {
+  if (!document.querySelector('.member-profile-page')) return;
+  const member = requireMemberAuth(); if (!member) return;
+  initMemberSidebar(member);
+  loadNotifCount();
+
+  try {
+    const res = await memberApi.profile.get();
+    const m = res.data;
+    const fields = ['full_name','tsc_number','national_id','employment_number','phone','email','gender','date_of_birth','school_name','sub_county'];
+    fields.forEach(f => {
+      const el = document.getElementById(`p-${f.replace(/_/g,'-')}`);
+      if (el) el.value = m[f] || '';
+    });
+    document.getElementById('p-member-number').textContent = m.member_number;
+    document.getElementById('p-status').innerHTML = statusBadge(m.status);
+    document.getElementById('p-joined').textContent = formatDate(m.created_at);
+    if (m.passport_photo_url) {
+      document.getElementById('profile-photo').style.backgroundImage = `url(${memberApi.document(m.passport_photo_url.split('/').pop())})`;
+    }
+  } catch (err) {
+    showMsg('profile-msg', err.message);
+  }
+
+  document.getElementById('btn-save-profile')?.addEventListener('click', async () => {
+    try {
+      await memberApi.profile.update({
+        phone: document.getElementById('p-phone').value,
+        school_name: document.getElementById('p-school-name').value,
+        sub_county: document.getElementById('p-sub-county').value,
+        employment_number: document.getElementById('p-employment-number').value,
+      });
+      showMsg('profile-msg', 'Profile updated successfully', 'success');
+    } catch (err) { showMsg('profile-msg', err.message); }
+  });
+
+  document.getElementById('photo-input')?.addEventListener('change', async function() {
+    if (!this.files[0]) return;
+    const form = new FormData();
+    form.append('photo', this.files[0]);
+    try {
+      const res = await memberApi.profile.uploadPhoto(form);
+      showMsg('profile-msg', 'Photo updated', 'success');
+    } catch (err) { showMsg('profile-msg', err.message); }
+  });
+
+  document.getElementById('btn-change-pw')?.addEventListener('click', async () => {
+    const old = document.getElementById('old-pw').value;
+    const nw  = document.getElementById('new-pw').value;
+    try {
+      await memberApi.auth.changePassword(old, nw);
+      showMsg('pw-msg', 'Password changed', 'success');
+      document.getElementById('old-pw').value = '';
+      document.getElementById('new-pw').value = '';
+    } catch (err) { showMsg('pw-msg', err.message); }
+  });
+}
+
+// ── BBF Claims ────────────────────────────────────────────────────────────────
+async function initMemberBbf() {
+  if (!document.querySelector('.member-bbf-page')) return;
+  const member = requireMemberAuth(); if (!member) return;
+  initMemberSidebar(member); loadNotifCount();
+
+  loadBbfList();
+  document.getElementById('btn-new-claim')?.addEventListener('click', () => {
+    document.getElementById('new-claim-modal').classList.add('open');
+    document.getElementById('new-claim-form').reset();
+  });
+  document.querySelectorAll('.modal-close-btn').forEach(b => b.addEventListener('click', () => b.closest('.portal-modal-overlay').classList.remove('open')));
+  document.getElementById('btn-create-claim')?.addEventListener('click', createClaim);
+}
+
+async function loadBbfList() {
+  const el = document.getElementById('bbf-list');
+  if (!el) return;
+  el.innerHTML = '<div class="portal-loading"><i class="fas fa-spinner fa-spin"></i> Loading…</div>';
+  try {
+    const res = await memberApi.bbf.getAll();
+    if (!res.data.length) { el.innerHTML = `<div class="portal-empty"><i class="fas fa-inbox"></i><h3>No BBF claims yet</h3><p>Submit your first claim using the button above.</p></div>`; return; }
+    el.innerHTML = res.data.map(c => `
+      <div class="data-card" style="margin-bottom:0.75rem">
+        <div style="padding:1rem 1.25rem;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:0.5rem">
+          <div>
+            <div style="font-size:0.9rem;font-weight:700">${escHtml(c.claim_number)}</div>
+            <div style="font-size:0.8rem;color:var(--text-muted)">${escHtml(c.claim_type.replace(/_/g,' '))} — ${formatDate(c.created_at)}</div>
+          </div>
+          <div style="display:flex;align-items:center;gap:0.75rem">
+            ${statusBadge(c.status)}
+            <a href="/member/bbf-claim-detail.html?id=${c.id}" class="btn btn-outline btn-xs"><i class="fas fa-eye"></i> View</a>
+          </div>
+        </div>
+      </div>`).join('');
+  } catch (err) { el.innerHTML = `<div class="alert alert-danger">${escHtml(err.message)}</div>`; }
+}
+
+async function createClaim() {
+  const type = document.getElementById('claim-type').value;
+  const desc = document.getElementById('claim-desc').value;
+  const amount = document.getElementById('claim-amount').value;
+  if (!type) { showMsg('claim-msg', 'Claim type required'); return; }
+  try {
+    const res = await memberApi.bbf.create({ claim_type: type, description: desc, amount_requested: amount || null });
+    document.getElementById('new-claim-modal').classList.remove('open');
+    window.location.href = `/member/bbf-claim-detail.html?id=${res.data.id}`;
+  } catch (err) { showMsg('claim-msg', err.message); }
+}
+
+// ── BBF Claim Detail ──────────────────────────────────────────────────────────
+async function initMemberBbfDetail() {
+  if (!document.querySelector('.member-bbf-detail-page')) return;
+  const member = requireMemberAuth(); if (!member) return;
+  initMemberSidebar(member); loadNotifCount();
+
+  const id = new URLSearchParams(window.location.search).get('id');
+  if (!id) { window.location.href = '/member/bbf-claims.html'; return; }
+
+  loadClaimDetail(id);
+  document.getElementById('btn-submit-claim')?.addEventListener('click', () => submitClaim(id));
+  document.getElementById('doc-input')?.addEventListener('change', function() {
+    document.getElementById('doc-upload-name').textContent = this.files[0]?.name || '';
+  });
+  document.getElementById('btn-upload-doc')?.addEventListener('click', () => uploadDoc(id));
+}
+
+async function loadClaimDetail(id) {
+  try {
+    const res = await memberApi.bbf.getOne(id);
+    const c = res.data;
+    document.getElementById('claim-number').textContent = c.claim_number;
+    document.getElementById('claim-type').textContent = c.claim_type.replace(/_/g,' ');
+    document.getElementById('claim-status').innerHTML = statusBadge(c.status);
+    document.getElementById('claim-date').textContent = formatDate(c.created_at);
+    document.getElementById('claim-desc').textContent = c.description || '—';
+    document.getElementById('claim-amount').textContent = c.amount_requested ? `KES ${Number(c.amount_requested).toLocaleString()}` : '—';
+
+    // Show submit button only for drafts
+    const submitBtn = document.getElementById('btn-submit-claim');
+    if (submitBtn) submitBtn.style.display = c.status === 'draft' ? '' : 'none';
+
+    // Documents
+    const docList = document.getElementById('doc-list');
+    if (docList) {
+      docList.innerHTML = c.documents.length
+        ? c.documents.map(d => `<li class="doc-item"><i class="fas fa-file-pdf doc-icon"></i><span class="doc-name">${escHtml(d.file_name||d.file_url)}</span><span class="doc-size">${escHtml(d.doc_type)}</span></li>`).join('')
+        : '<li style="padding:0.5rem;color:var(--text-muted);font-size:0.82rem">No documents yet</li>';
+    }
+
+    // Timeline
+    const tlRes = await memberApi.bbf.getTimeline(id);
+    const tl = document.getElementById('timeline');
+    if (tl) {
+      tl.innerHTML = tlRes.data.map(e => `
+        <div class="timeline-item status-${e.to_status}">
+          <div class="timeline-dot"><i class="fas fa-circle" style="font-size:0.5rem"></i></div>
+          <div class="timeline-content">
+            <div class="timeline-status">${escHtml(e.to_status.replace(/_/g,' '))}</div>
+            <div class="timeline-meta">${formatDateTime(e.created_at)} — by ${escHtml(e.changed_by_type)}</div>
+            ${e.comment ? `<div class="timeline-comment">${escHtml(e.comment)}</div>` : ''}
+          </div>
+        </div>`).join('');
+    }
+  } catch (err) { showMsg('detail-msg', err.message); }
+}
+
+async function submitClaim(id) {
+  if (!confirm('Submit this claim for review? You will not be able to edit it after submission.')) return;
+  try {
+    await memberApi.bbf.submit(id);
+    showMsg('detail-msg', 'Claim submitted successfully', 'success');
+    loadClaimDetail(id);
+  } catch (err) { showMsg('detail-msg', err.message); }
+}
+
+async function uploadDoc(id) {
+  const inp = document.getElementById('doc-input');
+  const type = document.getElementById('doc-type').value;
+  if (!inp.files[0]) { showMsg('doc-msg', 'Please select a file'); return; }
+  const form = new FormData();
+  form.append('files', inp.files[0]);
+  form.append('doc_type', type);
+  try {
+    await memberApi.bbf.uploadDocs(id, form);
+    showMsg('doc-msg', 'Document uploaded', 'success');
+    inp.value = '';
+    document.getElementById('doc-upload-name').textContent = '';
+    loadClaimDetail(id);
+  } catch (err) { showMsg('doc-msg', err.message); }
+}
+
+// ── Scholarships ──────────────────────────────────────────────────────────────
+async function initMemberScholarships() {
+  if (!document.querySelector('.member-scholarships-page')) return;
+  const member = requireMemberAuth(); if (!member) return;
+  initMemberSidebar(member); loadNotifCount();
+
+  const el = document.getElementById('scholarships-list');
+  if (!el) return;
+  el.innerHTML = '<div class="portal-loading"><i class="fas fa-spinner fa-spin"></i> Loading…</div>';
+  try {
+    const res = await memberApi.scholarships.getAvailable();
+    if (!res.data.length) { el.innerHTML = `<div class="portal-empty"><i class="fas fa-award"></i><h3>No scholarships available</h3><p>Check back later for new opportunities.</p></div>`; return; }
+    el.innerHTML = res.data.map(s => `
+      <div class="data-card" style="margin-bottom:1rem">
+        <div style="padding:1.25rem">
+          <div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:0.5rem;margin-bottom:0.75rem">
+            <div><div style="font-size:1rem;font-weight:700">${escHtml(s.title)}</div><div style="font-size:0.8rem;color:var(--text-muted)">${escHtml(s.provider)}</div></div>
+            ${s.application_deadline ? `<span style="font-size:0.78rem;color:var(--red);font-weight:600"><i class="fas fa-clock"></i> Deadline: ${formatDate(s.application_deadline)}</span>` : ''}
+          </div>
+          <p style="font-size:0.85rem;margin:0 0 0.75rem">${escHtml(s.description)}</p>
+          <button class="btn btn-gold btn-sm" onclick="openApplyModal(${s.id},'${escHtml(s.title)}')"><i class="fas fa-paper-plane"></i> Apply Now</button>
+        </div>
+      </div>`).join('');
+  } catch (err) { el.innerHTML = `<div class="alert alert-danger">${escHtml(err.message)}</div>`; }
+}
+
+let applyScholarshipId = null;
+function openApplyModal(id, title) {
+  applyScholarshipId = id;
+  document.getElementById('apply-scholarship-title').textContent = title;
+  document.getElementById('apply-form').reset();
+  document.getElementById('apply-modal').classList.add('open');
+}
+
+async function submitApplication() {
+  const form = document.getElementById('apply-form');
+  const formData = new FormData(form);
+  const fileInput = document.getElementById('apply-docs');
+  if (fileInput.files.length) {
+    for (const f of fileInput.files) formData.append('files', f);
+  }
+  try {
+    await memberApi.scholarships.apply(applyScholarshipId, formData);
+    document.getElementById('apply-modal').classList.remove('open');
+    showMsg('sch-msg', 'Application submitted successfully', 'success');
+  } catch (err) { showMsg('apply-msg', err.message); }
+}
+
+// ── Scholarship Applications list ─────────────────────────────────────────────
+async function initScholarshipApplications() {
+  if (!document.querySelector('.member-schapp-page')) return;
+  const member = requireMemberAuth(); if (!member) return;
+  initMemberSidebar(member); loadNotifCount();
+
+  const el = document.getElementById('applications-list');
+  if (!el) return;
+  el.innerHTML = '<div class="portal-loading"><i class="fas fa-spinner fa-spin"></i> Loading…</div>';
+  try {
+    const res = await memberApi.scholarships.getApplications();
+    if (!res.data.length) { el.innerHTML = `<div class="portal-empty"><i class="fas fa-file-alt"></i><h3>No applications yet</h3><p><a href="/member/scholarships.html">Browse available scholarships</a></p></div>`; return; }
+    el.innerHTML = res.data.map(a => `
+      <div class="data-card" style="margin-bottom:0.75rem">
+        <div style="padding:1rem 1.25rem;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:0.5rem">
+          <div>
+            <div style="font-weight:700;font-size:0.9rem">${escHtml(a.scholarship_title)}</div>
+            <div style="font-size:0.78rem;color:var(--text-muted)">${escHtml(a.application_number)} — Applicant: ${escHtml(a.applicant_name)}</div>
+            <div style="font-size:0.75rem;color:var(--text-muted)">${formatDate(a.created_at)}</div>
+          </div>
+          ${statusBadge(a.status)}
+        </div>
+      </div>`).join('');
+  } catch (err) { el.innerHTML = `<div class="alert alert-danger">${escHtml(err.message)}</div>`; }
+}
+
+// ── Notifications ─────────────────────────────────────────────────────────────
+async function initMemberNotifications() {
+  if (!document.querySelector('.member-notifications-page')) return;
+  const member = requireMemberAuth(); if (!member) return;
+  initMemberSidebar(member);
+
+  loadNotifications();
+  document.getElementById('btn-mark-all')?.addEventListener('click', async () => {
+    await memberApi.notifications.markAllRead().catch(() => {});
+    loadNotifications();
+  });
+}
+
+async function loadNotifications() {
+  const el = document.getElementById('notif-list');
+  if (!el) return;
+  el.innerHTML = '<div class="portal-loading"><i class="fas fa-spinner fa-spin"></i> Loading…</div>';
+  try {
+    const res = await memberApi.notifications.getAll({ limit: 50 });
+    if (!res.data.length) { el.innerHTML = `<div class="portal-empty"><i class="fas fa-bell"></i><h3>No notifications</h3></div>`; return; }
+    el.innerHTML = res.data.map(n => `
+      <div style="padding:1rem 1.25rem;border-bottom:1px solid var(--border);display:flex;gap:1rem;align-items:flex-start;cursor:pointer${!n.is_read ? ';background:#F8FAFE' : ''}" onclick="markNotifRead(${n.id}, this)">
+        <div style="width:10px;height:10px;border-radius:50%;background:${!n.is_read ? 'var(--primary)' : 'transparent'};border:2px solid var(--border);flex-shrink:0;margin-top:4px"></div>
+        <div style="flex:1">
+          <div style="font-size:0.85rem;font-weight:${!n.is_read ? '600' : '400'}">${escHtml(n.title)}</div>
+          ${n.body ? `<div style="font-size:0.78rem;color:var(--text-muted);margin-top:0.2rem">${escHtml(n.body)}</div>` : ''}
+          <div style="font-size:0.72rem;color:var(--text-muted);margin-top:0.3rem">${formatDateTime(n.created_at)}</div>
+        </div>
+      </div>`).join('');
+  } catch (err) { el.innerHTML = `<div class="alert alert-danger">${escHtml(err.message)}</div>`; }
+}
+
+async function markNotifRead(id, el) {
+  await memberApi.notifications.markRead(id).catch(() => {});
+  el.style.background = '';
+  el.querySelector('div:first-child').style.background = 'transparent';
+}
+
+// ── History ───────────────────────────────────────────────────────────────────
+async function initMemberHistory() {
+  if (!document.querySelector('.member-history-page')) return;
+  const member = requireMemberAuth(); if (!member) return;
+  initMemberSidebar(member); loadNotifCount();
+
+  try {
+    const [bbfRes, schRes] = await Promise.all([
+      memberApi.bbf.getAll().catch(() => ({ data: [] })),
+      memberApi.scholarships.getApplications().catch(() => ({ data: [] })),
+    ]);
+    renderHistoryTable('bbf-history-tbody', bbfRes.data, ['claim_number','claim_type','status','submitted_at','resolved_at']);
+    renderHistoryTable('sch-history-tbody', schRes.data, ['application_number','scholarship_title','status','created_at','reviewed_at']);
+  } catch (_) {}
+}
+
+function renderHistoryTable(tbodyId, rows, cols) {
+  const el = document.getElementById(tbodyId);
+  if (!el) return;
+  if (!rows.length) { el.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:1.5rem;color:var(--text-muted)">No records</td></tr>'; return; }
+  el.innerHTML = rows.map(r => `<tr>${cols.map(c => {
+    const v = r[c];
+    if (c === 'status') return `<td>${statusBadge(v)}</td>`;
+    if (c.endsWith('_at') || c.endsWith('_date')) return `<td>${formatDate(v)}</td>`;
+    const label = c.replace(/_/g,' ');
+    return `<td>${escHtml(v||'—')}</td>`;
+  }).join('')}</tr>`).join('');
+}
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+function showMsg(id, msg, type = 'danger') {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.className = `alert alert-${type}`;
+  el.textContent = msg;
+  el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+  initMemberDashboard();
+  initMemberProfile();
+  initMemberBbf();
+  initMemberBbfDetail();
+  initMemberScholarships();
+  initScholarshipApplications();
+  initMemberNotifications();
+  initMemberHistory();
+
+  document.querySelectorAll('.portal-modal-overlay').forEach(o => {
+    o.addEventListener('click', e => { if (e.target === o) o.classList.remove('open'); });
+  });
+  document.querySelectorAll('.modal-close-btn').forEach(b => {
+    b.addEventListener('click', () => b.closest('.portal-modal-overlay')?.classList.remove('open'));
+  });
+});

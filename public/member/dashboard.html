@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Member Dashboard — KUPPET Migori</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <link rel="stylesheet" href="/css/style.css"><link rel="stylesheet" href="/css/portal.css">
+</head>
+<body class="portal-body member-dashboard-page">
+<div class="portal-layout">
+  <div id="sidebar-placeholder"></div>
+  <main class="portal-main">
+    <div id="topbar-placeholder"></div>
+    <div class="portal-content">
+      <div style="margin-bottom:1.5rem">
+        <h1 style="font-size:1.35rem;font-weight:800;margin:0 0 0.25rem">Welcome, <span id="dash-name">Member</span>!</h1>
+        <p style="margin:0;font-size:0.85rem;color:var(--text-muted)">Member No: <strong id="dash-member-number"></strong></p>
+      </div>
+
+      <div class="stats-grid" style="grid-template-columns:repeat(auto-fill,minmax(160px,1fr))">
+        <div class="stat-card">
+          <div class="stat-icon blue"><i class="fas fa-hand-holding-heart"></i></div>
+          <div class="stat-info"><div class="stat-value" id="dash-bbf-count">—</div><div class="stat-label">BBF Claims</div></div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon gold"><i class="fas fa-award"></i></div>
+          <div class="stat-info"><div class="stat-value" id="dash-sch-count">—</div><div class="stat-label">Scholarship Applications</div></div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon red"><i class="fas fa-bell"></i></div>
+          <div class="stat-info"><div class="stat-value" id="dash-notif-count">—</div><div class="stat-label">Unread Notifications</div></div>
+        </div>
+      </div>
+
+      <div class="grid-2" style="gap:1rem;margin-top:1.5rem">
+        <div class="data-card">
+          <div class="data-card-header">
+            <div class="data-card-title">Recent Notifications</div>
+            <a href="/member/notifications.html" class="btn btn-outline btn-xs">View all</a>
+          </div>
+          <div id="recent-notifs"></div>
+        </div>
+        <div class="data-card">
+          <div class="data-card-header"><div class="data-card-title">Quick Actions</div></div>
+          <div style="padding:1.25rem;display:flex;flex-direction:column;gap:0.6rem">
+            <a href="/member/bbf-claims.html" class="btn btn-outline btn-sm"><i class="fas fa-hand-holding-heart"></i> Submit BBF Claim</a>
+            <a href="/member/scholarships.html" class="btn btn-outline btn-sm"><i class="fas fa-award"></i> Apply for Scholarship</a>
+            <a href="/member/profile.html" class="btn btn-outline btn-sm"><i class="fas fa-user-edit"></i> Update My Profile</a>
+            <a href="/pages/news.html" class="btn btn-outline btn-sm" target="_blank"><i class="fas fa-newspaper"></i> Latest News</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+<script src="/member/js/member-api.js"></script><script src="/member/js/member-portal.js"></script>
+<script>
+  document.getElementById('sidebar-placeholder').outerHTML = getMemberSidebarHtml();
+  document.getElementById('topbar-placeholder').outerHTML = getMemberTopbarHtml('Dashboard');
+</script>
+</body>
+</html>

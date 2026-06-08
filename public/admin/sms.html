@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Send SMS — KUPPET Migori Admin</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <link rel="stylesheet" href="/css/style.css"><link rel="stylesheet" href="/css/portal.css">
+</head>
+<body class="portal-body admin-sms-page">
+<div class="portal-layout">
+  <div id="sidebar-placeholder"></div>
+  <main class="portal-main">
+    <div id="topbar-placeholder"></div>
+    <div class="portal-content">
+      <div class="page-heading"><div class="page-heading-text"><h1>Send SMS</h1><p>Send individual, bulk, or group SMS messages.</p></div></div>
+      <div class="filter-tabs">
+        <button class="filter-tab active" data-mode="individual">Individual</button>
+        <button class="filter-tab" data-mode="bulk">Bulk</button>
+        <button class="filter-tab" data-mode="group">Group</button>
+      </div>
+      <div id="sms-alert" class="hidden" style="max-width:600px;margin-bottom:1rem"></div>
+
+      <!-- Individual -->
+      <div id="panel-individual" class="data-card" style="max-width:600px;padding:1.5rem">
+        <div class="form-group"><label>Recipient Phone</label><input type="tel" id="ind-phone" class="form-control" placeholder="+254 7XX XXX XXX"></div>
+        <div class="form-group"><label>Message <span id="ind-count" style="float:right;font-size:0.75rem;color:var(--text-muted)">0/160</span></label><textarea id="ind-message" class="form-control" rows="4" maxlength="480"></textarea></div>
+        <div class="form-group"><label>Template (optional)</label><select id="ind-template" class="form-control"><option value="">Select template...</option></select></div>
+        <button class="btn btn-gold btn-sm" onclick="sendIndividual()"><i class="fas fa-paper-plane"></i> Send SMS</button>
+      </div>
+
+      <!-- Bulk -->
+      <div id="panel-bulk" class="data-card" style="max-width:600px;padding:1.5rem;display:none">
+        <div class="form-group"><label>Phone Numbers (one per line)</label><textarea id="bulk-phones" class="form-control" rows="6" placeholder="+254700000001&#10;+254700000002&#10;..."></textarea></div>
+        <div class="form-group"><label>Message</label><textarea id="bulk-message" class="form-control" rows="4" maxlength="480"></textarea></div>
+        <button class="btn btn-gold btn-sm" onclick="sendBulk()"><i class="fas fa-broadcast-tower"></i> Send Bulk SMS</button>
+      </div>
+
+      <!-- Group -->
+      <div id="panel-group" class="data-card" style="max-width:600px;padding:1.5rem;display:none">
+        <div class="form-group"><label>Target Group</label>
+          <select id="group-target" class="form-control" onchange="document.getElementById('group-subcounty-row').style.display=this.value==='sub_county'?'':'none'">
+            <option value="all_approved">All Approved Members</option>
+            <option value="sub_county">By Sub-County</option>
+          </select>
+        </div>
+        <div id="group-subcounty-row" style="display:none" class="form-group"><label>Sub-County</label>
+          <select id="group-subcounty" class="form-control"><option>Migori</option><option>Suna East</option><option>Suna West</option><option>Rongo</option><option>Uriri</option><option>Nyatike</option><option>Kuria East</option><option>Kuria West</option></select>
+        </div>
+        <div class="form-group"><label>Message (use {{member_name}} for personalisation)</label><textarea id="group-message" class="form-control" rows="4" maxlength="480"></textarea></div>
+        <button class="btn btn-gold btn-sm" onclick="sendGroup()"><i class="fas fa-users"></i> Send Group SMS</button>
+      </div>
+    </div>
+  </main>
+</div>
+<script src="/admin/js/admin-api.js"></script><script src="/admin/js/admin-portal.js"></script>
+<script>
+  document.getElementById('sidebar-placeholder').outerHTML = getSidebarHtml();
+  document.getElementById('topbar-placeholder').outerHTML = getTopbarHtml('Send SMS');
+  const user = requireAdminAuth(); if(user) initSidebar(user);
+
+  // Load templates
+  adminApi.sms.getTemplates().then(res=>{
+    const sel=document.getElementById('ind-template');
+    (res.data||[]).forEach(t=>sel.add(new Option(t.name,t.body)));
+    sel.addEventListener('change',()=>{if(sel.value) document.getElementById('ind-message').value=sel.value;});
+  }).catch(()=>{});
+
+  document.getElementById('ind-message').addEventListener('input',function(){
+    document.getElementById('ind-count').textContent=this.value.length+'/160';
+  });
+
+  document.querySelectorAll('.filter-tab').forEach(t=>t.addEventListener('click',()=>{
+    document.querySelectorAll('.filter-tab').forEach(x=>x.classList.remove('active'));t.classList.add('active');
+    document.querySelectorAll('[id^=panel-]').forEach(p=>p.style.display='none');
+    document.getElementById('panel-'+t.dataset.mode).style.display='';
+    hideAlert('sms-alert');
+  }));
+
+  async function sendIndividual(){
+    const phone=document.getElementById('ind-phone').value.trim();
+    const message=document.getElementById('ind-message').value.trim();
+    if(!phone||!message){showAlert('sms-alert','Phone and message required');return;}
+    try{
+      const res=await adminApi.sms.send({phone,message});
+      showAlert('sms-alert',res.message,'success');
+      document.getElementById('ind-phone').value='';
+      document.getElementById('ind-message').value='';
+    }catch(err){showAlert('sms-alert',err.message);}
+  }
+
+  async function sendBulk(){
+    const phones=document.getElementById('bulk-phones').value.trim().split('\n').map(p=>p.trim()).filter(Boolean);
+    const message=document.getElementById('bulk-message').value.trim();
+    if(!phones.length||!message){showAlert('sms-alert','Phone numbers and message required');return;}
+    const recipients=phones.map(phone=>({phone}));
+    try{
+      const res=await adminApi.sms.bulk({recipients,message});
+      showAlert('sms-alert',res.message,'success');
+    }catch(err){showAlert('sms-alert',err.message);}
+  }
+
+  async function sendGroup(){
+    const group=document.getElementById('group-target').value;
+    const message=document.getElementById('group-message').value.trim();
+    const sub_county=document.getElementById('group-subcounty').value;
+    if(!message){showAlert('sms-alert','Message required');return;}
+    if(!confirm('Send this message to all members in the selected group?'))return;
+    try{
+      const res=await fetch('/api/admin/sms/group',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+localStorage.getItem('adminToken')},body:JSON.stringify({group,message,sub_county})});
+      const data=await res.json();
+      if(data.success){showAlert('sms-alert',data.message,'success');}else{showAlert('sms-alert',data.message);}
+    }catch(err){showAlert('sms-alert',err.message);}
+  }
+</script>
+</body>
+</html>

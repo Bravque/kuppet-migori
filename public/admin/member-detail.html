@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Member Detail — KUPPET Migori Admin</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <link rel="stylesheet" href="/css/style.css"><link rel="stylesheet" href="/css/portal.css">
+</head>
+<body class="portal-body admin-member-detail-page">
+<div class="portal-layout">
+  <div id="sidebar-placeholder"></div>
+  <main class="portal-main">
+    <div id="topbar-placeholder"></div>
+    <div class="portal-content">
+      <div class="page-heading">
+        <div class="page-heading-text"><h1 id="member-name">Member Detail</h1><div id="member-status"></div></div>
+        <div class="page-heading-actions">
+          <a href="/admin/members.html" class="btn btn-outline btn-sm"><i class="fas fa-arrow-left"></i> Back</a>
+          <button id="btn-approve" class="btn btn-sm" style="background:#DCFCE7;color:#166534;display:none"><i class="fas fa-check"></i> Approve</button>
+          <button id="btn-reject" class="btn btn-sm" style="background:#FEE2E2;color:#991B1B;display:none"><i class="fas fa-times"></i> Reject</button>
+          <button id="btn-suspend" class="btn btn-sm" style="background:#F3F4F6;color:#4B5563;display:none" data-super-only><i class="fas fa-ban"></i> Suspend</button>
+        </div>
+      </div>
+      <div id="detail-alert" class="hidden" style="max-width:700px;margin-bottom:1rem"></div>
+      <div class="grid-2" style="gap:1rem">
+        <div class="data-card">
+          <div class="data-card-header"><div class="data-card-title">Personal Information</div></div>
+          <div style="padding:1.25rem">
+            <table style="width:100%;font-size:0.85rem;border-collapse:collapse" id="info-table"></table>
+          </div>
+        </div>
+        <div class="data-card">
+          <div class="data-card-header"><div class="data-card-title">Documents</div></div>
+          <div style="padding:1.25rem" id="doc-section"></div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+<script src="/admin/js/admin-api.js"></script><script src="/admin/js/admin-portal.js"></script>
+<script>
+  document.getElementById('sidebar-placeholder').outerHTML = getSidebarHtml();
+  document.getElementById('topbar-placeholder').outerHTML = getTopbarHtml('Member Detail');
+  const user = requireAdminAuth(); if(user) initSidebar(user);
+  const id = new URLSearchParams(window.location.search).get('id');
+  if(!id){window.location.href='/admin/members.html';}
+  (async()=>{
+    try {
+      const res = await adminApi.members.getOne(id);
+      const m = res.data;
+      document.getElementById('member-name').textContent = m.full_name;
+      document.getElementById('member-status').innerHTML = statusBadge(m.status);
+      const rows = [
+        ['Member No', m.member_number],['TSC Number',m.tsc_number],['National ID',m.national_id],
+        ['Employment No',m.employment_number||'—'],['Phone',m.phone],['Email',m.email],
+        ['Gender',m.gender],['Date of Birth',formatDate(m.date_of_birth)],
+        ['School',m.school_name],['Sub-County',m.sub_county],
+        ['Status',statusBadge(m.status)],['Registered',formatDate(m.created_at)],
+        ['Approved',formatDate(m.approved_at)],
+      ];
+      document.getElementById('info-table').innerHTML = rows.map(([k,v])=>`<tr><td style="padding:0.4rem 0;color:var(--text-muted);width:45%">${k}</td><td style="font-weight:500">${v||'—'}</td></tr>`).join('');
+      document.getElementById('doc-section').innerHTML = [
+        m.passport_photo_url ? `<div class="doc-item"><i class="fas fa-camera doc-icon"></i><span class="doc-name">Passport Photo</span><a href="${m.passport_photo_url}" target="_blank" class="btn btn-outline btn-xs">View</a></div>` : '',
+        m.national_id_url ? `<div class="doc-item"><i class="fas fa-id-card doc-icon"></i><span class="doc-name">National ID Copy</span><a href="${m.national_id_url}" target="_blank" class="btn btn-outline btn-xs">View</a></div>` : '',
+      ].join('') || '<p style="font-size:0.85rem;color:var(--text-muted)">No documents uploaded</p>';
+      if(m.status!=='approved'){document.getElementById('btn-approve').style.display='';}
+      if(m.status!=='rejected'){document.getElementById('btn-reject').style.display='';}
+      if(m.status!=='suspended'){document.getElementById('btn-suspend').style.display='';}
+      document.getElementById('btn-approve').addEventListener('click',async()=>{
+        if(!confirm('Approve this member?'))return;
+        try{await adminApi.members.approve(id);showAlert('detail-alert','Member approved!','success');setTimeout(()=>window.location.reload(),1500);}catch(e){showAlert('detail-alert',e.message);}
+      });
+      document.getElementById('btn-reject').addEventListener('click',async()=>{
+        const reason=prompt('Reason for rejection:');
+        if(reason===null)return;
+        try{await adminApi.members.reject(id,reason);showAlert('detail-alert','Member rejected','success');setTimeout(()=>window.location.reload(),1500);}catch(e){showAlert('detail-alert',e.message);}
+      });
+      document.getElementById('btn-suspend').addEventListener('click',async()=>{
+        if(!confirm('Suspend this member?'))return;
+        try{await adminApi.members.suspend(id,'Suspended by admin');showAlert('detail-alert','Member suspended','success');setTimeout(()=>window.location.reload(),1500);}catch(e){showAlert('detail-alert',e.message);}
+      });
+    } catch(err){showAlert('detail-alert',err.message);}
+  })();
+</script>
+</body>
+</html>
