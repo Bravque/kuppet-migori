@@ -44,27 +44,11 @@
           <!-- Documents -->
           <div class="data-card">
             <div class="data-card-header">
-              <div class="data-card-title">Supporting Documents</div>
+              <div class="data-card-title">Required Documents</div>
             </div>
             <div style="padding:1.25rem">
-              <ul class="doc-list" id="doc-list"></ul>
-              <div id="doc-msg" class="hidden" style="margin-top:0.5rem"></div>
-              <div style="margin-top:1rem;padding-top:1rem;border-top:1px solid var(--border)">
-                <label style="font-size:0.82rem;font-weight:600;display:block;margin-bottom:0.5rem">Upload Document</label>
-                <select id="doc-type" class="form-control" style="margin-bottom:0.5rem">
-                  <option value="death_certificate">Death Certificate</option>
-                  <option value="id_copy">ID Copy</option>
-                  <option value="bank_details">Bank Details</option>
-                  <option value="medical_report">Medical Report</option>
-                  <option value="other">Other</option>
-                </select>
-                <div style="display:flex;gap:0.5rem;align-items:center">
-                  <input type="file" id="doc-input" accept="image/jpeg,image/png,application/pdf" style="display:none">
-                  <button class="btn btn-outline btn-sm" onclick="document.getElementById('doc-input').click()"><i class="fas fa-paperclip"></i> Choose File</button>
-                  <span id="doc-upload-name" style="font-size:0.78rem;color:var(--text-muted)"></span>
-                  <button id="btn-upload-doc" class="btn btn-gold btn-xs"><i class="fas fa-upload"></i> Upload</button>
-                </div>
-              </div>
+              <div id="doc-msg" class="hidden" style="margin-bottom:0.75rem"></div>
+              <div id="doc-slots"></div>
             </div>
           </div>
         </div>

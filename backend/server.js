@@ -25,6 +25,9 @@ for (const dir of UPLOAD_DIRS) {
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// Trust the first proxy hop (Hostinger nginx/Passenger) so rate-limiting uses the real client IP
+app.set('trust proxy', 1);
+
 // Security headers
 app.use(helmet({
   contentSecurityPolicy: {

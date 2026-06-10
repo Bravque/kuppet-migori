@@ -1053,3 +1053,42 @@ textarea.form-control { resize: vertical; min-height: 100px; }
 .mb-4 { margin-bottom: 1rem; }
 .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
 .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; }
+
+/* ── BBF document slots ─────────────────────────────────────────────────────── */
+.doc-slot {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0.85rem 0;
+  border-bottom: 1px solid #E2E8F0;
+}
+.doc-slot:last-child { border-bottom: none; }
+.doc-slot-info { display: flex; flex-direction: column; gap: 0.25rem; }
+.doc-slot-name {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text);
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+}
+.doc-slot-note { font-size: 0.75rem; color: var(--text-muted); font-weight: 400; }
+.doc-slot-status { font-size: 0.78rem; }
+.doc-uploaded { color: #166534; }
+.doc-uploaded i { color: #16a34a; }
+.doc-not-uploaded { color: var(--text-muted); }
+.doc-slot-upload {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+}
+.doc-slot-filename {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  max-width: 160px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

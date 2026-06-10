@@ -257,6 +257,41 @@ async function createClaim() {
 }
 
 // ── BBF Claim Detail ──────────────────────────────────────────────────────────
+const BBF_DOC_SLOTS = [
+  { type: 'tsc_slip',              label: 'TSC Slip',             required: true,  note: null },
+  { type: 'burial_permit',         label: 'Burial Permit',        required: true,  note: null },
+  { type: 'birth_notification',    label: 'Birth Notification',   required: false, note: 'For Children' },
+  { type: 'letter_from_principal', label: 'Letter From Principal',required: true,  note: null },
+];
+
+function renderBbfDocSlots(docs, isDraft) {
+  return BBF_DOC_SLOTS.map(slot => {
+    const uploaded = docs.find(d => d.doc_type === slot.type);
+    return `
+      <div class="doc-slot">
+        <div class="doc-slot-info">
+          <span class="doc-slot-name">
+            <i class="fas fa-file-alt"></i>
+            ${escHtml(slot.label)}${slot.required ? ' <span class="required">*</span>' : ''}
+            ${slot.note ? `<span class="doc-slot-note">(${escHtml(slot.note)})</span>` : ''}
+          </span>
+          <div class="doc-slot-status">
+            ${uploaded
+              ? `<span class="doc-uploaded"><i class="fas fa-check-circle"></i> ${escHtml(uploaded.file_name || uploaded.file_url)}</span>`
+              : `<span class="doc-not-uploaded"><i class="fas fa-times-circle"></i> Not uploaded</span>`}
+          </div>
+        </div>
+        ${isDraft ? `
+        <div class="doc-slot-upload">
+          <input type="file" id="doc-file-${slot.type}" accept="image/jpeg,image/png,application/pdf" style="display:none">
+          <button class="btn btn-outline btn-xs" id="doc-choose-${slot.type}"><i class="fas fa-paperclip"></i> Choose</button>
+          <span class="doc-slot-filename" id="doc-fname-${slot.type}"></span>
+          <button class="btn btn-gold btn-xs" id="doc-upload-${slot.type}"><i class="fas fa-upload"></i> Upload</button>
+        </div>` : ''}
+      </div>`;
+  }).join('');
+}
+
 async function initMemberBbfDetail() {
   if (!document.querySelector('.member-bbf-detail-page')) return;
   const member = requireMemberAuth(); if (!member) return;
@@ -267,10 +302,6 @@ async function initMemberBbfDetail() {
 
   loadClaimDetail(id);
   document.getElementById('btn-submit-claim')?.addEventListener('click', () => submitClaim(id));
-  document.getElementById('doc-input')?.addEventListener('change', function() {
-    document.getElementById('doc-upload-name').textContent = this.files[0]?.name || '';
-  });
-  document.getElementById('btn-upload-doc')?.addEventListener('click', () => uploadDoc(id));
 }
 
 async function loadClaimDetail(id) {
@@ -285,15 +316,29 @@ async function loadClaimDetail(id) {
     document.getElementById('claim-amount').textContent = c.amount_requested ? `KES ${Number(c.amount_requested).toLocaleString()}` : '—';
 
     // Show submit button only for drafts
+    const isDraft = c.status === 'draft';
     const submitBtn = document.getElementById('btn-submit-claim');
-    if (submitBtn) submitBtn.style.display = c.status === 'draft' ? '' : 'none';
+    if (submitBtn) submitBtn.style.display = isDraft ? '' : 'none';
 
-    // Documents
-    const docList = document.getElementById('doc-list');
-    if (docList) {
-      docList.innerHTML = c.documents.length
-        ? c.documents.map(d => `<li class="doc-item"><i class="fas fa-file-pdf doc-icon"></i><span class="doc-name">${escHtml(d.file_name||d.file_url)}</span><span class="doc-size">${escHtml(d.doc_type)}</span></li>`).join('')
-        : '<li style="padding:0.5rem;color:var(--text-muted);font-size:0.82rem">No documents yet</li>';
+    // Document slots
+    const slotsEl = document.getElementById('doc-slots');
+    if (slotsEl) {
+      slotsEl.innerHTML = renderBbfDocSlots(c.documents, isDraft);
+      if (isDraft) {
+        BBF_DOC_SLOTS.forEach(slot => {
+          const chooseBtn = document.getElementById(`doc-choose-${slot.type}`);
+          const fileInput = document.getElementById(`doc-file-${slot.type}`);
+          const uploadBtn = document.getElementById(`doc-upload-${slot.type}`);
+          if (chooseBtn && fileInput) {
+            chooseBtn.addEventListener('click', () => fileInput.click());
+            fileInput.addEventListener('change', () => {
+              const fnEl = document.getElementById(`doc-fname-${slot.type}`);
+              if (fnEl) fnEl.textContent = fileInput.files[0]?.name || '';
+            });
+          }
+          if (uploadBtn) uploadBtn.addEventListener('click', () => uploadBbfDoc(id, slot.type));
+        });
+      }
     }
 
     // Timeline
@@ -322,18 +367,15 @@ async function submitClaim(id) {
   } catch (err) { showMsg('detail-msg', err.message); }
 }
 
-async function uploadDoc(id) {
-  const inp = document.getElementById('doc-input');
-  const type = document.getElementById('doc-type').value;
-  if (!inp.files[0]) { showMsg('doc-msg', 'Please select a file'); return; }
+async function uploadBbfDoc(id, docType) {
+  const inp = document.getElementById(`doc-file-${docType}`);
+  if (!inp || !inp.files[0]) { showMsg('doc-msg', 'Please choose a file first'); return; }
   const form = new FormData();
   form.append('files', inp.files[0]);
-  form.append('doc_type', type);
+  form.append('doc_type', docType);
   try {
     await memberApi.bbf.uploadDocs(id, form);
     showMsg('doc-msg', 'Document uploaded', 'success');
-    inp.value = '';
-    document.getElementById('doc-upload-name').textContent = '';
     loadClaimDetail(id);
   } catch (err) { showMsg('doc-msg', err.message); }
 }

@@ -57,10 +57,16 @@ async function submitClaim(req, res) {
     if (!claim) return res.status(404).json({ success: false, message: 'Claim not found' });
     if (claim.status !== 'draft') return res.status(400).json({ success: false, message: 'Only draft claims can be submitted' });
 
-    const [[{ docCount }]] = await db.query(
-      'SELECT COUNT(*) as docCount FROM bbf_claim_documents WHERE claim_id = ?', [claim.id]
+    const [docs] = await db.query(
+      'SELECT doc_type FROM bbf_claim_documents WHERE claim_id = ?', [claim.id]
     );
-    if (docCount < 1) return res.status(400).json({ success: false, message: 'At least one supporting document is required' });
+    const uploaded = new Set(docs.map(d => d.doc_type));
+    const required = ['tsc_slip', 'burial_permit', 'letter_from_principal'];
+    const labels = { tsc_slip: 'TSC Slip', burial_permit: 'Burial Permit', letter_from_principal: 'Letter From Principal' };
+    const missing = required.filter(t => !uploaded.has(t));
+    if (missing.length > 0) {
+      return res.status(400).json({ success: false, message: `Missing required documents: ${missing.map(t => labels[t]).join(', ')}` });
+    }
 
     await db.query(
       'UPDATE bbf_claims SET status = "submitted", submitted_at = NOW() WHERE id = ?',

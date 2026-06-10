@@ -364,6 +364,9 @@ ALTER TABLE users MODIFY COLUMN role ENUM('super_admin','branch_officer','admin'
 UPDATE users SET role = 'super_admin' WHERE role = 'admin';
 ALTER TABLE users MODIFY COLUMN role ENUM('super_admin','branch_officer','editor','viewer') DEFAULT 'editor';
 
+-- Update BBF claim document types to official required attachments
+ALTER TABLE bbf_claim_documents MODIFY COLUMN doc_type ENUM('tsc_slip','burial_permit','birth_notification','letter_from_principal','other') NOT NULL;
+
 -- ============================================
 -- SEED DATA
 -- ============================================
