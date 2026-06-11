@@ -57,6 +57,15 @@
   color: #fff;
   flex-shrink: 0;
 }
+.sidebar-brand-img {
+  height: 32px;
+  width: auto;
+  display: block;
+  flex-shrink: 0;
+  background: #fff;
+  border-radius: 6px;
+  padding: 3px;
+}
 
 .sidebar-brand-text {
   line-height: 1.2;

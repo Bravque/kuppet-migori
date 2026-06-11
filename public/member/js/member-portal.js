@@ -51,7 +51,7 @@ function getMemberSidebarHtml() {
   return `
 <aside class="portal-sidebar" id="portal-sidebar">
   <a href="/member/dashboard.html" class="sidebar-brand">
-    <div class="sidebar-brand-icon"><i class="fas fa-graduation-cap"></i></div>
+    <img src="/images/kuppetlogo.png" class="sidebar-brand-img" alt="KUPPET">
     <div class="sidebar-brand-text"><strong>KUPPET Migori</strong><span>Member Portal</span></div>
   </a>
   <div class="sidebar-user">
