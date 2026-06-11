@@ -26,7 +26,15 @@ There are no tests or linting scripts configured yet.
 
 **GitHub repo:** https://github.com/Bravque/kuppet-migori  
 **Owner:** Bravque (bravinowino008@gmail.com)  
-**Live domain (target):** kuppetmigori.co.ke — not yet deployed
+**Live domain:** kuppetmigori.co.ke (Hostinger Business — auto-deploys from GitHub `main`)
+
+### Hosting setup
+- **Platform:** Hostinger Business shared hosting
+- **Deployment:** GitHub auto-deploy (push to `main` → Hostinger rebuilds automatically)
+- **Database:** MySQL on Hostinger — `u735599564_KuppetMigori44`, user `u735599564_Admin44Kuppet`
+- **Schema:** imported via `backend/config/init-hostinger.sql` (no `CREATE DATABASE` line)
+- **Env vars:** set in hPanel → Environment variables (imported from `env-kuppet.txt` on Desktop)
+- **SSH:** `ssh -p 65002 u735599564@92.113.28.102`
 
 ### What is built and committed ✓
 
@@ -41,9 +49,11 @@ There are no tests or linting scripts configured yet.
 | Advocacy Desk | ✓ Complete |
 | Scholarships page | ✓ Complete |
 | Contact Us page | ✓ Complete |
-| CSS design system — style.css (1622 lines) | ✓ Complete |
+| CSS design system — style.css | ✓ Complete |
 | Portal CSS — portal.css (sidebar layout, status badges, tables) | ✓ Complete |
 | Frontend JS — api.js + main.js | ✓ Complete |
+| **Real KUPPET logo** — header, footer, portal sidebars (white bg) | ✓ Complete |
+| **Henri Otunga photo** — `public/images/leaders/henri-otunga.jpg` | ✓ Complete |
 | **Member registration (3-step form + doc uploads)** | ✓ Complete |
 | **Member login + JWT auth + account lockout** | ✓ Complete |
 | **Member portal — dashboard, profile, BBF claims, scholarships, notifications, history** | ✓ Complete |
@@ -62,6 +72,7 @@ There are no tests or linting scripts configured yet.
 | **Email notifications — nodemailer (registration, approval, rejection)** | ✓ Complete |
 | **CSRF protection — double-submit cookie on all portal mutations** | ✓ Complete |
 
+**Branch Chairperson / Executive Secretary:** Henri Otunga  
 **Official contact details:**
 - Phone: +254 721 808 993
 - Email: info@kuppetmigori.co.ke
@@ -70,35 +81,33 @@ There are no tests or linting scripts configured yet.
 
 ### Remaining tasks (pick up here next session)
 
-**Task 1 — Article detail pages**
+**Task 1 — Fix MySQL connection on Hostinger (BLOCKED — in progress)**
+The app is deployed but can't connect to MySQL. Hostinger's MySQL user only has `localhost` (Unix socket) grant, but Node.js mysql2 connects via TCP.
+- `backend/config/database.js` already supports `DB_SOCKET` env var (socketPath)
+- Tried `/var/run/mysqld/mysqld.sock` → ENOENT (path doesn't exist)
+- Next step: SSH in and run `find / -name "*.sock" 2>/dev/null | grep -i mysql` to find correct socket path
+- SSH command: `ssh -p 65002 u735599564@92.113.28.102`
+- Once socket path found → add `DB_SOCKET=<path>` to Hostinger environment variables → redeploy
+
+**Task 2 — Article detail pages**
 "Read More" links point to the list page, not a detail view:
 - `public/pages/article.html` — reads `?slug=` from URL, calls `GET /api/news/:slug`, renders full content
 - `public/pages/advocacy-article.html` — same pattern for `GET /api/advocacy/:slug`
 - Update render helpers in `public/js/main.js` (lines 456, 572) to point to these pages
 
-**Task 2 — Real content (owner must supply)**
+**Task 3 — Real content (owner must supply)**
 Still placeholder in the codebase:
-- Leader photos → upload to `public/images/leaders/`, update `photo_url` in DB via admin portal
-- Chairperson photo on homepage welcome section
+- Other leader photos → upload to `public/images/leaders/`, update `photo_url` in DB via admin portal
 - Real P.O. Box and street address (currently "P.O. Box 1234")
 - Real Facebook, Twitter/X, WhatsApp, YouTube URLs (currently all `href="#"`)
 - Google Maps API key in `.env` → set `GOOGLE_MAPS_API_KEY` to enable embedded map on contact page
 - Real sub-county representative phone numbers
 
-**Task 3 — SEO files**
+**Task 4 — SEO files**
 - `public/sitemap.xml` — all public pages
 - `public/robots.txt` — allow all, point to sitemap
 - Branded `og:image` 1200×630 px, add `<meta property="og:image">` to all pages
 - Add canonical and full `og:url` tags to inner pages
-
-**Task 4 — Production deployment**
-- Set up MySQL on Railway/Render, run `npm run init-db`
-- Set all `.env` production values (especially JWT secrets, TOTP key, TalkSasa API key)
-- PM2: `pm2 start backend/server.js --name kuppet-migori && pm2 save`
-- Point `kuppetmigori.co.ke` DNS to server IP
-- SSL via Let's Encrypt / certbot or hosting provider auto-SSL
-- Run `npm audit fix` before going live
-- **File uploads on ephemeral hosts:** swap `multer` disk storage for `multer-s3` + Cloudflare R2 or S3
 
 **Task 5 — TalkSasa SMS activation**
 `backend/services/smsService.js` is fully built. To activate:
