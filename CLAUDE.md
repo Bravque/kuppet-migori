@@ -26,7 +26,7 @@ There are no tests or linting scripts configured yet.
 
 **GitHub repo:** https://github.com/Bravque/kuppet-migori  
 **Owner:** Bravque (bravinowino008@gmail.com)  
-**Live domain:** kuppetmigori.co.ke (Hostinger Business — auto-deploys from GitHub `main`)
+**Live domain:** https://kuppetmigori.co.ke (Hostinger Business — auto-deploys from GitHub `main`) ✓ LIVE
 
 ### Hosting setup
 - **Platform:** Hostinger Business shared hosting
@@ -81,15 +81,7 @@ There are no tests or linting scripts configured yet.
 
 ### Remaining tasks (pick up here next session)
 
-**Task 1 — Fix MySQL connection on Hostinger (BLOCKED — in progress)**
-The app is deployed but can't connect to MySQL. Hostinger's MySQL user only has `localhost` (Unix socket) grant, but Node.js mysql2 connects via TCP.
-- `backend/config/database.js` already supports `DB_SOCKET` env var (socketPath)
-- Tried `/var/run/mysqld/mysqld.sock` → ENOENT (path doesn't exist)
-- Next step: SSH in and run `find / -name "*.sock" 2>/dev/null | grep -i mysql` to find correct socket path
-- SSH command: `ssh -p 65002 u735599564@92.113.28.102`
-- Once socket path found → add `DB_SOCKET=<path>` to Hostinger environment variables → redeploy
-
-**Task 2 — Article detail pages**
+**Task 1 — Article detail pages**
 "Read More" links point to the list page, not a detail view:
 - `public/pages/article.html` — reads `?slug=` from URL, calls `GET /api/news/:slug`, renders full content
 - `public/pages/advocacy-article.html` — same pattern for `GET /api/advocacy/:slug`
