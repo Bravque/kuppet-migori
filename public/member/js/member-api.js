@@ -21,12 +21,12 @@ const memberApi = (() => {
     if (options.method && options.method !== 'GET') headers['X-CSRF-Token'] = getCsrf();
 
     const res = await fetch(BASE + path, { ...options, headers });
-    if (res.status === 401) {
+    const data = await res.json().catch(() => ({}));
+    if (res.status === 401 && token) {
       clearAuth();
       window.location.href = '/member/login.html';
       return;
     }
-    const data = await res.json().catch(() => ({}));
     if (!res.ok) throw new Error(data.message || `Error ${res.status}`);
     return data;
   }

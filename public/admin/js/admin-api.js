@@ -24,12 +24,12 @@ const adminApi = (() => {
     if (options.body instanceof FormData) delete headers['Content-Type'];
 
     const res = await fetch(BASE + path, { ...options, headers });
-    if (res.status === 401 || res.status === 403) {
+    const data = await res.json().catch(() => ({}));
+    if ((res.status === 401 || res.status === 403) && token) {
       clearAuth();
       window.location.href = '/admin/login.html';
       return;
     }
-    const data = await res.json().catch(() => ({}));
     if (!res.ok) throw new Error(data.message || `Error ${res.status}`);
     return data;
   }
