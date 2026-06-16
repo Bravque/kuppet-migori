@@ -22,7 +22,7 @@ There are no tests or linting scripts configured yet.
 
 ---
 
-## Project Status (as of June 2026)
+## Project Status (as of 12 June 2026)
 
 **GitHub repo:** https://github.com/Bravque/kuppet-migori  
 **Owner:** Bravque (bravinowino008@gmail.com)  
@@ -34,7 +34,7 @@ There are no tests or linting scripts configured yet.
 - **Database:** MySQL on Hostinger — `u735599564_KuppetMigori44`, user `u735599564_Admin44Kuppet`
 - **Schema:** imported via `backend/config/init-hostinger.sql` (no `CREATE DATABASE` line)
 - **Env vars:** set in hPanel → Environment variables (imported from `env-kuppet.txt` on Desktop)
-- **SSH:** `ssh -p 65002 u735599564@92.113.28.102`
+- **SSH:** `ssh -p 65002 u735599564@92.113.28.102` — password set in hPanel → SSH Access (separate from hPanel login password)
 
 ### What is built and committed ✓
 
@@ -76,6 +76,29 @@ There are no tests or linting scripts configured yet.
 **Official contact details:**
 - Phone: +254 721 808 993
 - Email: info@kuppetmigori.co.ke
+
+---
+
+### Admin portal credentials
+
+- **URL:** `https://kuppetmigori.co.ke/admin/login.html`
+- **Email:** `admin@kuppetmigori.co.ke`
+- **Password:** set via phpMyAdmin (see reset procedure below)
+- **Role:** `super_admin`
+
+**If locked out or password unknown — reset via phpMyAdmin:**
+1. hPanel → Databases → phpMyAdmin → `u735599564_KuppetMigori44` → SQL tab
+2. Run:
+```sql
+UPDATE users
+SET password = '$2a$10$Q5k3rg.2bJrNPs7k4UpT8OHR5HdqW.OmOOQ/t6.QfCXf0EVIz3som',
+    failed_login_attempts = 0,
+    locked_until = NULL
+WHERE id = 1;
+```
+3. This sets the password to `Admin@123`. Change it immediately after logging in.
+
+> Account lockout triggers after repeated failed attempts — `locked_until` and `failed_login_attempts` columns on the `users` table. The app uses `bcryptjs` (not `bcrypt`).
 
 ---
 

@@ -221,8 +221,10 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  position: sticky;
+  position: fixed;
   top: 0;
+  left: 260px;
+  right: 0;
   z-index: 50;
 }
 
@@ -276,6 +278,7 @@
 .portal-content {
   flex: 1;
   padding: 1.5rem;
+  padding-top: calc(60px + 1.5rem);
 }
 
 /* ── Cards & stats ───────────────────────────────────────────────────────────── */
@@ -1008,6 +1011,10 @@ textarea.form-control { resize: vertical; min-height: 100px; }
     margin-left: 0;
   }
 
+  .portal-topbar {
+    left: 0;
+  }
+
   .sidebar-toggle {
     display: flex;
   }
@@ -1026,11 +1033,24 @@ textarea.form-control { resize: vertical; min-height: 100px; }
 }
 
 @media (max-width: 640px) {
-  .portal-content { padding: 1rem; }
+  .portal-content { padding: 1rem; padding-top: calc(60px + 1rem); }
   .portal-login-card { padding: 1.75rem; }
   .stats-grid { grid-template-columns: 1fr 1fr; }
   .data-card-header { flex-direction: column; align-items: flex-start; }
   .page-heading { flex-direction: column; }
+  .grid-2 { grid-template-columns: 1fr; }
+  .grid-3 { grid-template-columns: 1fr 1fr; }
+}
+
+@media (max-width: 480px) {
+  .portal-content { padding: 0.75rem; padding-top: calc(60px + 0.75rem); }
+  .stats-grid { grid-template-columns: 1fr; }
+  .grid-3 { grid-template-columns: 1fr; }
+  .topbar-title { font-size: 0.875rem; max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .portal-modal { border-radius: var(--radius-md, 12px); max-height: 95vh; }
+  .portal-modal-footer { flex-wrap: wrap; }
+  .portal-modal-footer .btn { flex: 1; justify-content: center; }
+  .form-row { grid-template-columns: 1fr; }
 }
 
 /* ── Utility overrides for portal ────────────────────────────────────────────── */

@@ -1554,8 +1554,11 @@ select.form-control { cursor: pointer; }
 
 @media (max-width: 960px) {
   .hero-visual { display: none; }
+  .hero { min-height: auto; }
   .welcome-grid { grid-template-columns: 1fr; gap: 3rem; }
   .welcome-image { max-width: 380px; margin: 0 auto; }
+  .welcome-name-plate { right: 0; bottom: -0.75rem; min-width: 0; }
+  .welcome-badge { left: 0; top: -0.5rem; }
   .services-grid { grid-template-columns: repeat(2, 1fr); }
   .resources-grid-3 { grid-template-columns: repeat(2, 1fr); }
   .events-layout { grid-template-columns: 1fr; }
@@ -1563,6 +1566,7 @@ select.form-control { cursor: pointer; }
   .contact-layout { grid-template-columns: 1fr; }
   .advocacy-cards { grid-template-columns: 1fr; }
   .values-grid { grid-template-columns: repeat(2, 1fr); }
+  .grid-4 { grid-template-columns: repeat(2, 1fr); }
 }
 
 @media (max-width: 768px) {
@@ -1599,6 +1603,7 @@ select.form-control { cursor: pointer; }
   .hamburger { display: flex; }
 
   .hero h1 { font-size: 2rem; }
+  .hero-content { padding: 3rem 0; }
   .hero-actions { flex-direction: column; }
 
   .news-grid { grid-template-columns: 1fr; }
@@ -1611,17 +1616,30 @@ select.form-control { cursor: pointer; }
   .form-grid { grid-template-columns: 1fr; }
   .values-grid { grid-template-columns: 1fr; }
   .membership-inner { flex-direction: column; }
+  .membership-cta-actions .btn { min-width: 0; width: 100%; }
   .footer-grid { grid-template-columns: 1fr; }
   .section { padding: 3.5rem 0; }
   .section-lg { padding: 4rem 0; }
   .mission-inner { flex-direction: column; align-items: flex-start; }
   .mission-divider { display: none; }
+  .page-header { padding: 2.5rem 0 2rem; }
 }
 
 @media (max-width: 480px) {
   .container { padding: 0 1rem; }
   .quick-links-grid { grid-template-columns: repeat(2, 1fr); }
+  .grid-4 { grid-template-columns: 1fr; }
+  .hero-content { padding: 2rem 0; }
   .hero-stats { gap: 1rem; }
+  .hero-stat-num { font-size: 1.5rem; }
+  .section { padding: 2.5rem 0; }
+  .section-lg { padding: 3rem 0; }
+  .section-title { margin-bottom: 1.75rem; }
+  .page-header { padding: 2rem 0 1.5rem; }
+  .welcome-name-plate { position: static; margin-top: 1rem; border-radius: var(--radius); }
+  .welcome-badge { display: none; }
+  .stat-card { padding: 1.25rem 1rem; }
+  .stat-num { font-size: 2rem; }
   .footer-bottom { flex-direction: column; text-align: center; }
   .footer-bottom-links { flex-wrap: wrap; justify-content: center; }
 }
