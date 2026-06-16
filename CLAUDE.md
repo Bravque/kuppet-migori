@@ -246,9 +246,9 @@ Upload subdirectories: `photos/`, `documents/`, `bbf/`, `scholarships/`, `member
 
 ### Design tokens (CSS custom properties)
 ```
---primary:       #1B3A6E  (deep blue — nav, buttons, headers)
---primary-dark:  #0F2347
---primary-light: #2D5AA0
+--primary:       #008a22  (KUPPET logo green — nav, buttons, headers)
+--primary-dark:  #005c16
+--primary-light: #00ad2b
 --gold:          #C8962A  (accent — badges, highlights, CTA)
 --gold-light:    #E5B94E
 --red:           #C0392B  (advocacy, alerts, errors)
@@ -256,7 +256,7 @@ Upload subdirectories: `photos/`, `documents/`, `bbf/`, `scholarships/`, `member
 --text:          #1A202C
 --text-muted:    #718096
 --bg:            #F7F9FC
---bg-dark:       #0F1B2D  (footer, portal sidebar)
+--bg-dark:       #0a1f0d  (footer, portal sidebar — dark forest green)
 ```
 
 Portal-specific status badge classes (in `portal.css`):
