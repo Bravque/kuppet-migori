@@ -1616,6 +1616,7 @@ select.form-control { cursor: pointer; }
   .form-grid { grid-template-columns: 1fr; }
   .values-grid { grid-template-columns: 1fr; }
   .membership-inner { flex-direction: column; }
+  .membership-cta-actions { width: 100%; align-items: stretch; flex-shrink: 1; }
   .membership-cta-actions .btn { min-width: 0; width: 100%; }
   .footer-grid { grid-template-columns: 1fr; }
   .section { padding: 3.5rem 0; }
