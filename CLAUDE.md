@@ -115,7 +115,7 @@ Still placeholder in the codebase:
 - Other leader photos → upload to `public/images/leaders/`, update `photo_url` in DB via admin portal
 - Real P.O. Box and street address (currently "P.O. Box 1234")
 - Real Facebook, Twitter/X, WhatsApp, YouTube URLs (currently all `href="#"`)
-- Google Maps API key in `.env` → set `GOOGLE_MAPS_API_KEY` to enable embedded map on contact page
+- ~~Google Maps API key~~ — DONE: contact page now uses a free Google Maps `<iframe>` embed (no API key needed)
 - Real sub-county representative phone numbers
 
 **Task 4 — SEO files**
