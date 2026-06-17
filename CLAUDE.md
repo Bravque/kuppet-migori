@@ -22,7 +22,7 @@ There are no tests or linting scripts configured yet.
 
 ---
 
-## Project Status (as of 12 June 2026)
+## Project Status (as of 17 June 2026)
 
 **GitHub repo:** https://github.com/Bravque/kuppet-migori  
 **Owner:** Bravque (bravinowino008@gmail.com)  
@@ -73,9 +73,11 @@ There are no tests or linting scripts configured yet.
 | **CSRF protection — double-submit cookie on all portal mutations** | ✓ Complete |
 
 **Branch Chairperson / Executive Secretary:** Henri Otunga  
-**Official contact details:**
+**Official contact details (used sitewide — single source):**
 - Phone: +254 721 808 993
-- Email: info@kuppetmigori.co.ke
+- Email: info@kuppetmigori.co.ke (the **only** email used across the site)
+- Address: Cosade Building, 3rd Floor, Front Wing, P.O. Box 842-40400, Migori Town, Kenya
+- WhatsApp channel (only social link sitewide): https://whatsapp.com/channel/0029VbCDNtx23n3d4LFqbe15
 
 ---
 
@@ -102,21 +104,27 @@ WHERE id = 1;
 
 ---
 
+### Done in the 17 June 2026 session
+- **Responsive overhaul** — eliminated horizontal overflow on every public page across 320–1920px (Playwright-audited). Root-cause fixes only (no `overflow:hidden` masking): header compression `≤1780px`, icon-only CTA `≤1300px`, inline nav collapses to the hamburger **drawer at `≤960px`**, `.search-bar`/inputs `min-width:0`, `.btn { max-width:100% }`, advocacy form grid → `minmax(0,1fr)`.
+- **Header standardized** — all 6 public pages share the **exact** topbar + header markup (only the active nav item differs). Restored the **Get Help** button (header CTA on desktop; inside the mobile drawer via `.nav-cta`).
+- **Portal sidebar scroll fixed** — `.portal-sidebar { height:100vh; overflow:hidden }`, only `.sidebar-nav { flex:1; min-height:0; overflow-y:auto }` scrolls (admin + member).
+- **Theme** — reverted the brief green experiment back to the deep-blue palette (see Design tokens).
+- **Real content wired in** — official address (Cosade Building…, P.O. Box 842-40400), single email `info@kuppetmigori.co.ke` sitewide, WhatsApp channel as the only social link (with "follow for instant updates" copy), Google Maps `<iframe>` embed on contact page.
+
 ### Remaining tasks (pick up here next session)
 
 **Task 1 — Article detail pages**
 "Read More" links point to the list page, not a detail view:
 - `public/pages/article.html` — reads `?slug=` from URL, calls `GET /api/news/:slug`, renders full content
 - `public/pages/advocacy-article.html` — same pattern for `GET /api/advocacy/:slug`
-- Update render helpers in `public/js/main.js` (lines 456, 572) to point to these pages
+- Update render helpers in `public/js/main.js` to point to these pages
 
 **Task 3 — Real content (owner must supply)**
 Still placeholder in the codebase:
-- Other leader photos → upload to `public/images/leaders/`, update `photo_url` in DB via admin portal
-- Real P.O. Box and street address (currently "P.O. Box 1234")
-- Real Facebook, Twitter/X, WhatsApp, YouTube URLs (currently all `href="#"`)
-- ~~Google Maps API key~~ — DONE: contact page now uses a free Google Maps `<iframe>` embed (no API key needed)
-- Real sub-county representative phone numbers
+- Other leader photos → upload to `public/images/leaders/` (only `henri-otunga.jpg` exists), update `photo_url` in DB via admin portal
+- Real sub-county representative phone numbers (all 7 sub-counties currently reuse the main number)
+- `index.html` schema.org `contactPoint.telephone` is still `+254-700-000-000` (placeholder) → set to the real number
+- DONE this session: ✓ address ✓ email ✓ social links (WhatsApp) ✓ Google Maps embed
 
 **Task 4 — SEO files**
 - `public/sitemap.xml` — all public pages
@@ -125,9 +133,8 @@ Still placeholder in the codebase:
 - Add canonical and full `og:url` tags to inner pages
 
 **Task 5 — TalkSasa SMS activation**
-`backend/services/smsService.js` is fully built. To activate:
-- Get API key from TalkSasa
-- Set `TALKSASA_API_KEY`, `TALKSASA_SENDER_ID`, `TALKSASA_BASE_URL` in `.env`
+`backend/services/smsService.js` is fully built. `TALKSASA_API_KEY` and `TALKSASA_BASE_URL` are set in `.env`; remaining:
+- Change `TALKSASA_SENDER_ID` from the default `TALKSASA` to the registered/approved sender ID
 - Register a delivery webhook at `POST /api/sms/webhook` with TalkSasa
 
 ---
@@ -187,6 +194,16 @@ Every `<body>` tag carries a class that gates the matching `init*` function in `
 - `advocacy-page` → `initAdvocacyPage()`
 
 Admin and member portal pages use `admin-*-page` / `member-*-page` classes gating functions in their respective portal JS files.
+
+### Asset cache-busting (IMPORTANT)
+Hostinger serves CSS/JS with **no `cache-control`/`etag`**, so browsers hold stale assets after a deploy. Every local CSS/JS link carries a version query, e.g. `href="/css/style.css?v=20260617d"`. **When you edit `style.css`, `portal.css`, `main.js`, or `api.js`, bump the `?v=` string on every page** (sed across `public/**/*.html`) or returning visitors won't see the change. HTML files themselves aren't versioned (they revalidate). Current token: `20260617d`.
+
+### Responsive header (public pages)
+All public pages share an identical topbar + header (only the active nav link differs — keep them in sync). Layout bands (driven by media queries in `style.css`):
+- `≤1780px` — hide the logo tagline + tighten nav (full header doesn't fit beside both CTA buttons)
+- `≤1300px` — header CTA buttons become icon-only (`.cta-label` hidden)
+- `≤960px` — inline nav collapses into the slide-in **hamburger drawer** (`.main-nav`); CTAs move into `.nav-cta` inside the drawer; `main.js` hamburger/dropdown breakpoints also use `960`
+The "Get Help" (→ contact) + "Member Login" (→ member login) buttons live in `.header-cta` (desktop) and are duplicated in `.nav-cta` (drawer).
 
 ### Admin roles
 | Role | Access |
