@@ -30,8 +30,7 @@
   left: 0;
   z-index: 100;
   transition: transform 0.25s ease;
-  overflow-x: hidden; /* clip horizontal only — keeps slide animation clean */
-  overflow-y: hidden; /* sidebar itself doesn't scroll; only .sidebar-nav does */
+  overflow: hidden; /* clip sidebar — only .sidebar-nav scrolls, not the whole sidebar */
 }
 
 .portal-sidebar.collapsed {
