@@ -20,7 +20,7 @@
 /* Sidebar */
 .portal-sidebar {
   width: 260px;
-  min-height: 100vh;
+  height: 100vh;
   background: var(--bg-dark, #0a1f0d);
   color: #fff;
   display: flex;
@@ -30,6 +30,7 @@
   left: 0;
   z-index: 100;
   transition: transform 0.25s ease;
+  overflow: hidden;
 }
 
 .portal-sidebar.collapsed {
