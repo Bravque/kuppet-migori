@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Playfair+Display:wght@700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
-  <link rel="stylesheet" href="/css/style.css?v=20260617b">
+  <link rel="stylesheet" href="/css/style.css?v=20260617c">
   <style>
     .timeline { position: relative; padding-left: 2rem; }
     .timeline::before { content:''; position:absolute; left:0; top:0; bottom:0; width:2px; background:linear-gradient(to bottom, var(--primary), var(--gold)); }
@@ -25,58 +25,114 @@
   </style>
 </head>
 <body class="about-page">
+
+  <!-- Nav Overlay -->
   <div class="nav-overlay" aria-hidden="true"></div>
 
   <!-- Top Bar -->
-  <div class="topbar">
+  <div class="topbar" role="banner">
     <div class="container topbar-inner">
       <div class="topbar-left">
-        <span class="topbar-item"><i class="fas fa-phone-alt"></i><a href="tel:+254721808993">+254 721 808 993</a></span>
-        <span class="topbar-item"><i class="fas fa-envelope"></i><a href="mailto:info@kuppetmigori.co.ke">info@kuppetmigori.co.ke</a></span>
-        <span class="topbar-item"><i class="far fa-clock"></i> Mon – Fri: 8:00 AM – 5:00 PM</span>
+        <span class="topbar-item">
+          <i class="fas fa-phone-alt"></i>
+          <a href="tel:+254721808993">+254 721 808 993</a>
+        </span>
+        <span class="topbar-item">
+          <i class="fas fa-envelope"></i>
+          <a href="mailto:info@kuppetmigori.co.ke">info@kuppetmigori.co.ke</a>
+        </span>
+        <span class="topbar-item">
+          <i class="far fa-clock"></i> Mon – Fri: 8:00 AM – 5:00 PM
+        </span>
       </div>
       <div class="topbar-right">
         <div class="social-links">
           <a href="#" aria-label="Facebook"><i class="fab fa-facebook-f"></i></a>
-          <a href="#" aria-label="Twitter"><i class="fab fa-x-twitter"></i></a>
-          <a href="#" aria-label="WhatsApp"><i class="fab fa-whatsapp"></i></a>
+          <a href="https://whatsapp.com/channel/0029VbCDNtx23n3d4LFqbe15" aria-label="WhatsApp"><i class="fab fa-whatsapp"></i></a>
         </div>
       </div>
     </div>
   </div>
 
-  <!-- Header -->
-  <header class="site-header">
+  <!-- Site Header -->
+  <header class="site-header" role="banner">
     <div class="container header-inner">
-      <a href="/" class="logo">
+      <a href="/" class="logo" aria-label="KUPPET Migori Home">
         <img src="/images/kuppetlogo.png" class="logo-img" alt="KUPPET">
         <div class="logo-text">
           <div class="name">KUPPET Migori</div>
-          <div class="tagline">Post Primary Education Teachers Union</div>
+          <div class="tagline">Kenya Union of Post Primary Education Teachers</div>
         </div>
       </a>
+
       <nav class="main-nav" aria-label="Main navigation">
-        <ul class="nav-list">
-          <li><a href="/" class="nav-link">Home</a></li>
+        <ul class="nav-list" role="list">
+          <li class="nav-item">
+            <a href="/" class="nav-link">Home</a>
+          </li>
           <li class="nav-item dropdown">
-            <a href="/pages/about.html" class="nav-link active">About Us <i class="fas fa-chevron-down"></i></a>
+            <a href="/pages/about.html" class="nav-link active">
+              About Us <i class="fas fa-chevron-down"></i>
+            </a>
             <div class="dropdown-menu">
-              <a href="#history" class="dropdown-item"><i class="fas fa-history"></i> Our History</a>
-              <a href="#leadership" class="dropdown-item"><i class="fas fa-users"></i> Leadership</a>
-              <a href="#structure" class="dropdown-item"><i class="fas fa-sitemap"></i> Org. Structure</a>
+              <a href="/pages/about.html#history" class="dropdown-item">
+                <i class="fas fa-history"></i> Our History
+              </a>
+              <a href="/pages/about.html#leadership" class="dropdown-item">
+                <i class="fas fa-users"></i> Leadership
+              </a>
+              <a href="/pages/about.html#structure" class="dropdown-item">
+                <i class="fas fa-sitemap"></i> Org. Structure
+              </a>
             </div>
           </li>
-          <li><a href="/pages/news.html" class="nav-link">Notice Board</a></li>
-          <li><a href="/pages/resources.html" class="nav-link">Resources</a></li>
-          <li><a href="/pages/advocacy.html" class="nav-link">Advocacy</a></li>
-          <li><a href="/pages/scholarships.html" class="nav-link">Scholarships</a></li>
-          <li><a href="/pages/contact.html" class="nav-link">Contact</a></li>
+          <li class="nav-item">
+            <a href="/pages/news.html" class="nav-link">
+              Notice Board
+            </a>
+          </li>
+          <li class="nav-item">
+            <a href="/pages/resources.html" class="nav-link">
+              Resources
+            </a>
+          </li>
+          <li class="nav-item">
+            <a href="/pages/advocacy.html" class="nav-link">
+              Advocacy
+            </a>
+          </li>
+          <li class="nav-item">
+            <a href="/pages/scholarships.html" class="nav-link">
+              Scholarships
+            </a>
+          </li>
+          <li class="nav-item">
+            <a href="/pages/contact.html" class="nav-link">
+              Contact
+            </a>
+          </li>
         </ul>
+        <!-- CTA shown inside the mobile drawer (hidden on desktop where .header-cta is used) -->
+        <div class="nav-cta">
+          <a href="/pages/contact.html" class="btn btn-outline btn-sm">
+            <i class="fas fa-headset"></i> Get Help
+          </a>
+          <a href="/member/login.html" class="btn btn-gold btn-sm">
+            <i class="fas fa-user"></i> Member Login
+          </a>
+        </div>
       </nav>
+
       <div class="header-cta">
-        <a href="/member/login.html" class="btn btn-outline btn-sm"><i class="fas fa-user"></i> Member Login</a>
-        <a href="/#membership" class="btn btn-gold btn-sm"><i class="fas fa-user-plus"></i> Join KUPPET</a>
-        <button class="hamburger" aria-label="Toggle navigation"><span></span><span></span><span></span></button>
+        <a href="/pages/contact.html" class="btn btn-outline btn-sm" title="Get Help" aria-label="Get Help">
+          <i class="fas fa-headset"></i> <span class="cta-label">Get Help</span>
+        </a>
+        <a href="/member/login.html" class="btn btn-gold btn-sm" title="Member Login" aria-label="Member Login">
+          <i class="fas fa-user"></i> <span class="cta-label">Member Login</span>
+        </a>
+        <button class="hamburger" aria-label="Toggle navigation" aria-expanded="false">
+          <span></span><span></span><span></span>
+        </button>
       </div>
     </div>
   </header>
@@ -410,7 +466,7 @@
     </div>
   </footer>
 
-  <script src="/js/api.js?v=20260617b"></script>
-  <script src="/js/main.js?v=20260617b"></script>
+  <script src="/js/api.js?v=20260617c"></script>
+  <script src="/js/main.js?v=20260617c"></script>
 </body>
 </html>

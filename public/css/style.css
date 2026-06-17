@@ -338,6 +338,7 @@ h1,h2,h3,h4,h5,h6 { line-height: 1.25; font-weight: 700; }
   font-size: 0.9rem;
   font-weight: 600;
   line-height: 1.25;
+  max-width: 100%; /* never let a long-label button overflow its container */
   transition: var(--transition);
   cursor: pointer;
   border: 2px solid transparent;
@@ -1315,10 +1316,11 @@ select.form-control { cursor: pointer; }
   border-radius: var(--radius-full);
   padding: 0.375rem 0.375rem 0.375rem 1.25rem;
   max-width: 500px;
+  min-width: 0; /* allow the bar to shrink below content width on narrow screens */
   transition: var(--transition);
 }
 .search-bar:focus-within { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(0,138,34,0.1); }
-.search-bar input { flex: 1; border: none; outline: none; font-size: 0.9375rem; background: transparent; color: var(--text); }
+.search-bar input { flex: 1; min-width: 0; border: none; outline: none; font-size: 0.9375rem; background: transparent; color: var(--text); }
 .search-bar button { flex-shrink: 0; }
 
 /* Filter tabs */
@@ -1644,6 +1646,11 @@ select.form-control { cursor: pointer; }
   .quick-links-grid { grid-template-columns: repeat(2, 1fr); }
   .stats-grid { grid-template-columns: repeat(2, 1fr); }
   .form-grid { grid-template-columns: 1fr; }
+  /* collapse the advocacy report 2-column layout (set via inline style);
+     minmax(0,1fr) lets the column shrink below the form's min-content so the
+     long <select> options / button don't force horizontal overflow */
+  .report-form-inner { grid-template-columns: minmax(0, 1fr) !important; gap: 2rem !important; }
+  .report-form-section { padding: 1.5rem; }
   .values-grid { grid-template-columns: 1fr; }
   .membership-inner { flex-direction: column; }
   .membership-cta-actions { width: 100%; align-items: stretch; flex-shrink: 1; }
