@@ -23,7 +23,7 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 
   <!-- Styles -->
-  <link rel="stylesheet" href="/css/style.css?v=20260617">
+  <link rel="stylesheet" href="/css/style.css?v=20260617b">
 
   <!-- Schema.org -->
   <script type="application/ld+json">
@@ -137,13 +137,24 @@
             </a>
           </li>
         </ul>
+        <!-- CTA shown inside the mobile drawer (hidden on desktop where .header-cta is used) -->
+        <div class="nav-cta">
+          <a href="/pages/contact.html" class="btn btn-outline btn-sm">
+            <i class="fas fa-headset"></i> Get Help
+          </a>
+          <a href="/member/login.html" class="btn btn-gold btn-sm">
+            <i class="fas fa-user"></i> Member Login
+          </a>
+        </div>
       </nav>
 
       <div class="header-cta">
-        <a href="/member/login.html" class="btn btn-outline btn-sm">
-          <i class="fas fa-user"></i> Member Login
+        <a href="/pages/contact.html" class="btn btn-outline btn-sm" title="Get Help" aria-label="Get Help">
+          <i class="fas fa-headset"></i> <span class="cta-label">Get Help</span>
         </a>
-        
+        <a href="/member/login.html" class="btn btn-gold btn-sm" title="Member Login" aria-label="Member Login">
+          <i class="fas fa-user"></i> <span class="cta-label">Member Login</span>
+        </a>
         <button class="hamburger" aria-label="Toggle navigation" aria-expanded="false">
           <span></span><span></span><span></span>
         </button>
@@ -783,8 +794,8 @@
     </div>
   </footer>
 
-  <script src="/js/api.js"></script>
-  <script src="/js/main.js"></script>
+  <script src="/js/api.js?v=20260617b"></script>
+  <script src="/js/main.js?v=20260617b"></script>
   <script>
     // Calendar widget
     (function initCalendar() {

@@ -304,6 +304,9 @@ h1,h2,h3,h4,h5,h6 { line-height: 1.25; font-weight: 700; }
   display: flex; align-items: center; gap: 0.75rem;
 }
 
+/* Drawer-only CTA (mobile); hidden on desktop where .header-cta is shown */
+.nav-cta { display: none; }
+
 /* Hamburger */
 .hamburger {
   display: none;
@@ -1546,10 +1549,22 @@ select.form-control { cursor: pointer; }
 /* ============================================
    RESPONSIVE BREAKPOINTS
    ============================================ */
-@media (max-width: 1280px) {
+/* Header band: with the logo tagline + full 7-item nav + both CTA buttons the
+   header row needs ~1490px of content, which spills past the 1200px container
+   and causes horizontal scroll until the viewport is wide enough (~1780px) for
+   the centred container's margin to absorb it. Below that, hide the supplementary
+   tagline and tighten nav so the header always fits without clipping content. */
+@media (max-width: 1780px) {
   .header-inner { gap: 1rem; }
   .nav-link { padding: 0.5rem 0.6rem; font-size: 0.85rem; }
   .logo-text .tagline { display: none; }
+}
+
+/* Below ~1300px the inline nav + two CTA buttons no longer fit beside the logo;
+   collapse the CTA buttons to icon-only so both stay visible without overflow. */
+@media (max-width: 1300px) {
+  .header-cta .cta-label { display: none; }
+  .header-cta .btn { padding: 0.5rem 0.7rem; }
 }
 
 @media (max-width: 1100px) {
@@ -1574,17 +1589,15 @@ select.form-control { cursor: pointer; }
   .advocacy-cards { grid-template-columns: 1fr; }
   .values-grid { grid-template-columns: repeat(2, 1fr); }
   .grid-4 { grid-template-columns: repeat(2, 1fr); }
-}
 
-@media (max-width: 768px) {
-  :root { --header-height: 68px; }
-
-  .topbar-left { display: none; }
-
+  /* Collapse the inline nav into the hamburger drawer at ≤960px — below ~920px
+     the 7-item nav + logo + CTA no longer fit on one row. The drawer holds the
+     nav links plus the Get Help / Member Login buttons (.nav-cta). */
   .main-nav {
     position: fixed;
     top: 0; right: 0; bottom: 0;
     width: 300px;
+    max-width: 85vw;
     background: var(--bg-white);
     z-index: 999;
     box-shadow: var(--shadow-lg);
@@ -1597,7 +1610,7 @@ select.form-control { cursor: pointer; }
   }
   .main-nav.open { transform: translateX(0); }
   .nav-list { flex-direction: column; align-items: stretch; gap: 0; width: 100%; }
-  .nav-link { padding: 0.875rem 1rem; border-radius: var(--radius); }
+  .nav-link { padding: 0.875rem 1rem; border-radius: var(--radius); font-size: 0.95rem; }
   .dropdown-menu {
     position: static; opacity: 1; visibility: visible;
     transform: none; box-shadow: none; border: none;
@@ -1606,8 +1619,18 @@ select.form-control { cursor: pointer; }
     display: none;
   }
   .dropdown.open .dropdown-menu { display: block; }
-  .header-cta .btn:not(.btn-gold) { display: none; }
+  /* The cramped header drops both CTA buttons; the drawer (.nav-cta) surfaces
+     them instead so Get Help + Member Login stay reachable on every device. */
+  .header-cta .btn { display: none; }
+  .nav-cta { display: flex; flex-direction: column; gap: 0.75rem; width: 100%; margin-top: 1.25rem; }
+  .nav-cta .btn { width: 100%; justify-content: center; }
   .hamburger { display: flex; }
+}
+
+@media (max-width: 768px) {
+  :root { --header-height: 68px; }
+
+  .topbar-left { display: none; }
 
   .hero h1 { font-size: 2rem; }
   .hero-content { padding: 3rem 0; }

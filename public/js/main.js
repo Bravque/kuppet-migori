@@ -41,7 +41,7 @@
   // Mobile dropdown toggles
   document.querySelectorAll('.dropdown .nav-link').forEach(link => {
     link.addEventListener('click', (e) => {
-      if (window.innerWidth <= 768) {
+      if (window.innerWidth <= 960) { // matches the CSS hamburger-drawer breakpoint
         e.preventDefault();
         const dropdown = link.closest('.dropdown');
         dropdown.classList.toggle('open');
@@ -60,7 +60,7 @@
 
   // Close nav on resize
   window.addEventListener('resize', () => {
-    if (window.innerWidth > 768) closeMobileNav();
+    if (window.innerWidth > 960) closeMobileNav(); // matches CSS hamburger-drawer breakpoint
   });
 })();
 
