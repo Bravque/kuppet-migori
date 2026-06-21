@@ -325,12 +325,12 @@
   flex-shrink: 0;
 }
 
-.stat-icon.blue   { background: #EBF4FF; color: var(--primary, #1B3A6E); }
-.stat-icon.gold   { background: #FEF3CD; color: var(--gold, #C8962A); }
-.stat-icon.green  { background: #DCFCE7; color: var(--green, #1a7340); }
-.stat-icon.red    { background: #FEE2E2; color: var(--red, #C0392B); }
-.stat-icon.purple { background: #F3E8FF; color: #7C3AED; }
-.stat-icon.teal   { background: #CCFBF1; color: #0F766E; }
+.stat-icon.blue   { background: var(--primary-tint, #E8F4EE); color: var(--primary); }
+.stat-icon.gold   { background: #F6EEDD; color: var(--gold-dark); }
+.stat-icon.green  { background: #D1FAE5; color: var(--green); }
+.stat-icon.red    { background: #FEE2E2; color: var(--red); }
+.stat-icon.purple { background: var(--primary-tint, #E8F4EE); color: var(--primary); }
+.stat-icon.teal   { background: #F6EEDD; color: var(--gold-dark); }
 
 .stat-info { flex: 1; min-width: 0; }
 
@@ -360,7 +360,9 @@
 .data-card {
   background: var(--bg-white, #fff);
   border-radius: var(--radius-lg, 16px);
-  border: 1px solid var(--border, #E2E8F0);
+  border: 1px solid var(--border, #E5E7EB);
+  border-top: 3px solid var(--primary);
+  box-shadow: var(--shadow-card, 0 4px 20px rgba(0,0,0,0.08));
   overflow: hidden;
 }
 
@@ -397,27 +399,30 @@
 }
 
 .data-table th {
-  padding: 0.75rem 1rem;
+  padding: 0.8rem 1rem;
   text-align: left;
   font-size: 0.72rem;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  color: var(--text-muted, #718096);
-  background: var(--bg, #F7F9FC);
-  border-bottom: 1px solid var(--border, #E2E8F0);
+  color: #fff;
+  background: var(--primary);
+  border-bottom: none;
   white-space: nowrap;
 }
+.data-table thead th:first-child { border-top-left-radius: 10px; }
+.data-table thead th:last-child  { border-top-right-radius: 10px; }
 
 .data-table td {
   padding: 0.75rem 1rem;
-  border-bottom: 1px solid var(--border, #E2E8F0);
+  border-bottom: 1px solid var(--border, #E5E7EB);
   vertical-align: middle;
 }
 
+/* Zebra striping + hover */
+.data-table tbody tr:nth-child(even) td { background: var(--primary-tint, #E8F4EE); }
 .data-table tr:last-child td { border-bottom: none; }
-
-.data-table tr:hover td { background: var(--bg, #F7F9FC); }
+.data-table tbody tr:hover td { background: #DCEEE3; }
 
 /* ── Status badges ───────────────────────────────────────────────────────────── */
 .status-badge {
@@ -445,13 +450,13 @@
 .status-badge--approved         { background: #DCFCE7; color: #166534; }
 .status-badge--rejected         { background: #FEE2E2; color: #991B1B; }
 .status-badge--suspended        { background: #F3F4F6; color: #4B5563; }
-.status-badge--draft            { background: #EFF6FF; color: #1E40AF; }
+.status-badge--draft            { background: #F3F4F6; color: #4B5563; }
 .status-badge--submitted        { background: #FEF3CD; color: #92400E; }
-.status-badge--under_review     { background: #E0E7FF; color: #3730A3; }
+.status-badge--under_review     { background: #F6EEDD; color: #8A6D3B; }
 .status-badge--paid             { background: #DCFCE7; color: #166534; }
 .status-badge--applied          { background: #FEF3CD; color: #92400E; }
 .status-badge--active           { background: #DCFCE7; color: #166534; }
-.status-badge--new              { background: #EFF6FF; color: #1E40AF; }
+.status-badge--new              { background: var(--primary-tint, #E8F4EE); color: var(--primary-dark, #006B3A); }
 .status-badge--read             { background: #F3F4F6; color: #4B5563; }
 .status-badge--replied          { background: #DCFCE7; color: #166534; }
 .status-badge--closed           { background: #F3F4F6; color: #4B5563; }
@@ -524,8 +529,8 @@ textarea.form-control { resize: vertical; min-height: 100px; }
 
 .file-dropzone:hover,
 .file-dropzone.dragover {
-  border-color: var(--primary, #1B3A6E);
-  background: #EBF4FF;
+  border-color: var(--primary);
+  background: var(--primary-tint, #E8F4EE);
 }
 
 .file-dropzone .dropzone-icon {
