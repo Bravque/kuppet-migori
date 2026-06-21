@@ -33,7 +33,7 @@ async function getOne(req, res) {
   try {
     const [[member]] = await db.query(
       `SELECT id, member_number, full_name, tsc_number, national_id, employment_number,
-              phone, email, gender, date_of_birth, school_name, sub_county,
+              phone, email, gender, date_of_birth, school_name, sub_county, school_category,
               passport_photo_url, national_id_url, status, rejection_reason,
               approved_by, approved_at, last_login, created_at
        FROM members WHERE id = ?`,
@@ -119,7 +119,7 @@ async function exportExcel(req, res) {
   try {
     const [rows] = await db.query(
       `SELECT member_number, full_name, tsc_number, phone, email, gender, school_name,
-              sub_county, status, DATE(created_at) as registered
+              sub_county, school_category, status, DATE(created_at) as registered
        FROM members ORDER BY created_at DESC`
     );
     const wb = XLSX.utils.book_new();

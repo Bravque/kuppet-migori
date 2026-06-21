@@ -22,7 +22,7 @@ There are no tests or linting scripts configured yet.
 
 ---
 
-## Project Status (as of 17 June 2026)
+## Project Status (as of 21 June 2026)
 
 **GitHub repo:** https://github.com/Bravque/kuppet-migori  
 **Owner:** Bravque (bravinowino008@gmail.com)  
@@ -79,6 +79,10 @@ There are no tests or linting scripts configured yet.
 - Address: Cosade Building, 3rd Floor, Front Wing, P.O. Box 842-40400, Migori Town, Kenya
 - WhatsApp channel (only social link sitewide): https://whatsapp.com/channel/0029VbCDNtx23n3d4LFqbe15
 
+**Sub-counties (12, used sitewide — registration, profile, admin filters, contact page, org structure):**
+Rongo, Awendo, Uriri, Suna East, Suna West, Ntimaru, Kuria West, Kuria East, Mabera, Nyatike South, Nyatike West, Nyatike North.
+(Per-sub-county rep phone numbers are still placeholders — all reuse the main number.)
+
 ---
 
 ### Admin portal credentials
@@ -104,6 +108,17 @@ WHERE id = 1;
 
 ---
 
+### Done in the 21 June 2026 session
+- **Article detail pages** — new `public/pages/article.html` (`article-page` body class) reads `?slug=` → `api.news.getOne` and `public/pages/advocacy-article.html` (`advocacy-article-page`) → `api.advocacy.getOne`. Added `initArticlePage()` + `initAdvocacyArticlePage()` to `main.js`; repointed both "Read More" links to these pages; `api.js` now attaches `err.status` for 404 handling. (Backend `GET /api/news/:slug` & `/api/advocacy/:slug` already existed.)
+- **Schema phone fix** — `index.html` schema.org `contactPoint.telephone` set to the real `+254-721-808-993`.
+- **About page** — added **Leadership in Pictures** section (`#group-photos`) with 3 group-photo cards (Branch Executive Committee, Branch Governing Council, Welfare Steering Committee); each `<img>` falls back to a "coming soon" placeholder via `onerror`. Photos go in `public/images/groups/` with exact filenames `branch-executive-committee.jpg`, `branch-governing-council.jpg`, `welfare-steering-committee.jpg` (see README there).
+- **Mission & Vision** — set sitewide (homepage mission strip + About cards). Mission: "To be a leading branch in effectively representing, protecting and advancing the professional, economic, and social interests of members through transparent governance, institutional strengthening, capacity development and innovative service delivery to secondary teachers in Migori." Vision: "To be a model branch of excellence in Advocacy, Leadership and offering Service with Distinction."
+- **Org structure rebuilt** (About page) — 5 levels: KUPPET National Executive Board → National Governing Council → Branch Executive Committee → Branch Governing Council → Sub-Counties (12).
+- **Sub-counties 7 → 12** — updated everywhere: About history/org chart, Contact page (12 sub-branch cards + "all 12" count), and the sub-county dropdowns in `member/register.html`, `member/profile.html`, `admin/members.html`, `admin/sms.html`.
+- **BBF claims restructured** (see Database schema + the BBF feature notes below) — two claim types only (`death`, `retirement`); claim-particular fields added; school category moved to the member profile (captured at registration). Run `backend/config/migration-bbf-claim-fields.sql` on the live DB.
+- **Scholarship types reduced to three** — `kcse | kjsea | dte` (DTE = Diploma in Technical Education), replacing the old undergraduate/postgraduate/etc. Updated schema + seed (both `init*.sql`), `scholarshipsController` (default `kcse` + validation), the public scholarships filter tabs + type badge (`scholarshipTypeLabel()` in `main.js`). The same migration file (step 4) remaps existing rows on the live DB. NOTE: the admin scholarship create/edit form is still a stub (`content-scholarships.html` "New"/"Edit" buttons aren't wired) — types are set via seed/API only.
+- **Cache token bumped** `20260617d` → `20260621b` across all public HTML (edited `main.js` + `api.js`). NOTE: portal JS (`member/js/*`, `admin/js/*`) is loaded **unversioned**, so those files were NOT version-bumped.
+
 ### Done in the 17 June 2026 session
 - **Responsive overhaul** — eliminated horizontal overflow on every public page across 320–1920px (Playwright-audited). Root-cause fixes only (no `overflow:hidden` masking): header compression `≤1780px`, icon-only CTA `≤1300px`, inline nav collapses to the hamburger **drawer at `≤960px`**, `.search-bar`/inputs `min-width:0`, `.btn { max-width:100% }`, advocacy form grid → `minmax(0,1fr)`.
 - **Header standardized** — all 6 public pages share the **exact** topbar + header markup (only the active nav item differs). Restored the **Get Help** button (header CTA on desktop; inside the mobile drawer via `.nav-cta`).
@@ -113,18 +128,17 @@ WHERE id = 1;
 
 ### Remaining tasks (pick up here next session)
 
-**Task 1 — Article detail pages**
-"Read More" links point to the list page, not a detail view:
-- `public/pages/article.html` — reads `?slug=` from URL, calls `GET /api/news/:slug`, renders full content
-- `public/pages/advocacy-article.html` — same pattern for `GET /api/advocacy/:slug`
-- Update render helpers in `public/js/main.js` to point to these pages
+**Task 1 — Article detail pages** — ✓ DONE (21 June 2026).
+
+**⚠ Pending DB migration (do this first on the live DB)**
+`backend/config/migration-bbf-claim-fields.sql` must be run **once** via phpMyAdmin → SQL tab. It (a) restructures `bbf_claims` to the new two-type model + claim-particular columns, and (b) adds `members.school_category`. Until run, new member registrations and BBF claim submissions will fail on production. Fresh installs already include all this via `init.sql` / `init-hostinger.sql`.
 
 **Task 3 — Real content (owner must supply)**
 Still placeholder in the codebase:
+- Leadership group photos → upload to `public/images/groups/` (3 files, exact names — see About session note)
 - Other leader photos → upload to `public/images/leaders/` (only `henri-otunga.jpg` exists), update `photo_url` in DB via admin portal
-- Real sub-county representative phone numbers (all 7 sub-counties currently reuse the main number)
-- `index.html` schema.org `contactPoint.telephone` is still `+254-700-000-000` (placeholder) → set to the real number
-- DONE this session: ✓ address ✓ email ✓ social links (WhatsApp) ✓ Google Maps embed
+- Real sub-county representative phone numbers (all 12 sub-counties currently reuse the main number)
+- DONE: ✓ address ✓ email ✓ social links (WhatsApp) ✓ Google Maps embed ✓ schema.org telephone ✓ mission/vision ✓ org structure
 
 **Task 4 — SEO files**
 - `public/sitemap.xml` — all public pages
@@ -192,11 +206,15 @@ Every `<body>` tag carries a class that gates the matching `init*` function in `
 - `about-page` → `initLeadershipPage()`
 - `scholarships-page` → `initScholarshipsPage()`
 - `advocacy-page` → `initAdvocacyPage()`
+- `article-page` → `initArticlePage()` (news detail; reads `?slug=`)
+- `advocacy-article-page` → `initAdvocacyArticlePage()` (advocacy detail; reads `?slug=`)
 
 Admin and member portal pages use `admin-*-page` / `member-*-page` classes gating functions in their respective portal JS files.
 
 ### Asset cache-busting (IMPORTANT)
-Hostinger serves CSS/JS with **no `cache-control`/`etag`**, so browsers hold stale assets after a deploy. Every local CSS/JS link carries a version query, e.g. `href="/css/style.css?v=20260617d"`. **When you edit `style.css`, `portal.css`, `main.js`, or `api.js`, bump the `?v=` string on every page** (sed across `public/**/*.html`) or returning visitors won't see the change. HTML files themselves aren't versioned (they revalidate). Current token: `20260617d`.
+Hostinger serves CSS/JS with **no `cache-control`/`etag`**, so browsers hold stale assets after a deploy. Public CSS/JS links carry a version query, e.g. `href="/css/style.css?v=20260621a"`. **When you edit `style.css`, `portal.css`, `main.js`, or `api.js`, bump the `?v=` string on every page** (sed across `public/**/*.html`) or returning visitors won't see the change. HTML files themselves aren't versioned (they revalidate). Current token: `20260621b`.
+
+> ⚠ Caveat: portal JS (`member/js/member-portal.js`, `member/js/member-api.js`, `admin/js/admin-portal.js`, `admin/js/admin-api.js`) is loaded **without** a `?v=` query, so the convention above does not cover it. Editing those files relies on browser revalidation; if a stale portal JS issue appears after deploy, add a version query to those `<script>` tags.
 
 ### Responsive header (public pages)
 All public pages share an identical topbar + header (only the active nav link differs — keep them in sync). Layout bands (driven by media queries in `style.css`):
@@ -233,12 +251,25 @@ Key ENUM values:
 - `users.role`: `super_admin | branch_officer | editor | viewer`
 - `members.status`: `pending_approval | approved | rejected | suspended`
 - `members.gender`: `male | female | other`
+- `members.school_category`: `senior_school | junior_school` (nullable; captured at registration, editable in profile)
 - `bbf_claims.status`: `draft | submitted | under_review | approved | rejected | paid`
-- `bbf_claims.claim_type`: `death_benefit | disability | medical_emergency | other`
+- `bbf_claims.claim_type`: `death | retirement` (was `death_benefit/disability/medical_emergency/other` before 21 June 2026)
+- `bbf_claims.school_category`: `senior_school | junior_school`
+- `scholarships.scholarship_type`: `kcse | kjsea | dte` (was `undergraduate/postgraduate/vocational/research/international` before 21 June 2026; DTE = Diploma in Technical Education)
 - `scholarship_applications.status`: `applied | under_review | approved | rejected`
 - `news.category`: `news | announcement | circular | press_release | event`
 - `resources.category`: `curriculum | circular | moe_document | tsc_resource | professional_dev | teaching_material | legal | policy`
 - `contacts.category`: `general | membership | bbf | advocacy | resources | complaint | other`
+
+### BBF claims data model (restructured 21 June 2026)
+Two claim types only: **`death`** and **`retirement`**. A claim stores a snapshot of claim particulars: `deceased_name`, `tsc_no`, `sub_county`, `school`, `school_category`, `relationship`, `date_of_death` (plus the existing `amount_requested`/`amount_approved`, set by admins during review).
+
+The member **does not re-enter** their own identity. `memberBbfController.create` ignores client-sent identity and pulls `tsc_no`, `sub_county`, `school`, `school_category` from the logged-in member's `members` row:
+- **`retirement`** — the claim's `deceased_name` is set to the member's own `full_name` (the retiree); `relationship`/`date_of_death` are null.
+- **`death`** — the member enters the deceased relative's name, `relationship`, and `date_of_death`; identity fields still come from the profile.
+- Creating a claim is blocked (400) if the member's `school_category` is unset → they must set it in their profile first.
+
+The new-claim form (`member/bbf-claims.html`) shows the member's identity in a read-only "Your details (from your profile)" box; the member only chooses type + (for death) deceased name/relationship/date of death. Required upload documents are unchanged (TSC Slip, Burial Permit, Letter from Principal; optional Birth Notification) and still apply to both types.
 
 ### Sequence number generation (atomic)
 Member numbers (`MBR-YYYY-NNNNNN`), BBF claim numbers (`BBF-YYYY-NNNNNN`), and scholarship application numbers (`SAPP-YYYY-NNNNNN`) use atomic MySQL counters stored in the `settings` table (`member_seq`, `bbf_seq`, `schapp_seq`). Never use `COUNT(*)+1`.

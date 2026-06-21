@@ -157,7 +157,7 @@ async function initMemberProfile() {
   try {
     const res = await memberApi.profile.get();
     const m = res.data;
-    const fields = ['full_name','tsc_number','national_id','employment_number','phone','email','gender','date_of_birth','school_name','sub_county'];
+    const fields = ['full_name','tsc_number','national_id','employment_number','phone','email','gender','date_of_birth','school_name','sub_county','school_category'];
     fields.forEach(f => {
       const el = document.getElementById(`p-${f.replace(/_/g,'-')}`);
       if (el) el.value = m[f] || '';
@@ -178,6 +178,7 @@ async function initMemberProfile() {
         phone: document.getElementById('p-phone').value,
         school_name: document.getElementById('p-school-name').value,
         sub_county: document.getElementById('p-sub-county').value,
+        school_category: document.getElementById('p-school-category').value,
         employment_number: document.getElementById('p-employment-number').value,
       });
       showMsg('profile-msg', 'Profile updated successfully', 'success');
@@ -213,13 +214,39 @@ async function initMemberBbf() {
   initMemberSidebar(member); loadNotifCount();
 
   loadBbfList();
+  loadMyDetailsForClaim();
   document.getElementById('btn-new-claim')?.addEventListener('click', () => {
     document.getElementById('new-claim-modal').classList.add('open');
     document.getElementById('new-claim-form').reset();
+    toggleDeathFields();
   });
+  document.getElementById('claim-type')?.addEventListener('change', toggleDeathFields);
   document.querySelectorAll('.modal-close-btn').forEach(b => b.addEventListener('click', () => b.closest('.portal-modal-overlay').classList.remove('open')));
   document.getElementById('btn-create-claim')?.addEventListener('click', createClaim);
 }
+
+// Show the member's own identity in the claim form (from their profile — never re-entered).
+async function loadMyDetailsForClaim() {
+  try {
+    const { data: m } = await memberApi.profile.get();
+    const set = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v || '—'; };
+    set('my-name', m.full_name);
+    set('my-tsc', m.tsc_number);
+    set('my-subcounty', m.sub_county);
+    set('my-school', m.school_name);
+    set('my-category', bbfSchoolCatLabel(m.school_category));
+  } catch { /* read-only display; ignore */ }
+}
+
+// Death claims also need the deceased's name, relationship and date of death; retirement claims do not.
+function toggleDeathFields() {
+  const type = document.getElementById('claim-type')?.value;
+  const deathFields = document.getElementById('death-only-fields');
+  if (deathFields) deathFields.style.display = type === 'death' ? '' : 'none';
+}
+
+function bbfTypeLabel(t) { return ({ death: 'Death', retirement: 'Retirement' })[t] || (t || '').replace(/_/g, ' '); }
+function bbfSchoolCatLabel(c) { return ({ senior_school: 'Senior School', junior_school: 'Junior School' })[c] || '—'; }
 
 async function loadBbfList() {
   const el = document.getElementById('bbf-list');
@@ -233,7 +260,7 @@ async function loadBbfList() {
         <div style="padding:1rem 1.25rem;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:0.5rem">
           <div>
             <div style="font-size:0.9rem;font-weight:700">${escHtml(c.claim_number)}</div>
-            <div style="font-size:0.8rem;color:var(--text-muted)">${escHtml(c.claim_type.replace(/_/g,' '))} — ${formatDate(c.created_at)}</div>
+            <div style="font-size:0.8rem;color:var(--text-muted)">${escHtml(bbfTypeLabel(c.claim_type))} — ${formatDate(c.created_at)}</div>
           </div>
           <div style="display:flex;align-items:center;gap:0.75rem">
             ${statusBadge(c.status)}
@@ -246,11 +273,18 @@ async function loadBbfList() {
 
 async function createClaim() {
   const type = document.getElementById('claim-type').value;
-  const desc = document.getElementById('claim-desc').value;
-  const amount = document.getElementById('claim-amount').value;
+  const payload = {
+    claim_type: type,
+    deceased_name: document.getElementById('claim-name').value.trim(),
+    relationship: document.getElementById('claim-relationship').value.trim(),
+    date_of_death: document.getElementById('claim-dod').value || null,
+  };
   if (!type) { showMsg('claim-msg', 'Claim type required'); return; }
+  if (type === 'death' && (!payload.deceased_name || !payload.relationship || !payload.date_of_death)) {
+    showMsg('claim-msg', 'Name of deceased, relationship and date of death are required for a death claim'); return;
+  }
   try {
-    const res = await memberApi.bbf.create({ claim_type: type, description: desc, amount_requested: amount || null });
+    const res = await memberApi.bbf.create(payload);
     document.getElementById('new-claim-modal').classList.remove('open');
     window.location.href = `/member/bbf-claim-detail.html?id=${res.data.id}`;
   } catch (err) { showMsg('claim-msg', err.message); }
@@ -309,11 +343,24 @@ async function loadClaimDetail(id) {
     const res = await memberApi.bbf.getOne(id);
     const c = res.data;
     document.getElementById('claim-number').textContent = c.claim_number;
-    document.getElementById('claim-type').textContent = c.claim_type.replace(/_/g,' ');
-    document.getElementById('claim-status').innerHTML = statusBadge(c.status);
-    document.getElementById('claim-date').textContent = formatDate(c.created_at);
-    document.getElementById('claim-desc').textContent = c.description || '—';
-    document.getElementById('claim-amount').textContent = c.amount_requested ? `KES ${Number(c.amount_requested).toLocaleString()}` : '—';
+    const rows = [
+      ['Type', escHtml(bbfTypeLabel(c.claim_type))],
+      ['Status', statusBadge(c.status)],
+      ['Date Created', formatDate(c.created_at)],
+      ['Name', escHtml(c.deceased_name || '—')],
+      ['TSC No', escHtml(c.tsc_no || '—')],
+      ['Sub-County', escHtml(c.sub_county || '—')],
+      ['School', escHtml(c.school || '—')],
+      ['Category', escHtml(bbfSchoolCatLabel(c.school_category))],
+    ];
+    if (c.claim_type === 'death') {
+      rows.push(['Relationship with Deceased', escHtml(c.relationship || '—')]);
+      rows.push(['Date of Death', formatDate(c.date_of_death)]);
+    }
+    if (c.amount_approved) rows.push(['Amount Approved', `KES ${Number(c.amount_approved).toLocaleString()}`]);
+    document.getElementById('claim-table').innerHTML = rows.map(([k, v]) =>
+      `<tr><td style="padding:0.4rem 0;color:var(--text-muted);width:45%">${k}</td><td style="font-weight:600">${v || '—'}</td></tr>`
+    ).join('');
 
     // Show submit button only for drafts
     const isDraft = c.status === 'draft';
@@ -515,8 +562,8 @@ function renderHistoryTable(tbodyId, rows, cols) {
   el.innerHTML = rows.map(r => `<tr>${cols.map(c => {
     const v = r[c];
     if (c === 'status') return `<td>${statusBadge(v)}</td>`;
+    if (c === 'claim_type') return `<td>${escHtml(bbfTypeLabel(v))}</td>`;
     if (c.endsWith('_at') || c.endsWith('_date')) return `<td>${formatDate(v)}</td>`;
-    const label = c.replace(/_/g,' ');
     return `<td>${escHtml(v||'—')}</td>`;
   }).join('')}</tr>`).join('');
 }

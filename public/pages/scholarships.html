@@ -3,13 +3,13 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="KUPPET Migori Scholarship Opportunities - Available scholarships for children of teachers and teacher members pursuing higher education. Eligibility, deadlines, and application information.">
+  <meta name="description" content="KUPPET Migori Scholarship Opportunities - Sponsorship for teacher members to further their own studies (KCSE, KJSEA, DTE). Eligibility, deadlines, and how members apply.">
   <title>Scholarships | KUPPET Migori</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Playfair+Display:wght@700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
-  <link rel="stylesheet" href="/css/style.css?v=20260617d">
+  <link rel="stylesheet" href="/css/style.css?v=20260621b">
   <style>
     .scholarship-cards { display:grid; grid-template-columns:repeat(2,1fr); gap:1.5rem; }
     .scholarship-details { font-size:0.875rem; color:var(--text-muted); line-height:1.7; }
@@ -141,7 +141,7 @@
         <span aria-current="page">Scholarships</span>
       </nav>
       <h1>Scholarship Opportunities</h1>
-      <p>Supporting the education of teachers' children and continuing education for our members. Find and apply for scholarships available to KUPPET Migori members and their families.</p>
+      <p>Sponsoring KUPPET Migori teacher members to further their own studies. Browse the available scholarships and apply through your member portal.</p>
     </div>
   </section>
 
@@ -180,16 +180,15 @@
         <div class="section-title">
           <span class="label">Education Support</span>
           <h2>Available Scholarships &amp; Bursaries</h2>
-          <p>All scholarships listed here are available to KUPPET Migori members or their dependants. Check eligibility carefully before applying.</p>
+          <p>These scholarships sponsor KUPPET Migori teacher members to further their own studies. Log in to your member portal to apply. Check eligibility carefully before applying.</p>
         </div>
 
         <!-- Filter -->
         <div class="scholarship-type-tabs" role="tablist">
           <button class="filter-tab active" data-type="" role="tab">All Scholarships</button>
-          <button class="filter-tab" data-type="undergraduate" role="tab">Undergraduate</button>
-          <button class="filter-tab" data-type="postgraduate" role="tab">Postgraduate</button>
-          <button class="filter-tab" data-type="vocational" role="tab">Vocational/TVET</button>
-          <button class="filter-tab" data-type="international" role="tab">International</button>
+          <button class="filter-tab" data-type="kcse" role="tab">KCSE</button>
+          <button class="filter-tab" data-type="kjsea" role="tab">KJSEA</button>
+          <button class="filter-tab" data-type="dte" role="tab">DTE (Diploma in Technical Education)</button>
         </div>
 
         <!-- Scholarships Grid -->
@@ -209,7 +208,7 @@
             </div>
             <div>
               <h4 style="font-size:0.9rem;color:var(--text);margin-bottom:0.625rem;display:flex;align-items:center;gap:0.5rem"><span style="background:var(--primary);color:#fff;width:22px;height:22px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:0.7rem;flex-shrink:0">2</span> Prepare Documents Early</h4>
-              <p style="font-size:0.875rem;color:var(--text-muted);line-height:1.65">Gather all required documents well before the deadline: KCSE certificates, admission letters, national ID, KUPPET membership proof, and bank details.</p>
+              <p style="font-size:0.875rem;color:var(--text-muted);line-height:1.65">Gather all required documents well before the deadline: your academic certificates, admission/enrolment letter, TSC and national ID, KUPPET membership proof, and bank details.</p>
             </div>
             <div>
               <h4 style="font-size:0.9rem;color:var(--text);margin-bottom:0.625rem;display:flex;align-items:center;gap:0.5rem"><span style="background:var(--primary);color:#fff;width:22px;height:22px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:0.7rem;flex-shrink:0">3</span> Write a Strong Essay</h4>
@@ -291,8 +290,8 @@
     </div>
   </footer>
 
-  <script src="/js/api.js?v=20260617d"></script>
-  <script src="/js/main.js?v=20260617d"></script>
+  <script src="/js/api.js?v=20260621b"></script>
+  <script src="/js/main.js?v=20260621b"></script>
   <script>
     // Scholarship type filter tabs
     document.querySelectorAll('.filter-tab[data-type]').forEach(tab => {
@@ -319,7 +318,7 @@
                 <span class="scholarship-meta-item ${isExpired ? 'scholarship-deadline' : ''}">
                   <i class="far fa-calendar-alt"></i> ${isExpired ? '<strong>Closed</strong>' : `Deadline: ${deadline}`}
                 </span>
-                <span class="scholarship-meta-item"><i class="fas fa-graduation-cap"></i> ${(s.scholarship_type||'').replace('_',' ')}</span>
+                <span class="scholarship-meta-item"><i class="fas fa-graduation-cap"></i> ${scholarshipTypeLabel(s.scholarship_type)}</span>
               </div>
               <div style="display:flex;gap:0.75rem;flex-wrap:wrap">
                 ${s.application_link && !isExpired ? `<a href="${s.application_link}" target="_blank" rel="noopener" class="btn btn-primary btn-sm"><i class="fas fa-external-link-alt"></i> Apply Now</a>` : ''}

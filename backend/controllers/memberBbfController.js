@@ -16,15 +16,42 @@ async function getAll(req, res) {
 
 async function create(req, res) {
   try {
-    const { claim_type, description, amount_requested } = req.body;
+    const { claim_type, deceased_name, relationship, date_of_death } = req.body;
+
     if (!claim_type) return res.status(400).json({ success: false, message: 'Claim type required' });
+    if (!['death', 'retirement'].includes(claim_type)) {
+      return res.status(400).json({ success: false, message: 'Claim type must be death or retirement' });
+    }
+    if (claim_type === 'death' && (!deceased_name || !relationship || !date_of_death)) {
+      return res.status(400).json({ success: false, message: 'Deceased name, relationship and date of death are required for a death claim' });
+    }
+
+    // The member's own identifying details (incl. school category) come from their profile — never re-entered.
+    const [[m]] = await db.query(
+      'SELECT full_name, tsc_number, sub_county, school_name, school_category FROM members WHERE id = ?',
+      [req.member.id]
+    );
+    if (!m) return res.status(404).json({ success: false, message: 'Member profile not found' });
+    if (!m.school_category) {
+      return res.status(400).json({ success: false, message: 'Please set your school category in your profile before submitting a claim' });
+    }
+
+    // For a death claim the "name" is the deceased relative; for retirement it is the member (the retiree).
+    const claimName = claim_type === 'death' ? deceased_name : m.full_name;
 
     const claimNumber = await nextSeq('bbf_seq', 'BBF');
 
     const [result] = await db.query(
-      `INSERT INTO bbf_claims (claim_number, member_id, claim_type, description, amount_requested)
-       VALUES (?, ?, ?, ?, ?)`,
-      [claimNumber, req.member.id, claim_type, description || null, amount_requested || null]
+      `INSERT INTO bbf_claims
+         (claim_number, member_id, claim_type, deceased_name, tsc_no, sub_county, school, school_category, relationship, date_of_death)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        claimNumber, req.member.id, claim_type,
+        claimName, m.tsc_number, m.sub_county, m.school_name,
+        m.school_category,
+        claim_type === 'death' ? relationship : null,
+        claim_type === 'death' ? date_of_death : null,
+      ]
     );
     const [[claim]] = await db.query('SELECT * FROM bbf_claims WHERE id = ?', [result.insertId]);
     res.status(201).json({ success: true, data: claim });

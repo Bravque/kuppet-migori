@@ -43,7 +43,7 @@ async function register(req, res) {
     const {
       full_name, tsc_number, national_id, employment_number,
       phone, email, password, gender, date_of_birth,
-      school_name, sub_county,
+      school_name, sub_county, school_category,
     } = req.body;
 
     // Uniqueness checks
@@ -70,11 +70,11 @@ async function register(req, res) {
     await db.query(
       `INSERT INTO members
          (member_number, full_name, tsc_number, national_id, employment_number, phone, email,
-          password, gender, date_of_birth, school_name, sub_county, passport_photo_url, national_id_url)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          password, gender, date_of_birth, school_name, sub_county, school_category, passport_photo_url, national_id_url)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [memberNumber, full_name, tsc_number, national_id, employment_number || null,
        phone, email.toLowerCase(), hashedPassword, gender, date_of_birth,
-       school_name, sub_county, passportPhotoUrl, nationalIdUrl]
+       school_name, sub_county, school_category, passportPhotoUrl, nationalIdUrl]
     );
 
     // Send confirmation email (non-blocking)
