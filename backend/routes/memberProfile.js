@@ -5,6 +5,6 @@ const ctrl = require('../controllers/memberProfileController');
 
 router.get('/', authenticateMember, ctrl.getProfile);
 router.put('/', authenticateMember, ctrl.updateProfile);
-router.post('/photo', authenticateMember, upload.memberDocs.single('photo'), ctrl.uploadPhoto);
+router.post('/photo', authenticateMember, upload.memberPhoto.single('photo'), ctrl.uploadPhoto);
 
 module.exports = router;

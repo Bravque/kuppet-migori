@@ -61,4 +61,12 @@ module.exports = {
     limits: { fileSize: 5 * MB },
     fileFilter: fileFilter(PDF_IMG),
   }),
+
+  // Member profile/passport photo — images only (no PDF), stored in the
+  // access-controlled members/ dir and served via /api/member/documents/.
+  memberPhoto: multer({
+    storage: storage('members'),
+    limits: { fileSize: 2 * MB },
+    fileFilter: fileFilter(IMAGE_MIMES),
+  }),
 };

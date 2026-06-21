@@ -317,7 +317,7 @@ function renderBbfDocSlots(docs, isDraft) {
         </div>
         ${isDraft ? `
         <div class="doc-slot-upload">
-          <input type="file" id="doc-file-${slot.type}" accept="image/jpeg,image/png,application/pdf" style="display:none">
+          <input type="file" id="doc-file-${slot.type}" accept="image/jpeg,image/png,application/pdf,.jpg,.jpeg,.png,.pdf" style="display:none">
           <button class="btn btn-outline btn-xs" id="doc-choose-${slot.type}"><i class="fas fa-paperclip"></i> Choose</button>
           <span class="doc-slot-filename" id="doc-fname-${slot.type}"></span>
           <button class="btn btn-gold btn-xs" id="doc-upload-${slot.type}"><i class="fas fa-upload"></i> Upload</button>
