@@ -105,16 +105,22 @@ async function updateTemplate(req, res) {
   }
 }
 
-// TalkSasa delivery receipt webhook
+// TalkSasa delivery receipt (DLR) webhook.
+// TalkSasa field names vary, so accept the common ones; we match on the same
+// reference we stored as talksasa_ref when the message was accepted.
 async function webhook(req, res) {
   try {
-    const { reference, status } = req.body;
-    if (reference) {
-      await smsService.updateDeliveryStatus(reference, status === 'delivered');
-    }
+    const b = req.body || {};
+    const d = b.data || {};
+    const reference = b.reference || b.uid || b.message_id || b.messageId || b.id ||
+                      d.uid || d.message_id || null;
+    const status = b.status || b.dlr_status || b.delivery_status || b.message_status ||
+                   d.status || d.dlr_status || null;
+    console.log('[sms webhook]', JSON.stringify(b));
+    if (reference) await smsService.updateDeliveryStatus(reference, status);
     res.json({ success: true });
   } catch (_) {
-    res.json({ success: true }); // always 200 to webhook
+    res.json({ success: true }); // always 200 so TalkSasa doesn't retry-storm
   }
 }
 

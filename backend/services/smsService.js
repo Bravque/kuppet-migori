@@ -79,12 +79,23 @@ async function sendBulk({ recipients, message, sentBy, templateId = null }) {
   }));
 }
 
-// Update delivery status from TalkSasa webhook
-async function updateDeliveryStatus(talksasaRef, delivered) {
-  await db.query(
-    `UPDATE sms_logs SET status = ? WHERE talksasa_ref = ?`,
-    [delivered ? 'delivered' : 'failed', talksasaRef]
-  );
+// Map a raw TalkSasa delivery-report status word to our sms_logs enum.
+// Returns null for unknown/intermediate values so we don't overwrite wrongly.
+function mapDlrStatus(raw) {
+  const s = String(raw || '').toLowerCase();
+  if (/deliver/.test(s)) return 'delivered';                              // Delivered, DELIVRD
+  if (/fail|reject|undeliver|expir|dnd|block|invalid/.test(s)) return 'failed';
+  if (/sent|submit|accept|queue|pending/.test(s)) return 'sent';
+  return null;
+}
+
+// Update delivery status from a TalkSasa webhook (DLR). Returns the mapped
+// status, or null if nothing was updated.
+async function updateDeliveryStatus(talksasaRef, rawStatus) {
+  const mapped = mapDlrStatus(rawStatus);
+  if (!talksasaRef || !mapped) return null;
+  await db.query('UPDATE sms_logs SET status = ? WHERE talksasa_ref = ?', [mapped, talksasaRef]);
+  return mapped;
 }
 
 function normalizePhone(phone) {
