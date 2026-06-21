@@ -672,8 +672,8 @@ function renderLeaderCard(leader) {
         <span class="leader-position">${escHtml(leader.position)}</span>
         <h3>${escHtml(leader.name)}</h3>
         <div class="leader-contacts">
-          ${leader.email ? `<a href="mailto:${leader.email}" class="leader-contact-btn" title="Email"><i class="fas fa-envelope"></i></a>` : ''}
-          ${leader.phone ? `<a href="tel:${leader.phone}" class="leader-contact-btn" title="Phone"><i class="fas fa-phone"></i></a>` : ''}
+          ${leader.phone ? `<a href="tel:${leader.phone}" class="leader-contact-btn" title="Call ${escHtml(leader.name)}"><i class="fas fa-phone"></i></a>` : ''}
+          ${leader.email ? `<a href="mailto:${leader.email}" class="leader-contact-btn" title="Email ${escHtml(leader.name)}"><i class="fas fa-envelope"></i></a>` : ''}
         </div>
       </div>
     </div>`;

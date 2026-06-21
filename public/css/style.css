@@ -1360,7 +1360,7 @@ select.form-control { cursor: pointer; }
   font-size: 3.5rem; color: rgba(255,255,255,0.25);
   overflow: hidden;
 }
-.leader-photo img { width: 100%; height: 100%; object-fit: cover; }
+.leader-photo img { width: 100%; height: 100%; object-fit: contain; object-position: center; background: #fff; }
 .leader-body { padding: 1.5rem 1.25rem; }
 .leader-position {
   font-size: 0.7rem; font-weight: 700; letter-spacing: 0.1em;
