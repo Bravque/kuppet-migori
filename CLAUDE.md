@@ -318,29 +318,28 @@ site is token-driven, so most components recolour from `:root`; remaining hardco
 tints were swapped (old blue RGB `27,58,110` → `0,138,75`, old gold `200,150,42` →
 `200,168,107`). Hero/page-header/membership gradients use `var(--primary) → var(--primary-dark)`.
 ```
---primary:       #008A4B  (brand green — nav active, buttons, headers, gradients)
---primary-dark:  #006B3A  (green hover; footer + topbar background)
---primary-light: #2FB36C
---primary-tint:  #E8F4EE  (subtle green surface — table zebra, hovers, badges)
---gold:          #C8A86B  (secondary — highlights, badges, CTA accents)
---gold-light:    #DFC79A
---gold-dark:     #A8874F  (gold hover)
+--primary:       #008B23  (logo green — nav active, buttons, headers, gradients)
+--primary-dark:  #006E1B  (green hover; footer + topbar background)
+--primary-light: #2BA84A
+--primary-tint:  #E3F3E8  (subtle green surface — table zebra, hovers, badges)
+--gold:          #E0A500  (vivid logo gold — highlights, badges, CTA accents)
+--gold-light:    #FFD200  (bright logo yellow)
+--gold-dark:     #B47D00  (deep logo gold — hover)
 --red:           #DC2626  (error)
 --green:         #10B981  (success)
 --warning:       #F59E0B
---text:          #1F2937  (headings)
---text-muted:    #4B5563  (body)
---text-light:    #9CA3AF
---bg:            #F8FAF9  (soft off-white page bg)
+--text:          #15241A  (headings)
+--text-muted:    #44524A  (body)
+--text-light:    #8B968F
+--bg:            #EEF4EF  (soft green off-white — relieves harsh white)
 --bg-white:      #FFFFFF  (cards)
---bg-dark:       #064E33  (deep green — portal sidebar)
---border:        #E5E7EB
+--bg-dark:       #053D14  (deep green — portal sidebar)
+--border:        #DCE6DF  (soft green-gray)
 --shadow-card:   0 4px 20px rgba(0,0,0,0.08)
 ```
 Component conventions: cards = 16px radius + soft shadow + 3px green top accent;
 data-tables = green header + green-tint zebra; footer = `--primary-dark` + gold top
-border; nav active = green tint + gold underline. Note: `.btn-gold` keeps white text
-per brand spec (low-contrast — use sparingly for small labels).
+border; nav active = green tint + gold underline. Note: `.btn-gold` uses dark text on bright gold for WCAG-compliant readability.
 
 Portal-specific status badge classes (in `portal.css`):
 `.status-badge--pending_approval`, `.status-badge--approved`, `.status-badge--rejected`,
