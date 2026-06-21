@@ -25,7 +25,7 @@
         <div>
           <div class="data-card" style="margin-bottom:1rem">
             <div class="data-card-header"><div class="data-card-title">Claim Details</div></div>
-            <div style="padding:1.25rem"><table style="width:100%;font-size:0.85rem;border-collapse:collapse" id="claim-table"></table></div>
+            <div style="padding:1.25rem" id="claim-details"></div>
           </div>
           <div class="data-card">
             <div class="data-card-header"><div class="data-card-title">Documents</div></div>
@@ -53,16 +53,30 @@
       const c = res.data;
       document.getElementById('claim-number').textContent = c.claim_number;
       document.getElementById('claim-status').innerHTML = statusBadge(c.status);
-      const rows=[['Claim No',c.claim_number],['Member',c.full_name+' ('+c.member_number+')'],['Phone',c.phone],['Email',c.email],
-        ['Type',bbfTypeLabel(c.claim_type)],['Status',statusBadge(c.status)],
-        ['Name',escHtml(c.deceased_name||'—')],['TSC No',escHtml(c.tsc_no||'—')],['Sub-County',escHtml(c.sub_county||'—')],
-        ['School',escHtml(c.school||'—')],['Category',bbfSchoolCatLabel(c.school_category)],
-        ...(c.claim_type==='death'?[['Relationship with Deceased',escHtml(c.relationship||'—')],['Date of Death',formatDate(c.date_of_death)]]:[]),
+      const section = (title, rows) => `
+        <div style="margin-bottom:1.25rem">
+          <div style="font-size:0.72rem;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;color:var(--text-muted);border-bottom:2px solid var(--gold);display:inline-block;padding-bottom:0.25rem;margin-bottom:0.75rem">${title}</div>
+          <table style="width:100%;font-size:0.85rem;border-collapse:collapse">
+            ${rows.map(([k,v])=>`<tr><td style="padding:0.4rem 0;color:var(--text-muted);width:40%">${k}</td><td>${v||'—'}</td></tr>`).join('')}
+          </table>
+        </div>`;
+
+      const claimRows=[['Claim No',c.claim_number],['Type',bbfTypeLabel(c.claim_type)],['Status',statusBadge(c.status)],
         ['Amount Req',c.amount_requested?'KES '+Number(c.amount_requested).toLocaleString():'—'],
         ['Amount Approved',c.amount_approved?'KES '+Number(c.amount_approved).toLocaleString():'—'],
         ['Submitted',formatDate(c.submitted_at)],['Reviewed',formatDate(c.reviewed_at)],['Resolved',formatDate(c.resolved_at)],
         ['Notes',c.reviewer_notes||'—'],['Payment Ref',c.payment_reference||'—']];
-      document.getElementById('claim-table').innerHTML = rows.map(([k,v])=>`<tr><td style="padding:0.4rem 0;color:var(--text-muted);width:40%">${k}</td><td>${v||'—'}</td></tr>`).join('');
+
+      const applicantRows=[['Name',escHtml(c.full_name||'—')],['Member No',escHtml(c.member_number||'—')],
+        ['Phone',escHtml(c.phone||'—')],['Email',escHtml(c.email||'—')],['TSC No',escHtml(c.tsc_no||'—')],
+        ['Sub-County',escHtml(c.sub_county||'—')],['School',escHtml(c.school||'—')],['Category',bbfSchoolCatLabel(c.school_category)]];
+
+      let detailsHtml = section('Claim', claimRows) + section("Applicant's Details", applicantRows);
+      if (c.claim_type==='death') {
+        detailsHtml += section('Deceased Person Details', [['Name',escHtml(c.deceased_name||'—')],
+          ['Relationship with Applicant',escHtml(c.relationship||'—')],['Date of Death',formatDate(c.date_of_death)]]);
+      }
+      document.getElementById('claim-details').innerHTML = detailsHtml;
       const DOC_LABELS = {tsc_slip:'TSC Slip',burial_permit:'Burial Permit',birth_notification:'Birth Notification',letter_from_principal:'Letter From Principal',other:'Other'};
       document.getElementById('doc-list').innerHTML = c.documents.length ? c.documents.map(d=>`<li class="doc-item"><i class="fas fa-file doc-icon"></i><span class="doc-name">${escHtml(d.file_name||d.file_url)}</span><span class="doc-size">${escHtml(DOC_LABELS[d.doc_type]||d.doc_type)}</span><a href="${d.file_url}" target="_blank" class="btn btn-outline btn-xs">View</a></li>`).join('') : '<li style="padding:0.5rem;color:var(--text-muted)">No documents</li>';
       document.getElementById('timeline').innerHTML = c.timeline.map(e=>`<div class="timeline-item status-${e.to_status}"><div class="timeline-dot"><i class="fas fa-circle" style="font-size:0.45rem"></i></div><div class="timeline-content"><div class="timeline-status">${escHtml(e.to_status.replace(/_/g,' '))}</div><div class="timeline-meta">${formatDateTime(e.created_at)} by ${escHtml(e.changed_by_type)}</div>${e.comment?`<div class="timeline-comment">${escHtml(e.comment)}</div>`:''}</div></div>`).join('');

@@ -63,7 +63,9 @@ async function create(req, res) {
 async function getOne(req, res) {
   try {
     const [[claim]] = await db.query(
-      'SELECT * FROM bbf_claims WHERE id = ? AND member_id = ?',
+      `SELECT bc.*, m.full_name AS applicant_name, m.member_number AS applicant_member_number
+       FROM bbf_claims bc JOIN members m ON bc.member_id = m.id
+       WHERE bc.id = ? AND bc.member_id = ?`,
       [req.params.id, req.member.id]
     );
     if (!claim) return res.status(404).json({ success: false, message: 'Claim not found' });

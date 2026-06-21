@@ -248,6 +248,17 @@ function toggleDeathFields() {
 function bbfTypeLabel(t) { return ({ death: 'Death', retirement: 'Retirement' })[t] || (t || '').replace(/_/g, ' '); }
 function bbfSchoolCatLabel(c) { return ({ senior_school: 'Senior School', junior_school: 'Junior School' })[c] || '—'; }
 
+// Renders a titled block of label/value rows for the claim detail view.
+function renderClaimSection(title, rows) {
+  return `
+    <div style="margin-bottom:1.25rem">
+      <div style="font-size:0.72rem;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;color:var(--text-muted);border-bottom:2px solid var(--gold);display:inline-block;padding-bottom:0.25rem;margin-bottom:0.75rem">${title}</div>
+      <table style="width:100%;font-size:0.85rem;border-collapse:collapse">
+        ${rows.map(([k, v]) => `<tr><td style="padding:0.4rem 0;color:var(--text-muted);width:45%">${k}</td><td style="font-weight:600">${v || '—'}</td></tr>`).join('')}
+      </table>
+    </div>`;
+}
+
 async function loadBbfList() {
   const el = document.getElementById('bbf-list');
   if (!el) return;
@@ -343,24 +354,32 @@ async function loadClaimDetail(id) {
     const res = await memberApi.bbf.getOne(id);
     const c = res.data;
     document.getElementById('claim-number').textContent = c.claim_number;
-    const rows = [
+
+    const claimRows = [
       ['Type', escHtml(bbfTypeLabel(c.claim_type))],
       ['Status', statusBadge(c.status)],
       ['Date Created', formatDate(c.created_at)],
-      ['Name', escHtml(c.deceased_name || '—')],
+    ];
+    if (c.amount_approved) claimRows.push(['Amount Approved', `KES ${Number(c.amount_approved).toLocaleString()}`]);
+
+    // Applicant = the member who filed the claim
+    const applicantRows = [
+      ['Name', escHtml(c.applicant_name || '—')],
       ['TSC No', escHtml(c.tsc_no || '—')],
       ['Sub-County', escHtml(c.sub_county || '—')],
       ['School', escHtml(c.school || '—')],
       ['Category', escHtml(bbfSchoolCatLabel(c.school_category))],
     ];
+
+    let html = renderClaimSection('Claim', claimRows) + renderClaimSection("Applicant's Details", applicantRows);
     if (c.claim_type === 'death') {
-      rows.push(['Relationship with Deceased', escHtml(c.relationship || '—')]);
-      rows.push(['Date of Death', formatDate(c.date_of_death)]);
+      html += renderClaimSection('Deceased Person Details', [
+        ['Name', escHtml(c.deceased_name || '—')],
+        ['Relationship with Applicant', escHtml(c.relationship || '—')],
+        ['Date of Death', formatDate(c.date_of_death)],
+      ]);
     }
-    if (c.amount_approved) rows.push(['Amount Approved', `KES ${Number(c.amount_approved).toLocaleString()}`]);
-    document.getElementById('claim-table').innerHTML = rows.map(([k, v]) =>
-      `<tr><td style="padding:0.4rem 0;color:var(--text-muted);width:45%">${k}</td><td style="font-weight:600">${v || '—'}</td></tr>`
-    ).join('');
+    document.getElementById('claim-details').innerHTML = html;
 
     // Show submit button only for drafts
     const isDraft = c.status === 'draft';
