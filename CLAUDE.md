@@ -55,10 +55,10 @@ There are no tests or linting scripts configured yet.
 | **Real KUPPET logo** — header, footer, portal sidebars (white bg) | ✓ Complete |
 | **Henri Otunga photo** — `public/images/leaders/henri-otunga.jpg` | ✓ Complete |
 | **Member registration (3-step form + doc uploads)** | ✓ Complete |
-| **Member login + JWT auth + account lockout** | ✓ Complete |
+| **Member login (by TSC number) + JWT auth + account lockout + forgot/reset password** | ✓ Complete |
 | **Member portal — dashboard, profile, BBF claims, scholarships, notifications, history** | ✓ Complete |
 | **Admin login with optional TOTP 2FA** | ✓ Complete |
-| **Admin portal — 21 pages** | ✓ Complete |
+| **Admin portal — 21 pages (all CRUD/actions wired)** | ✓ Complete |
 | **Admin member management — approve / reject / suspend** | ✓ Complete |
 | **BBF claims workflow (draft→submitted→under_review→approved→rejected→paid)** | ✓ Complete |
 | **Scholarship applications workflow (applied→under_review→approved→rejected)** | ✓ Complete |
@@ -117,8 +117,16 @@ WHERE id = 1;
 - **Org structure rebuilt** (About page) — 5 levels: KUPPET National Executive Board → National Governing Council → Branch Executive Committee → Branch Governing Council → Sub-Counties (12).
 - **Sub-counties 7 → 12** — updated everywhere: About history/org chart, Contact page (12 sub-branch cards + "all 12" count), and the sub-county dropdowns in `member/register.html`, `member/profile.html`, `admin/members.html`, `admin/sms.html`.
 - **BBF claims restructured** (see Database schema + the BBF feature notes below) — two claim types only (`death`, `retirement`); claim-particular fields added; school category moved to the member profile (captured at registration). Run `backend/config/migration-bbf-claim-fields.sql` on the live DB.
-- **Scholarship types reduced to three** — `kcse | kjsea | dte` (DTE = Diploma in Technical Education), replacing the old undergraduate/postgraduate/etc. Updated schema + seed (both `init*.sql`), `scholarshipsController` (default `kcse` + validation), the public scholarships filter tabs + type badge (`scholarshipTypeLabel()` in `main.js`). The same migration file (step 4) remaps existing rows on the live DB. NOTE: the admin scholarship create/edit form is still a stub (`content-scholarships.html` "New"/"Edit" buttons aren't wired) — types are set via seed/API only.
-- **Cache token bumped** `20260617d` → `20260621b` across all public HTML (edited `main.js` + `api.js`). NOTE: portal JS (`member/js/*`, `admin/js/*`) is loaded **unversioned**, so those files were NOT version-bumped.
+- **Scholarship types reduced to three** — `kcse | kjsea | dte` (DTE = Diploma in Technical Education), replacing the old undergraduate/postgraduate/etc. Updated schema + seed (both `init*.sql`), `scholarshipsController` (default `kcse` + validation), the public scholarships filter tabs + type badge (`scholarshipTypeLabel()` in `main.js`). The same migration file (step 4) remaps existing rows on the live DB. (The admin scholarship create/edit form is now built — see "Admin panel completed" below.)
+- **Scholarships reframed** — they sponsor **teacher members to further their own studies** (not children/dependants); copy updated on `scholarships.html` + homepage.
+- **Member login by TSC number** — members now sign in with **TSC number + password** (was email). `memberAuthController.login` looks up by `tsc_number` (accepts legacy `email` key as a cache shim); login form + `member-api` updated. Email is still collected at registration (kept unique) but is no longer the login identifier. Admin login still uses email.
+- **Forgot / reset password (members)** — `forgot-password.html` + `reset-password.html`; routes `POST /api/member/auth/forgot-password` (rate-limited 5/hr) & `/reset-password`. Reset token is a JWT signed with `JWT_MEMBER_SECRET + member.password` → single-use & self-expiring (1h), no DB column. Delivered by email → **requires SMTP env vars** (`SMTP_HOST/PORT/USER/PASS`); `APP_URL` builds the link. `backend/scripts/test-email.js you@x.com` checks SMTP. ✓ SMTP confirmed working on live.
+- **Leadership roster** — replaced placeholder leaders with the 14 real officials (`update-leadership.sql` for the live DB; seeded in `init*.sql`). About page: 3 **Principal Officials** (Chairman, Exec Sec, Treasurer) in their own row, then **Other Branch Officials**; Trustees section removed. Cards show photo + position + name + click-to-call phone + email icon (no bio). Phones E.164; placeholder email `info@kuppetmigori.co.ke` on all (owner to replace). Leader photo CSS → `object-fit:contain` (full image centered, not cropped).
+- **BBF claim detail split** — member + admin claim pages show **Claim / Applicant's Details / Deceased Person Details** as separate blocks (`memberBbfController.getOne` now returns `applicant_name`).
+- **Inner-page banner → logo-green gradient** — `.page-header` now `#00641C → #008B23 → #1FB24A` (the logo green) on **all** inner pages incl. Advocacy. Homepage hero unchanged.
+- **Uploads** — profile photo uses a new image-only `memberPhoto` multer filter (JPEG/PNG/WebP, no PDF); `.jpg/.jpeg` extensions added to every `accept` for clearer file pickers.
+- **Admin panel completed** — built the 7 previously broken/stub pages: `scholarship-app-detail` (review/approve/reject), content CRUD for **leadership/resources/advocacy/scholarships** (modals; leadership photo + resource file uploads via FormData), `sms-templates` (create/edit/deactivate), `sms-logs` (filter + pagination). BBF + member approve/reject/etc. upgraded from `prompt()` to inline modals (also fixed BBF action buttons that were bound to an unreachable IIFE-scoped function). **Authenticated exports** — added a blob-download helper in `admin-api.js` (members/BBF/analytics/audit); `window.open()` exports were failing with "Access token required" because they couldn't send the Bearer header.
+- **Cache token** — now `20260621f` across all public HTML (bumped several times this session for `main.js`/`api.js`/`style.css` edits). NOTE: portal JS (`member/js/*`, `admin/js/*`) is **unversioned** — after editing it, hard-refresh; consider adding `?v=` to those `<script>` tags if stale-cache issues appear.
 
 ### Done in the 17 June 2026 session
 - **Responsive overhaul** — eliminated horizontal overflow on every public page across 320–1920px (Playwright-audited). Root-cause fixes only (no `overflow:hidden` masking): header compression `≤1780px`, icon-only CTA `≤1300px`, inline nav collapses to the hamburger **drawer at `≤960px`**, `.search-bar`/inputs `min-width:0`, `.btn { max-width:100% }`, advocacy form grid → `minmax(0,1fr)`.
@@ -131,8 +139,11 @@ WHERE id = 1;
 
 **Task 1 — Article detail pages** — ✓ DONE (21 June 2026).
 
-**⚠ Pending DB migration (do this first on the live DB)**
-`backend/config/migration-bbf-claim-fields.sql` must be run **once** via phpMyAdmin → SQL tab. It (a) restructures `bbf_claims` to the new two-type model + claim-particular columns, and (b) adds `members.school_category`. Until run, new member registrations and BBF claim submissions will fail on production. Fresh installs already include all this via `init.sql` / `init-hostinger.sql`.
+**⚠ Pending DB scripts (run once on the live DB via phpMyAdmin → SQL tab)**
+1. `backend/config/migration-bbf-claim-fields.sql` — (a) restructures `bbf_claims` to the two-type model + claim-particular columns, (b) adds `members.school_category`, (c) remaps `scholarships.scholarship_type` to kcse/kjsea/dte. Until run, member registration + BBF/scholarship features fail on production.
+2. `backend/config/update-leadership.sql` — clears placeholder leaders and inserts the 14 real officials. Until run, the About page shows the old placeholder names.
+
+Fresh installs already include all of this via `init.sql` / `init-hostinger.sql`.
 
 **Task 3 — Real content (owner must supply)**
 Still placeholder in the codebase:
@@ -197,7 +208,7 @@ Still placeholder in the codebase:
 **Member portal (`/public/member/`):**
 - **`member/js/member-api.js`** — `window.memberApi`; injects `memberToken`; 401 → redirect to login
 - **`member/js/member-portal.js`** — auth guard, sidebar, all `initMember*()` functions
-- 10 HTML pages
+- 12 HTML pages (incl. `forgot-password.html`, `reset-password.html`)
 
 ### Body-class convention (public pages)
 Every `<body>` tag carries a class that gates the matching `init*` function in `main.js`:
@@ -213,9 +224,8 @@ Every `<body>` tag carries a class that gates the matching `init*` function in `
 Admin and member portal pages use `admin-*-page` / `member-*-page` classes gating functions in their respective portal JS files.
 
 ### Asset cache-busting (IMPORTANT)
-Hostinger serves CSS/JS with **no `cache-control`/`etag`**, so browsers hold stale assets after a deploy. Public CSS/JS links carry a version query, e.g. `href="/css/style.css?v=20260621a"`. **When you edit `style.css`, `portal.css`, `main.js`, or `api.js`, bump the `?v=` string on every page** (sed across `public/**/*.html`) or returning visitors won't see the change. HTML files themselves aren't versioned (they revalidate). Current token: `20260621b`.
-
-> ⚠ Caveat: portal JS (`member/js/member-portal.js`, `member/js/member-api.js`, `admin/js/admin-portal.js`, `admin/js/admin-api.js`) is loaded **without** a `?v=` query, so the convention above does not cover it. Editing those files relies on browser revalidation; if a stale portal JS issue appears after deploy, add a version query to those `<script>` tags.
+Hostinger serves CSS/JS with **no `cache-control`/`etag`**, so browsers hold stale assets after a deploy. Public CSS/JS links carry a version query, e.g. `href="/css/style.css?v=20260621f"`. **When you edit `style.css`, `portal.css`, `main.js`, or `api.js`, bump the `?v=` string on every page** (sed across `public/**/*.html`) or returning visitors won't see the change. HTML files themselves aren't versioned (they revalidate). Current token: `20260621f`.
+> ⚠ Caveat: portal JS (`member/js/member-portal.js`, `member/js/member-api.js`, `admin/js/admin-portal.js`, `admin/js/admin-api.js`) is loaded **without** a `?v=` query, so the convention above does not cover it. Editing those files relies on browser revalidation — hard-refresh after deploying portal-JS changes (e.g. member TSC login + admin export fixes live there); if stale-cache issues appear, add a `?v=` to those `<script>` tags.
 
 ### Responsive header (public pages)
 All public pages share an identical topbar + header (only the active nav link differs — keep them in sync). Layout bands (driven by media queries in `style.css`):
@@ -238,6 +248,13 @@ Two separate secrets are **required** and must differ:
 - `JWT_MEMBER_SECRET` — signs member tokens (30-day expiry)
 
 Server throws at startup if they are equal.
+
+### Auth identifiers
+- **Members** log in with **TSC number + password** (`members.tsc_number`). Email is still collected at registration (unique) but isn't the login identifier. Password reset is by email (see forgot/reset flow).
+- **Admins** log in with **email + password** (+ optional TOTP 2FA).
+
+### Email (SMTP) — required for password reset & notification emails
+`backend/services/mailerService.js` sends via nodemailer when `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS` are set (else it logs & skips). `APP_URL` (e.g. `https://kuppetmigori.co.ke`) is used to build links in emails (password reset). Live uses the Hostinger mailbox for `info@kuppetmigori.co.ke` (`smtp.hostinger.com:465`). Test with `node backend/scripts/test-email.js you@example.com`.
 
 ### Database schema (21 tables)
 **Core (public site):** `users`, `leadership`, `news`, `events`, `resources`, `scholarships`, `advocacy`, `contacts`, `settings`
@@ -290,6 +307,7 @@ Upload subdirectories: `photos/`, `documents/`, `bbf/`, `scholarships/`, `member
 | `POST /api/auth/login` | 20 req / 15 min |
 | `POST /api/member/auth/login` | 20 req / 15 min |
 | `POST /api/member/auth/register` | 3 req / hr |
+| `POST /api/member/auth/forgot-password` | 5 req / hr |
 | `POST /api/admin/sms/send` | 20 req / min |
 | `POST /api/admin/sms/bulk` | 3 req / hr |
 
