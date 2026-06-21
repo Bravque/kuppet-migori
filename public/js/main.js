@@ -671,7 +671,6 @@ function renderLeaderCard(leader) {
       <div class="leader-body">
         <span class="leader-position">${escHtml(leader.position)}</span>
         <h3>${escHtml(leader.name)}</h3>
-        <p>${escHtml((leader.bio || '').substring(0, 140))}${(leader.bio || '').length > 140 ? '...' : ''}</p>
         <div class="leader-contacts">
           ${leader.email ? `<a href="mailto:${leader.email}" class="leader-contact-btn" title="Email"><i class="fas fa-envelope"></i></a>` : ''}
           ${leader.phone ? `<a href="tel:${leader.phone}" class="leader-contact-btn" title="Phone"><i class="fas fa-phone"></i></a>` : ''}
