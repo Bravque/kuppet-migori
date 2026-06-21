@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>content-leadership — KUPPET Migori Admin</title>
+  <title>Leadership — KUPPET Migori Admin</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
   <link rel="stylesheet" href="/css/style.css?v=20260621f"><link rel="stylesheet" href="/css/portal.css?v=20260621f">
@@ -14,41 +14,122 @@
     <div id="topbar-placeholder"></div>
     <div class="portal-content">
       <div class="page-heading">
-        <div class="page-heading-text"><h1>content-leadership</h1></div>
-        <div class="page-heading-actions"><button id="btn-new" class="btn btn-gold btn-sm"><i class="fas fa-plus"></i> New</button></div>
+        <div class="page-heading-text"><h1>Leadership</h1><p>Manage branch officials shown on the About page.</p></div>
+        <button class="btn btn-gold btn-sm" onclick="openNew()"><i class="fas fa-plus"></i> New Official</button>
       </div>
+      <div id="alert" class="hidden" style="margin-bottom:1rem"></div>
       <div class="data-card">
         <div class="data-table-wrap">
           <table class="data-table">
-            <thead><tr><th>Title</th><th>Category</th><th>Status</th><th>Date</th><th></th></tr></thead>
-            <tbody id="content-tbody"><tr><td colspan="5" class="portal-loading"><i class="fas fa-spinner fa-spin"></i> Loading…</td></tr></tbody>
+            <thead><tr><th>Order</th><th>Name</th><th>Position</th><th>Group</th><th>Phone</th><th>Actions</th></tr></thead>
+            <tbody id="tbody"><tr><td colspan="6" class="portal-loading"><i class="fas fa-spinner fa-spin"></i> Loading…</td></tr></tbody>
           </table>
         </div>
       </div>
     </div>
   </main>
 </div>
+
+<div class="portal-modal-overlay" id="modal">
+  <div class="portal-modal" style="max-width:600px">
+    <div class="portal-modal-header"><h3 id="modal-title">New Official</h3><button class="modal-close-btn"><i class="fas fa-times"></i></button></div>
+    <div class="portal-modal-body">
+      <div id="form-alert" class="hidden"></div>
+      <form id="form">
+        <div class="form-row">
+          <div class="form-group"><label>Name <span class="required">*</span></label><input name="name" class="form-control" required></div>
+          <div class="form-group"><label>Position <span class="required">*</span></label><input name="position" class="form-control" placeholder="e.g. Chairman" required></div>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label>Group</label>
+            <select name="position_category" class="form-control">
+              <option value="executive">Principal Officials</option>
+              <option value="committee">Other Branch Officials</option>
+              <option value="trustee">Trustees</option>
+            </select>
+          </div>
+          <div class="form-group"><label>Display Order</label><input type="number" name="display_order" class="form-control" value="0" min="0"></div>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label>Phone</label><input name="phone" class="form-control" placeholder="+2547…"></div>
+          <div class="form-group"><label>Email</label><input type="email" name="email" class="form-control"></div>
+        </div>
+        <div class="form-group"><label>Photo</label>
+          <input type="file" name="photo" class="form-control" accept="image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp">
+          <div style="font-size:0.75rem;color:var(--text-muted);margin-top:0.25rem">JPG/PNG/WebP, max 2 MB. Leave blank to keep the current photo.</div>
+        </div>
+        <div class="form-group"><label>Bio (optional)</label><textarea name="bio" class="form-control" rows="3"></textarea></div>
+      </form>
+    </div>
+    <div class="portal-modal-footer">
+      <button class="modal-close-btn btn btn-outline btn-sm">Cancel</button>
+      <button class="btn btn-gold btn-sm" onclick="save()"><i class="fas fa-save"></i> Save</button>
+    </div>
+  </div>
+</div>
+
 <script src="/admin/js/admin-api.js"></script><script src="/admin/js/admin-portal.js"></script>
 <script>
   document.getElementById('sidebar-placeholder').outerHTML = getSidebarHtml();
-  document.getElementById('topbar-placeholder').outerHTML = getTopbarHtml('content-leadership');
+  document.getElementById('topbar-placeholder').outerHTML = getTopbarHtml('Leadership');
   const user = requireAdminAuth(); if(user) initSidebar(user);
-  // Load content
-  (async()=>{
-    const tbody = document.getElementById('content-tbody');
-    try {
-      const section = 'content-leadership'.replace('content-','');
-      const res = await adminApi[section]?.getAll?.() || {data:[]};
-      if(!res.data?.length){ tbody.innerHTML='<tr><td colspan="5">'+renderEmpty()+'</td></tr>'; return; }
-      tbody.innerHTML = res.data.map(r=>`<tr>
-        <td><strong>${escHtml(r.title)}</strong></td>
-        <td>${escHtml(r.category||r.scholarship_type||r.position_category||'')}</td>
-        <td>${statusBadge(r.is_published===1||r.is_active===1?'approved':'draft')}</td>
-        <td>${formatDate(r.created_at||r.application_deadline)}</td>
-        <td><button class="btn btn-outline btn-xs" onclick="alert('Edit: '+r.id)"><i class="fas fa-edit"></i></button></td>
+  let editingId = null;
+  const GROUPS = { executive:'Principal Officials', committee:'Other Branch Officials', trustee:'Trustees' };
+  const f = sel => document.getElementById('form').querySelector(`[name=${sel}]`);
+
+  async function load(){
+    const tb=document.getElementById('tbody');
+    tb.innerHTML='<tr><td colspan="6">'+renderLoading()+'</td></tr>';
+    try{
+      const res=await adminApi.leadership.getAll();
+      if(!res.data.length){tb.innerHTML='<tr><td colspan="6">'+renderEmpty()+'</td></tr>';return;}
+      tb.innerHTML=res.data.map(l=>`<tr>
+        <td>${l.display_order ?? 0}</td>
+        <td><strong>${escHtml(l.name)}</strong></td>
+        <td>${escHtml(l.position)}</td>
+        <td>${escHtml(GROUPS[l.position_category]||l.position_category||'')}</td>
+        <td>${l.phone?`<a href="tel:${escHtml(l.phone)}">${escHtml(l.phone)}</a>`:'—'}</td>
+        <td>
+          <button class="btn btn-outline btn-xs" onclick='edit(${JSON.stringify(l).replace(/'/g,"&#39;")})'><i class="fas fa-edit"></i></button>
+          <button class="btn btn-xs" style="background:#FEE2E2;color:#991B1B" onclick="del(${l.id})"><i class="fas fa-trash"></i></button>
+        </td>
       </tr>`).join('');
-    } catch(err){ tbody.innerHTML='<tr><td colspan="5">'+escHtml(err.message)+'</td></tr>'; }
-  })();
+    }catch(err){showAlert('alert',err.message);}
+  }
+
+  function openNew(){
+    editingId=null;
+    document.getElementById('form').reset();
+    document.getElementById('modal-title').textContent='New Official';
+    document.getElementById('form-alert').className='hidden';
+    document.getElementById('modal').classList.add('open');
+  }
+  function edit(l){
+    editingId=l.id;
+    document.getElementById('form').reset();
+    ['name','position','position_category','phone','email','bio'].forEach(k=>{ if(f(k)) f(k).value = l[k]||''; });
+    f('display_order').value = l.display_order ?? 0;
+    document.getElementById('modal-title').textContent='Edit Official';
+    document.getElementById('form-alert').className='hidden';
+    document.getElementById('modal').classList.add('open');
+  }
+  async function save(){
+    if(!f('name').value.trim()||!f('position').value.trim()){showAlert('form-alert','Name and position are required');return;}
+    const fd=new FormData();
+    ['name','position','position_category','phone','email','bio','display_order'].forEach(k=>fd.append(k, f(k).value.trim()));
+    const file=f('photo').files[0];
+    if(file) fd.append('photo', file);
+    try{
+      editingId ? await adminApi.leadership.update(editingId,fd) : await adminApi.leadership.create(fd);
+      document.getElementById('modal').classList.remove('open');
+      load();
+    }catch(err){showAlert('form-alert',err.message);}
+  }
+  async function del(id){
+    if(!confirm('Delete this official? This cannot be undone.'))return;
+    try{await adminApi.leadership.remove(id);load();}catch(e){showAlert('alert',e.message);}
+  }
+  load();
 </script>
 </body>
 </html>

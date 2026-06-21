@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>content-scholarships — KUPPET Migori Admin</title>
+  <title>Scholarships — KUPPET Migori Admin</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
   <link rel="stylesheet" href="/css/style.css?v=20260621f"><link rel="stylesheet" href="/css/portal.css?v=20260621f">
@@ -14,41 +14,130 @@
     <div id="topbar-placeholder"></div>
     <div class="portal-content">
       <div class="page-heading">
-        <div class="page-heading-text"><h1>content-scholarships</h1></div>
-        <div class="page-heading-actions"><button id="btn-new" class="btn btn-gold btn-sm"><i class="fas fa-plus"></i> New</button></div>
+        <div class="page-heading-text"><h1>Scholarships</h1><p>Manage scholarships members can apply for.</p></div>
+        <button class="btn btn-gold btn-sm" onclick="openNew()"><i class="fas fa-plus"></i> New Scholarship</button>
       </div>
+      <div id="alert" class="hidden" style="margin-bottom:1rem"></div>
       <div class="data-card">
         <div class="data-table-wrap">
           <table class="data-table">
-            <thead><tr><th>Title</th><th>Category</th><th>Status</th><th>Date</th><th></th></tr></thead>
-            <tbody id="content-tbody"><tr><td colspan="5" class="portal-loading"><i class="fas fa-spinner fa-spin"></i> Loading…</td></tr></tbody>
+            <thead><tr><th>Title</th><th>Provider</th><th>Type</th><th>Deadline</th><th>Status</th><th>Actions</th></tr></thead>
+            <tbody id="tbody"><tr><td colspan="6" class="portal-loading"><i class="fas fa-spinner fa-spin"></i> Loading…</td></tr></tbody>
           </table>
         </div>
       </div>
     </div>
   </main>
 </div>
+
+<div class="portal-modal-overlay" id="modal">
+  <div class="portal-modal" style="max-width:680px">
+    <div class="portal-modal-header"><h3 id="modal-title">New Scholarship</h3><button class="modal-close-btn"><i class="fas fa-times"></i></button></div>
+    <div class="portal-modal-body">
+      <div id="form-alert" class="hidden"></div>
+      <form id="form">
+        <div class="form-group"><label>Title <span class="required">*</span></label><input name="title" class="form-control" required></div>
+        <div class="form-row">
+          <div class="form-group"><label>Provider <span class="required">*</span></label><input name="provider" class="form-control" required></div>
+          <div class="form-group"><label>Type</label>
+            <select name="scholarship_type" class="form-control">
+              <option value="kcse">KCSE</option>
+              <option value="kjsea">KJSEA</option>
+              <option value="dte">DTE (Diploma in Technical Education)</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-group"><label>Description <span class="required">*</span></label><textarea name="description" class="form-control" rows="3" required></textarea></div>
+        <div class="form-group"><label>Eligibility</label><textarea name="eligibility" class="form-control" rows="2"></textarea></div>
+        <div class="form-group"><label>Benefits</label><textarea name="benefits" class="form-control" rows="2"></textarea></div>
+        <div class="form-row">
+          <div class="form-group"><label>Application Deadline</label><input type="date" name="application_deadline" class="form-control"></div>
+          <div class="form-group"><label>Application Link</label><input name="application_link" class="form-control" placeholder="https://…"></div>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label>Contact Email</label><input type="email" name="contact_email" class="form-control"></div>
+          <div class="form-group"><label>Contact Phone</label><input name="contact_phone" class="form-control"></div>
+        </div>
+        <div style="display:flex;gap:1.25rem;flex-wrap:wrap">
+          <label style="display:flex;align-items:center;gap:0.4rem;font-size:0.82rem;cursor:pointer"><input type="checkbox" name="is_active" checked> Active (visible)</label>
+          <label style="display:flex;align-items:center;gap:0.4rem;font-size:0.82rem;cursor:pointer"><input type="checkbox" name="is_featured"> Featured</label>
+        </div>
+      </form>
+    </div>
+    <div class="portal-modal-footer">
+      <button class="modal-close-btn btn btn-outline btn-sm">Cancel</button>
+      <button class="btn btn-gold btn-sm" onclick="save()"><i class="fas fa-save"></i> Save</button>
+    </div>
+  </div>
+</div>
+
 <script src="/admin/js/admin-api.js"></script><script src="/admin/js/admin-portal.js"></script>
 <script>
   document.getElementById('sidebar-placeholder').outerHTML = getSidebarHtml();
-  document.getElementById('topbar-placeholder').outerHTML = getTopbarHtml('content-scholarships');
+  document.getElementById('topbar-placeholder').outerHTML = getTopbarHtml('Scholarships');
   const user = requireAdminAuth(); if(user) initSidebar(user);
-  // Load content
-  (async()=>{
-    const tbody = document.getElementById('content-tbody');
-    try {
-      const section = 'content-scholarships'.replace('content-','');
-      const res = await adminApi[section]?.getAll?.() || {data:[]};
-      if(!res.data?.length){ tbody.innerHTML='<tr><td colspan="5">'+renderEmpty()+'</td></tr>'; return; }
-      tbody.innerHTML = res.data.map(r=>`<tr>
-        <td><strong>${escHtml(r.title)}</strong></td>
-        <td>${escHtml(r.category||r.scholarship_type||r.position_category||'')}</td>
-        <td>${statusBadge(r.is_published===1||r.is_active===1?'approved':'draft')}</td>
-        <td>${formatDate(r.created_at||r.application_deadline)}</td>
-        <td><button class="btn btn-outline btn-xs" onclick="alert('Edit: '+r.id)"><i class="fas fa-edit"></i></button></td>
+  let editingId = null;
+  const f = sel => document.getElementById('form').querySelector(`[name=${sel}]`);
+
+  async function load(){
+    const tb=document.getElementById('tbody');
+    tb.innerHTML='<tr><td colspan="6">'+renderLoading()+'</td></tr>';
+    try{
+      const res=await adminApi.scholarships.getAll();
+      if(!res.data.length){tb.innerHTML='<tr><td colspan="6">'+renderEmpty()+'</td></tr>';return;}
+      tb.innerHTML=res.data.map(s=>`<tr>
+        <td><strong>${escHtml(s.title)}</strong></td>
+        <td>${escHtml(s.provider)}</td>
+        <td>${escHtml((s.scholarship_type||'').toUpperCase())}</td>
+        <td>${s.application_deadline?formatDate(s.application_deadline):'—'}</td>
+        <td>${statusBadge(s.is_active?'approved':'suspended')}${s.is_featured?' <span class="status-badge status-badge--paid">Featured</span>':''}</td>
+        <td>
+          <button class="btn btn-outline btn-xs" onclick='edit(${JSON.stringify(s).replace(/'/g,"&#39;")})'><i class="fas fa-edit"></i></button>
+          <button class="btn btn-xs" style="background:#FEE2E2;color:#991B1B" onclick="del(${s.id})"><i class="fas fa-trash"></i></button>
+        </td>
       </tr>`).join('');
-    } catch(err){ tbody.innerHTML='<tr><td colspan="5">'+escHtml(err.message)+'</td></tr>'; }
-  })();
+    }catch(err){showAlert('alert',err.message);}
+  }
+
+  function openNew(){
+    editingId=null;
+    document.getElementById('form').reset();
+    document.getElementById('modal-title').textContent='New Scholarship';
+    document.getElementById('form-alert').className='hidden';
+    document.getElementById('modal').classList.add('open');
+  }
+  function edit(s){
+    editingId=s.id;
+    document.getElementById('form').reset();
+    ['title','provider','scholarship_type','description','eligibility','benefits','application_link','contact_email','contact_phone'].forEach(k=>{ if(f(k)) f(k).value = s[k]||''; });
+    if(s.application_deadline) f('application_deadline').value = s.application_deadline.slice(0,10);
+    f('is_active').checked = !!s.is_active;
+    f('is_featured').checked = !!s.is_featured;
+    document.getElementById('modal-title').textContent='Edit Scholarship';
+    document.getElementById('form-alert').className='hidden';
+    document.getElementById('modal').classList.add('open');
+  }
+  async function save(){
+    const data={
+      title:f('title').value.trim(), provider:f('provider').value.trim(),
+      scholarship_type:f('scholarship_type').value, description:f('description').value.trim(),
+      eligibility:f('eligibility').value.trim()||null, benefits:f('benefits').value.trim()||null,
+      application_deadline:f('application_deadline').value||null, application_link:f('application_link').value.trim()||null,
+      contact_email:f('contact_email').value.trim()||null, contact_phone:f('contact_phone').value.trim()||null,
+      is_active:f('is_active').checked, is_featured:f('is_featured').checked,
+    };
+    if(!data.title||!data.provider||!data.description){showAlert('form-alert','Title, provider and description are required');return;}
+    try{
+      editingId ? await adminApi.scholarships.update(editingId,data) : await adminApi.scholarships.create(data);
+      document.getElementById('modal').classList.remove('open');
+      load();
+    }catch(err){showAlert('form-alert',err.message);}
+  }
+  async function del(id){
+    if(!confirm('Delete this scholarship? This cannot be undone.'))return;
+    try{await adminApi.scholarships.remove(id);load();}catch(e){showAlert('alert',e.message);}
+  }
+  load();
 </script>
 </body>
 </html>

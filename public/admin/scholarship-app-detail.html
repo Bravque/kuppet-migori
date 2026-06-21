@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>scholarship-app-detail — KUPPET Migori Admin</title>
+  <title>Scholarship Application — KUPPET Migori Admin</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
   <link rel="stylesheet" href="/css/style.css?v=20260621f"><link rel="stylesheet" href="/css/portal.css?v=20260621f">
@@ -12,18 +12,131 @@
   <div id="sidebar-placeholder"></div>
   <main class="portal-main">
     <div id="topbar-placeholder"></div>
-    <div class="portal-content" id="page-content">
-      <div class="portal-loading"><i class="fas fa-spinner fa-spin"></i> Loading scholarship-app-detail…</div>
+    <div class="portal-content">
+      <div class="page-heading">
+        <div class="page-heading-text"><h1 id="app-number">Scholarship Application</h1><div id="app-status"></div></div>
+        <div class="page-heading-actions">
+          <a href="/admin/scholarship-apps.html" class="btn btn-outline btn-sm"><i class="fas fa-arrow-left"></i> Back</a>
+        </div>
+      </div>
+      <div id="action-alert" class="hidden" style="margin-bottom:1rem"></div>
+
+      <div class="grid-2" style="gap:1rem">
+        <div>
+          <div class="data-card" style="margin-bottom:1rem">
+            <div class="data-card-header"><div class="data-card-title">Application Details</div></div>
+            <div style="padding:1.25rem" id="app-details"><div class="portal-loading"><i class="fas fa-spinner fa-spin"></i> Loading…</div></div>
+          </div>
+
+          <div class="data-card" style="margin-bottom:1rem">
+            <div class="data-card-header"><div class="data-card-title">Documents</div></div>
+            <div style="padding:1.25rem"><ul class="doc-list" id="doc-list"></ul></div>
+          </div>
+
+          <!-- Review decision -->
+          <div class="data-card" id="review-card" style="display:none">
+            <div class="data-card-header"><div class="data-card-title">Review Decision</div></div>
+            <div style="padding:1.25rem">
+              <div class="form-group">
+                <label>Reviewer notes <span style="color:var(--text-muted);font-weight:400">(optional for approval, recommended for rejection)</span></label>
+                <textarea id="review-notes" class="form-control" rows="3" placeholder="Add any notes for the member…"></textarea>
+              </div>
+              <div style="display:flex;gap:0.5rem;flex-wrap:wrap">
+                <button class="btn btn-sm" style="background:#DCFCE7;color:#166534" onclick="decide('approve')"><i class="fas fa-check"></i> Approve</button>
+                <button class="btn btn-sm" style="background:#FEE2E2;color:#991B1B" onclick="decide('reject')"><i class="fas fa-times"></i> Reject</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="data-card">
+          <div class="data-card-header"><div class="data-card-title">Essay / Personal Statement</div></div>
+          <div id="essay-box" style="padding:1.25rem;white-space:pre-wrap;font-size:0.875rem;line-height:1.7"></div>
+        </div>
+      </div>
     </div>
   </main>
 </div>
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script src="/admin/js/admin-api.js"></script><script src="/admin/js/admin-portal.js"></script>
-<script src="/admin/js/admin-scholarship-app-detail.js" onerror="void 0"></script>
 <script>
   document.getElementById('sidebar-placeholder').outerHTML = getSidebarHtml();
-  document.getElementById('topbar-placeholder').outerHTML = getTopbarHtml('scholarship-app-detail');
+  document.getElementById('topbar-placeholder').outerHTML = getTopbarHtml('Scholarship Application');
   const user = requireAdminAuth(); if(user) initSidebar(user);
+  const id = new URLSearchParams(window.location.search).get('id');
+  if(!id){ window.location.href = '/admin/scholarship-apps.html'; }
+
+  const section = (title, rows) => `
+    <div style="margin-bottom:1.25rem">
+      <div style="font-size:0.72rem;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;color:var(--text-muted);border-bottom:2px solid var(--gold);display:inline-block;padding-bottom:0.25rem;margin-bottom:0.75rem">${title}</div>
+      <table style="width:100%;font-size:0.85rem;border-collapse:collapse">
+        ${rows.map(([k,v])=>`<tr><td style="padding:0.4rem 0;color:var(--text-muted);width:42%">${k}</td><td>${v||'—'}</td></tr>`).join('')}
+      </table>
+    </div>`;
+
+  async function load() {
+    try {
+      const res = await adminApi.schApps.getOne(id);
+      const a = res.data;
+      document.getElementById('app-number').textContent = a.application_number;
+      document.getElementById('app-status').innerHTML = statusBadge(a.status);
+
+      const appRows = [
+        ['Application No', escHtml(a.application_number)],
+        ['Scholarship', escHtml(a.scholarship_title)],
+        ['Status', statusBadge(a.status)],
+        ['Submitted', formatDate(a.created_at)],
+        ['Reviewed', formatDate(a.reviewed_at)],
+        ['Reviewer Notes', escHtml(a.reviewer_notes || '—')],
+      ];
+      const applicantRows = [
+        ['Name', escHtml(a.applicant_name || a.full_name || '—')],
+        ['Member No', escHtml(a.member_number || '—')],
+        ['Phone', a.phone ? `<a href="tel:${escHtml(a.phone)}">${escHtml(a.phone)}</a>` : '—'],
+        ['Email', a.email ? `<a href="mailto:${escHtml(a.email)}">${escHtml(a.email)}</a>` : '—'],
+      ];
+      const studyRows = [
+        ['Institution', escHtml(a.institution || '—')],
+        ['Course', escHtml(a.course || '—')],
+        ['Year of Study', a.year_of_study ? escHtml(String(a.year_of_study)) : '—'],
+        ['Academic Year', escHtml(a.academic_year || '—')],
+      ];
+      document.getElementById('app-details').innerHTML =
+        section('Application', appRows) + section("Applicant's Details", applicantRows) + section('Study Details', studyRows);
+
+      document.getElementById('essay-box').innerHTML = a.essay ? escHtml(a.essay) : '<span style="color:var(--text-muted)">No essay provided.</span>';
+
+      const DOC_LABELS = { kcse_certificate:'KCSE Certificate', admission_letter:'Admission Letter', fee_structure:'Fee Structure', id_copy:'ID Copy', other:'Other' };
+      document.getElementById('doc-list').innerHTML = a.documents && a.documents.length
+        ? a.documents.map(d=>`<li class="doc-item"><i class="fas fa-file doc-icon"></i><span class="doc-name">${escHtml(d.file_name||d.file_url)}</span><span class="doc-size">${escHtml(DOC_LABELS[d.doc_type]||d.doc_type||'')}</span><a href="${escHtml(d.file_url)}" target="_blank" class="btn btn-outline btn-xs">View</a></li>`).join('')
+        : '<li style="padding:0.5rem;color:var(--text-muted)">No documents</li>';
+
+      // Show the review card only while the application is still actionable
+      if (a.status === 'applied' || a.status === 'under_review') {
+        document.getElementById('review-card').style.display = '';
+      }
+    } catch (err) {
+      showAlert('action-alert', err.message);
+    }
+  }
+
+  async function decide(action) {
+    const notes = document.getElementById('review-notes').value.trim();
+    if (action === 'reject' && !notes) {
+      if (!confirm('Reject without a reason note? The member will not be told why.')) return;
+    } else {
+      if (!confirm(`Are you sure you want to ${action} this application?`)) return;
+    }
+    try {
+      if (action === 'approve') await adminApi.schApps.approve(id, notes);
+      if (action === 'reject')  await adminApi.schApps.reject(id, notes);
+      showAlert('action-alert', `Application ${action}d successfully.`, 'success');
+      setTimeout(() => window.location.reload(), 1200);
+    } catch (err) {
+      showAlert('action-alert', err.message);
+    }
+  }
+
+  load();
 </script>
 </body>
 </html>

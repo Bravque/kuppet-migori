@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>sms-templates — KUPPET Migori Admin</title>
+  <title>SMS Templates — KUPPET Migori Admin</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
   <link rel="stylesheet" href="/css/style.css?v=20260621f"><link rel="stylesheet" href="/css/portal.css?v=20260621f">
@@ -12,18 +12,109 @@
   <div id="sidebar-placeholder"></div>
   <main class="portal-main">
     <div id="topbar-placeholder"></div>
-    <div class="portal-content" id="page-content">
-      <div class="portal-loading"><i class="fas fa-spinner fa-spin"></i> Loading sms-templates…</div>
+    <div class="portal-content">
+      <div class="page-heading">
+        <div class="page-heading-text"><h1>SMS Templates</h1><p>Reusable message templates. Use placeholders like <code>{{member_name}}</code>.</p></div>
+        <button class="btn btn-gold btn-sm" onclick="openNew()"><i class="fas fa-plus"></i> New Template</button>
+      </div>
+      <div id="alert" class="hidden" style="margin-bottom:1rem"></div>
+      <div class="data-card">
+        <div class="data-table-wrap">
+          <table class="data-table">
+            <thead><tr><th>Name</th><th>Category</th><th>Message</th><th>Actions</th></tr></thead>
+            <tbody id="tbody"><tr><td colspan="4" class="portal-loading"><i class="fas fa-spinner fa-spin"></i> Loading…</td></tr></tbody>
+          </table>
+        </div>
+      </div>
     </div>
   </main>
 </div>
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+
+<div class="portal-modal-overlay" id="modal">
+  <div class="portal-modal" style="max-width:560px">
+    <div class="portal-modal-header"><h3 id="modal-title">New Template</h3><button class="modal-close-btn"><i class="fas fa-times"></i></button></div>
+    <div class="portal-modal-body">
+      <div id="form-alert" class="hidden"></div>
+      <form id="form">
+        <div class="form-row">
+          <div class="form-group"><label>Name <span class="required">*</span></label><input name="name" class="form-control" required></div>
+          <div class="form-group"><label>Category</label>
+            <select name="category" class="form-control">
+              <option value="general">General</option>
+              <option value="bbf">BBF</option>
+              <option value="scholarship">Scholarship</option>
+              <option value="system">System</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-group"><label>Message Body <span class="required">*</span></label>
+          <textarea name="body" class="form-control" rows="5" required placeholder="Dear {{member_name}}, …"></textarea>
+          <div style="font-size:0.75rem;color:var(--text-muted);margin-top:0.25rem">Placeholders: {{member_name}}, {{member_number}}, {{claim_number}}, {{amount}}, {{reason}}</div>
+        </div>
+      </form>
+    </div>
+    <div class="portal-modal-footer">
+      <button class="modal-close-btn btn btn-outline btn-sm">Cancel</button>
+      <button class="btn btn-gold btn-sm" onclick="save()"><i class="fas fa-save"></i> Save</button>
+    </div>
+  </div>
+</div>
+
 <script src="/admin/js/admin-api.js"></script><script src="/admin/js/admin-portal.js"></script>
-<script src="/admin/js/admin-sms-templates.js" onerror="void 0"></script>
 <script>
   document.getElementById('sidebar-placeholder').outerHTML = getSidebarHtml();
-  document.getElementById('topbar-placeholder').outerHTML = getTopbarHtml('sms-templates');
+  document.getElementById('topbar-placeholder').outerHTML = getTopbarHtml('SMS Templates');
   const user = requireAdminAuth(); if(user) initSidebar(user);
+  let editingId = null;
+  const f = sel => document.getElementById('form').querySelector(`[name=${sel}]`);
+
+  async function load(){
+    const tb=document.getElementById('tbody');
+    tb.innerHTML='<tr><td colspan="4">'+renderLoading()+'</td></tr>';
+    try{
+      const res=await adminApi.sms.getTemplates();
+      if(!res.data.length){tb.innerHTML='<tr><td colspan="4">'+renderEmpty('No templates yet')+'</td></tr>';return;}
+      tb.innerHTML=res.data.map(t=>`<tr>
+        <td><strong>${escHtml(t.name)}</strong></td>
+        <td>${statusBadge(t.category)}</td>
+        <td style="max-width:380px;color:var(--text-muted);font-size:0.82rem">${escHtml((t.body||'').slice(0,120))}${(t.body||'').length>120?'…':''}</td>
+        <td>
+          <button class="btn btn-outline btn-xs" onclick='edit(${JSON.stringify(t).replace(/'/g,"&#39;")})'><i class="fas fa-edit"></i></button>
+          <button class="btn btn-xs" style="background:#FEE2E2;color:#991B1B" onclick="deactivate(${t.id})" title="Deactivate"><i class="fas fa-trash"></i></button>
+        </td>
+      </tr>`).join('');
+    }catch(err){showAlert('alert',err.message);}
+  }
+
+  function openNew(){
+    editingId=null;
+    document.getElementById('form').reset();
+    document.getElementById('modal-title').textContent='New Template';
+    document.getElementById('form-alert').className='hidden';
+    document.getElementById('modal').classList.add('open');
+  }
+  function edit(t){
+    editingId=t.id;
+    document.getElementById('form').reset();
+    f('name').value=t.name||''; f('category').value=t.category||'general'; f('body').value=t.body||'';
+    document.getElementById('modal-title').textContent='Edit Template';
+    document.getElementById('form-alert').className='hidden';
+    document.getElementById('modal').classList.add('open');
+  }
+  async function save(){
+    const data={ name:f('name').value.trim(), category:f('category').value, body:f('body').value.trim() };
+    if(!data.name||!data.body){showAlert('form-alert','Name and message body are required');return;}
+    try{
+      editingId ? await adminApi.sms.updateTemplate(editingId,data) : await adminApi.sms.createTemplate(data);
+      document.getElementById('modal').classList.remove('open');
+      load();
+    }catch(err){showAlert('form-alert',err.message);}
+  }
+  async function deactivate(id){
+    if(!confirm('Deactivate this template? It will no longer appear in the list.'))return;
+    try{await adminApi.sms.updateTemplate(id,{is_active:false});load();}catch(e){showAlert('alert',e.message);}
+  }
+  load();
 </script>
 </body>
 </html>
