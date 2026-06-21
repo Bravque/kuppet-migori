@@ -36,6 +36,8 @@ const memberApi = (() => {
 
     auth: {
       login: (tsc_number, password) => request('/member/auth/login', { method: 'POST', body: JSON.stringify({ tsc_number, password }) }),
+      forgotPassword: (identifier) => request('/member/auth/forgot-password', { method: 'POST', body: JSON.stringify({ tsc_number: identifier }) }),
+      resetPassword: (token, password) => request('/member/auth/reset-password', { method: 'POST', body: JSON.stringify({ token, password }) }),
       register: (formData) => request('/member/auth/register', { method: 'POST', body: formData }),
       me: () => request('/member/auth/me'),
       changePassword: (oldPassword, newPassword) => request('/member/auth/password', { method: 'PUT', body: JSON.stringify({ oldPassword, newPassword }) }),

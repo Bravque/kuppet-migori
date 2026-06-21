@@ -65,6 +65,16 @@ const templates = {
 <p>Regards,<br>KUPPET Migori Branch Secretariat</p>`,
   }),
 
+  passwordReset: (name, link) => ({
+    subject: 'KUPPET Migori — Password Reset',
+    html: `<p>Dear ${name},</p>
+<p>We received a request to reset the password for your KUPPET Migori member portal account. Click the button below to choose a new password. This link expires in <strong>1 hour</strong> and can only be used once.</p>
+<p><a href="${link}" style="display:inline-block;background:#1B3A6E;color:#fff;padding:10px 18px;border-radius:6px;text-decoration:none">Reset my password</a></p>
+<p>If the button doesn't work, copy and paste this link into your browser:<br><a href="${link}">${link}</a></p>
+<p>If you did not request this, you can safely ignore this email — your password will not change.</p>
+<p>Regards,<br>KUPPET Migori Branch Secretariat</p>`,
+  }),
+
   contactAutoReply: (name, category) => ({
     subject: `KUPPET Migori — We received your ${category} enquiry`,
     html: `<p>Dear ${name},</p>

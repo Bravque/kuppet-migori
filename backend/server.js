@@ -76,6 +76,12 @@ const regLimiter = rateLimit({
   message: { success: false, message: 'Too many registration attempts. Please try again in an hour.' },
 });
 
+const forgotPwLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  max: 5,
+  message: { success: false, message: 'Too many password reset requests. Please try again in an hour.' },
+});
+
 const smsLimiter = rateLimit({
   windowMs: 60 * 1000,
   max: 20,
@@ -93,6 +99,7 @@ app.use('/api/contact', contactLimiter);
 app.use('/api/auth', authLimiter);
 app.use('/api/member/auth/login', authLimiter);
 app.use('/api/member/auth/register', regLimiter);
+app.use('/api/member/auth/forgot-password', forgotPwLimiter);
 
 // Static files (public/uploads served here but sensitive member docs blocked — see /api/member/documents)
 app.use(express.static(path.join(__dirname, '../public'), {

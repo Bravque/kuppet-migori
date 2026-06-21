@@ -177,4 +177,73 @@ async function changePassword(req, res) {
   return res.json({ success: true, message: 'Password updated successfully' });
 }
 
-module.exports = { register, login, getMe, changePassword, nextSeq };
+// ── Forgot / reset password ───────────────────────────────────────────────────
+function baseUrl(req) {
+  const env = process.env.APP_URL || process.env.FRONTEND_URL;
+  if (env && !/localhost|127\.0\.0\.1/.test(env)) return env.replace(/\/+$/, '');
+  const host = req.get('host') || 'kuppetmigori.co.ke';
+  const proto = /localhost|127\.0\.0\.1/.test(host) ? req.protocol : 'https';
+  return `${proto}://${host}`;
+}
+
+// Reset tokens are signed with the member's current password hash, so each link
+// is single-use (it stops verifying once the password changes) — no DB column needed.
+function resetSecret(passwordHash) {
+  return process.env.JWT_MEMBER_SECRET + passwordHash;
+}
+
+async function forgotPassword(req, res) {
+  const identifier = (req.body.tsc_number || req.body.email || req.body.identifier || '').toString().trim();
+  if (!identifier) return res.status(400).json({ success: false, message: 'Enter your TSC number or email' });
+
+  // Always respond the same way so we never reveal whether an account exists.
+  const generic = { success: true, message: 'If an account matches, a password reset link has been sent to the email on file.' };
+
+  try {
+    const [[member]] = await db.query(
+      'SELECT id, full_name, email, password, status FROM members WHERE tsc_number = ? OR email = ?',
+      [identifier, identifier.toLowerCase()]
+    );
+    if (!member || !member.email || member.status === 'rejected') return res.json(generic);
+
+    const token = jwt.sign({ id: member.id, type: 'pwreset' }, resetSecret(member.password), { expiresIn: '1h' });
+    const link = `${baseUrl(req)}/member/reset-password.html?token=${encodeURIComponent(token)}`;
+    const tpl = mailerService.templates.passwordReset(member.full_name, link);
+    await mailerService.sendMail({ to: member.email, subject: tpl.subject, html: tpl.html });
+    return res.json(generic);
+  } catch (err) {
+    return res.status(500).json({ success: false, message: 'Could not process request', error: err.message });
+  }
+}
+
+async function resetPassword(req, res) {
+  const { token, password } = req.body;
+  if (!token || !password) return res.status(400).json({ success: false, message: 'Reset token and new password are required' });
+  if (String(password).length < 8) return res.status(400).json({ success: false, message: 'Password must be at least 8 characters' });
+
+  const invalid = () => res.status(400).json({ success: false, message: 'This reset link is invalid or has expired. Please request a new one.' });
+
+  try {
+    const decoded = jwt.decode(token);
+    if (!decoded || !decoded.id) return invalid();
+
+    const [[member]] = await db.query('SELECT id, password FROM members WHERE id = ?', [decoded.id]);
+    if (!member) return invalid();
+
+    let payload;
+    try {
+      payload = jwt.verify(token, resetSecret(member.password));
+    } catch {
+      return invalid();
+    }
+    if (payload.type !== 'pwreset') return invalid();
+
+    const hash = await bcrypt.hash(password, 10);
+    await db.query('UPDATE members SET password = ?, failed_login_attempts = 0, locked_until = NULL WHERE id = ?', [hash, member.id]);
+    return res.json({ success: true, message: 'Password reset successful. You can now log in with your TSC number and new password.' });
+  } catch (err) {
+    return res.status(500).json({ success: false, message: 'Could not reset password', error: err.message });
+  }
+}
+
+module.exports = { register, login, getMe, changePassword, forgotPassword, resetPassword, nextSeq };

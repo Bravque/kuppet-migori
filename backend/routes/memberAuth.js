@@ -45,6 +45,17 @@ router.post('/login',
   ctrl.login
 );
 
+// Forgot / reset password
+router.post('/forgot-password', ctrl.forgotPassword);
+router.post('/reset-password',
+  [
+    body('token').notEmpty().withMessage('Reset token required'),
+    body('password').isLength({ min: 8 }).withMessage('Password must be at least 8 characters'),
+  ],
+  validate,
+  ctrl.resetPassword
+);
+
 // Protected routes
 router.get('/me', authenticateMember, ctrl.getMe);
 router.put('/password', authenticateMember,
