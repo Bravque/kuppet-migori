@@ -1194,15 +1194,10 @@ h1,h2,h3,h4,h5,h6 { line-height: 1.25; font-weight: 700; }
    PAGE HEADER (Inner pages)
    ============================================ */
 .page-header {
-  background: linear-gradient(135deg, #0B3D2A 0%, #1a7340 55%, #2E9E5B 100%);
+  background: linear-gradient(135deg, #00641C 0%, #008B23 55%, #1FB24A 100%);
   padding: 4rem 0 3rem;
   position: relative;
   overflow: hidden;
-}
-/* Advocacy keeps the original deep-blue banner */
-body.advocacy-page .page-header,
-body.advocacy-article-page .page-header {
-  background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary) 100%);
 }
 .page-header::after {
   content: '';
