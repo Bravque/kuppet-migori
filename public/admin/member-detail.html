@@ -38,6 +38,21 @@
     </div>
   </main>
 </div>
+
+<!-- Reason modal -->
+<div class="portal-modal-overlay" id="reason-modal">
+  <div class="portal-modal" style="max-width:440px">
+    <div class="portal-modal-header"><h3 id="reason-title">Reason</h3><button class="modal-close-btn"><i class="fas fa-times"></i></button></div>
+    <div class="portal-modal-body">
+      <div class="form-group"><label id="reason-label">Reason</label><textarea id="reason-input" class="form-control" rows="3"></textarea></div>
+    </div>
+    <div class="portal-modal-footer">
+      <button class="modal-close-btn btn btn-outline btn-sm">Cancel</button>
+      <button id="reason-confirm" class="btn btn-gold btn-sm"><i class="fas fa-check"></i> Confirm</button>
+    </div>
+  </div>
+</div>
+
 <script src="/admin/js/admin-api.js"></script><script src="/admin/js/admin-portal.js"></script>
 <script>
   document.getElementById('sidebar-placeholder').outerHTML = getSidebarHtml();
@@ -67,18 +82,35 @@
       if(m.status!=='approved'){document.getElementById('btn-approve').style.display='';}
       if(m.status!=='rejected'){document.getElementById('btn-reject').style.display='';}
       if(m.status!=='suspended'){document.getElementById('btn-suspend').style.display='';}
+      const reasonModal = document.getElementById('reason-modal');
+      function askReason(title, label, onConfirm){
+        document.getElementById('reason-title').textContent = title;
+        document.getElementById('reason-label').textContent = label;
+        document.getElementById('reason-input').value = '';
+        const btn = document.getElementById('reason-confirm');
+        btn.onclick = async () => {
+          const v = document.getElementById('reason-input').value.trim();
+          reasonModal.classList.remove('open');
+          await onConfirm(v);
+        };
+        reasonModal.classList.add('open');
+        setTimeout(()=>document.getElementById('reason-input').focus(), 50);
+      }
+
       document.getElementById('btn-approve').addEventListener('click',async()=>{
         if(!confirm('Approve this member?'))return;
         try{await adminApi.members.approve(id);showAlert('detail-alert','Member approved!','success');setTimeout(()=>window.location.reload(),1500);}catch(e){showAlert('detail-alert',e.message);}
       });
-      document.getElementById('btn-reject').addEventListener('click',async()=>{
-        const reason=prompt('Reason for rejection:');
-        if(reason===null)return;
-        try{await adminApi.members.reject(id,reason);showAlert('detail-alert','Member rejected','success');setTimeout(()=>window.location.reload(),1500);}catch(e){showAlert('detail-alert',e.message);}
+      document.getElementById('btn-reject').addEventListener('click',()=>{
+        askReason('Reject Member','Reason for rejection (shared with the member)', async(reason)=>{
+          if(!reason){showAlert('detail-alert','A rejection reason is required.');return;}
+          try{await adminApi.members.reject(id,reason);showAlert('detail-alert','Member rejected','success');setTimeout(()=>window.location.reload(),1500);}catch(e){showAlert('detail-alert',e.message);}
+        });
       });
-      document.getElementById('btn-suspend').addEventListener('click',async()=>{
-        if(!confirm('Suspend this member?'))return;
-        try{await adminApi.members.suspend(id,'Suspended by admin');showAlert('detail-alert','Member suspended','success');setTimeout(()=>window.location.reload(),1500);}catch(e){showAlert('detail-alert',e.message);}
+      document.getElementById('btn-suspend').addEventListener('click',()=>{
+        askReason('Suspend Member','Reason for suspension', async(reason)=>{
+          try{await adminApi.members.suspend(id, reason || 'Suspended by admin');showAlert('detail-alert','Member suspended','success');setTimeout(()=>window.location.reload(),1500);}catch(e){showAlert('detail-alert',e.message);}
+        });
       });
     } catch(err){showAlert('detail-alert',err.message);}
   })();

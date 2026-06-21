@@ -40,6 +40,33 @@
     </div>
   </main>
 </div>
+
+<!-- Action modal -->
+<div class="portal-modal-overlay" id="action-modal">
+  <div class="portal-modal" style="max-width:460px">
+    <div class="portal-modal-header"><h3 id="action-modal-title">Action</h3><button class="modal-close-btn"><i class="fas fa-times"></i></button></div>
+    <div class="portal-modal-body">
+      <p id="action-modal-intro" style="font-size:0.85rem;color:var(--text-muted);margin-bottom:1rem"></p>
+      <div class="form-group" id="amount-row" style="display:none">
+        <label>Approved amount (KES)</label>
+        <input type="number" id="m-amount" class="form-control" min="0" placeholder="Leave blank to use the requested amount">
+      </div>
+      <div class="form-group" id="ref-row" style="display:none">
+        <label>Payment reference</label>
+        <input type="text" id="m-ref" class="form-control" placeholder="e.g. MPESA / RTGS reference (optional)">
+      </div>
+      <div class="form-group" id="notes-row">
+        <label id="notes-label">Notes (optional)</label>
+        <textarea id="m-notes" class="form-control" rows="3"></textarea>
+      </div>
+    </div>
+    <div class="portal-modal-footer">
+      <button class="modal-close-btn btn btn-outline btn-sm">Cancel</button>
+      <button id="action-confirm-btn" class="btn btn-gold btn-sm"><i class="fas fa-check"></i> Confirm</button>
+    </div>
+  </div>
+</div>
+
 <script src="/admin/js/admin-api.js"></script><script src="/admin/js/admin-portal.js"></script>
 <script>
   document.getElementById('sidebar-placeholder').outerHTML = getSidebarHtml();
@@ -83,21 +110,56 @@
 
       // Action buttons based on status
       const btns = document.getElementById('action-buttons');
-      if(c.status==='submitted'){btns.innerHTML=`<button class="btn btn-outline btn-sm" onclick="doAction('review')"><i class="fas fa-search"></i> Start Review</button>`;}
-      if(c.status==='under_review'){btns.innerHTML=`<button class="btn btn-sm" style="background:#DCFCE7;color:#166534" onclick="doAction('approve')"><i class="fas fa-check"></i> Approve</button><button class="btn btn-sm" style="background:#FEE2E2;color:#991B1B" onclick="doAction('reject')"><i class="fas fa-times"></i> Reject</button>`;}
-      if(c.status==='approved'){btns.innerHTML=`<button class="btn btn-gold btn-sm" onclick="doAction('paid')"><i class="fas fa-money-bill"></i> Mark as Paid</button>`;}
+      let bhtml='';
+      if(c.status==='submitted')    bhtml=`<button id="act-review" class="btn btn-outline btn-sm"><i class="fas fa-search"></i> Start Review</button>`;
+      if(c.status==='under_review') bhtml=`<button id="act-approve" class="btn btn-sm" style="background:#DCFCE7;color:#166534"><i class="fas fa-check"></i> Approve</button><button id="act-reject" class="btn btn-sm" style="background:#FEE2E2;color:#991B1B"><i class="fas fa-times"></i> Reject</button>`;
+      if(c.status==='approved')     bhtml=`<button id="act-paid" class="btn btn-gold btn-sm"><i class="fas fa-money-bill"></i> Mark as Paid</button>`;
+      btns.innerHTML=bhtml;
+      document.getElementById('act-review')?.addEventListener('click',()=>openAction('review'));
+      document.getElementById('act-approve')?.addEventListener('click',()=>openAction('approve'));
+      document.getElementById('act-reject')?.addEventListener('click',()=>openAction('reject'));
+      document.getElementById('act-paid')?.addEventListener('click',()=>openAction('paid'));
 
-      async function doAction(action) {
-        const notes = action==='paid' ? prompt('Payment reference (optional):') || '' : (action==='reject' ? prompt('Reason for rejection:') || '' : '');
-        const amount = action==='approve' ? prompt('Approved amount (KES, leave blank for requested amount):') || null : null;
+      const modal = document.getElementById('action-modal');
+      const INTRO = {
+        review:  'Move this claim into review. You may add an internal note.',
+        approve: 'Approve this claim. Optionally set an approved amount and a note for the member.',
+        reject:  'Reject this claim. Please give a reason — it is shared with the member.',
+        paid:    'Mark this approved claim as paid and record the payment reference.',
+      };
+      const TITLES = { review:'Start Review', approve:'Approve Claim', reject:'Reject Claim', paid:'Mark as Paid' };
+
+      function openAction(action){
+        document.getElementById('action-modal-title').textContent = TITLES[action];
+        document.getElementById('action-modal-intro').textContent = INTRO[action];
+        document.getElementById('amount-row').style.display = action==='approve' ? '' : 'none';
+        document.getElementById('ref-row').style.display    = action==='paid'    ? '' : 'none';
+        document.getElementById('notes-row').style.display  = action==='paid'    ? 'none' : '';
+        document.getElementById('notes-label').textContent  = action==='reject' ? 'Reason for rejection' : 'Notes (optional)';
+        document.getElementById('m-amount').value='';
+        document.getElementById('m-ref').value='';
+        document.getElementById('m-notes').value='';
+        const btn = document.getElementById('action-confirm-btn');
+        btn.onclick = () => submitAction(action);
+        modal.classList.add('open');
+      }
+
+      async function submitAction(action){
+        const notes  = document.getElementById('m-notes').value.trim();
+        const amount = document.getElementById('m-amount').value || null;
+        const ref    = document.getElementById('m-ref').value.trim();
+        if(action==='reject' && !notes){ showAlert('action-alert','A rejection reason is required.'); return; }
+        const btn = document.getElementById('action-confirm-btn');
+        btn.disabled = true;
         try {
-          if(action==='review') await adminApi.bbf.startReview(id, notes);
+          if(action==='review')  await adminApi.bbf.startReview(id, notes);
           if(action==='approve') await adminApi.bbf.approve(id, amount, notes);
-          if(action==='reject') await adminApi.bbf.reject(id, notes);
-          if(action==='paid') await adminApi.bbf.markPaid(id, notes);
+          if(action==='reject')  await adminApi.bbf.reject(id, notes);
+          if(action==='paid')    await adminApi.bbf.markPaid(id, ref);
+          modal.classList.remove('open');
           showAlert('action-alert','Action completed successfully','success');
-          setTimeout(()=>window.location.reload(),1500);
-        } catch(e){showAlert('action-alert',e.message);}
+          setTimeout(()=>window.location.reload(),1200);
+        } catch(e){ showAlert('action-alert',e.message); btn.disabled=false; }
       }
     } catch(err){showAlert('action-alert',err.message);}
   })();
