@@ -37,7 +37,8 @@ router.post('/register',
 // Login
 router.post('/login',
   [
-    body('email').isEmail().normalizeEmail(),
+    // Identifier is the TSC number (validated in the controller, which also
+    // accepts the legacy `email` key from any cached older client).
     body('password').notEmpty(),
   ],
   validate,

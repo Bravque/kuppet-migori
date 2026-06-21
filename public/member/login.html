@@ -23,8 +23,8 @@
   <div id="login-alert" class="hidden"></div>
 
   <div class="form-group">
-    <label for="email">Email Address</label>
-    <input type="email" id="email" class="form-control" placeholder="your.email@example.com" autocomplete="username">
+    <label for="tsc-number">TSC Number</label>
+    <input type="text" id="tsc-number" class="form-control" placeholder="e.g. 00123456" autocomplete="username">
   </div>
 
   <div class="form-group">
@@ -56,7 +56,7 @@
     window.location.href = '/member/dashboard.html';
   }
 
-  const emailEl = document.getElementById('email');
+  const tscEl = document.getElementById('tsc-number');
   const passwordEl = document.getElementById('password');
   const loginBtn = document.getElementById('login-btn');
   const alertEl = document.getElementById('login-alert');
@@ -72,7 +72,7 @@
     loginBtn.disabled = true;
     loginBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Signing in…';
     try {
-      const res = await memberApi.auth.login(emailEl.value.trim(), passwordEl.value);
+      const res = await memberApi.auth.login(tscEl.value.trim(), passwordEl.value);
       memberApi.saveToken(res.token);
       memberApi.saveMember(res.member);
       window.location.href = '/member/dashboard.html';
@@ -86,6 +86,7 @@
   }
 
   loginBtn.addEventListener('click', doLogin);
+  tscEl.addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
   passwordEl.addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
 </script>
 </body>

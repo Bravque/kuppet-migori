@@ -35,7 +35,7 @@ const memberApi = (() => {
     getToken, saveToken, saveMember, getMember, clearAuth,
 
     auth: {
-      login: (email, password) => request('/member/auth/login', { method: 'POST', body: JSON.stringify({ email, password }) }),
+      login: (tsc_number, password) => request('/member/auth/login', { method: 'POST', body: JSON.stringify({ tsc_number, password }) }),
       register: (formData) => request('/member/auth/register', { method: 'POST', body: formData }),
       me: () => request('/member/auth/me'),
       changePassword: (oldPassword, newPassword) => request('/member/auth/password', { method: 'PUT', body: JSON.stringify({ oldPassword, newPassword }) }),

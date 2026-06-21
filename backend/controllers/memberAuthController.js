@@ -92,21 +92,24 @@ async function register(req, res) {
 
 // ── Login ─────────────────────────────────────────────────────────────────────
 async function login(req, res) {
-  const { email, password } = req.body;
-  if (!email || !password) {
-    return res.status(400).json({ success: false, message: 'Email and password required' });
+  const { password } = req.body;
+  // Members log in with their TSC number. Accept it under `email` too, as a
+  // compatibility shim for any cached older client that still posts that key.
+  const tsc_number = (req.body.tsc_number || req.body.email || '').toString().trim();
+  if (!tsc_number || !password) {
+    return res.status(400).json({ success: false, message: 'TSC number and password required' });
   }
 
   const ip = req.ip || req.connection.remoteAddress;
   const ua = req.headers['user-agent'] || '';
 
   const [[member]] = await db.query(
-    'SELECT id, full_name, member_number, email, password, status, failed_login_attempts, locked_until FROM members WHERE email = ?',
-    [email.toLowerCase().trim()]
+    'SELECT id, full_name, member_number, email, password, status, failed_login_attempts, locked_until FROM members WHERE tsc_number = ?',
+    [tsc_number]
   );
 
   if (!member) {
-    return res.status(401).json({ success: false, message: 'Invalid email or password' });
+    return res.status(401).json({ success: false, message: 'Invalid TSC number or password' });
   }
 
   // Lock check
@@ -135,7 +138,7 @@ async function login(req, res) {
     const lockedUntil = attempts >= maxAttempts ? new Date(Date.now() + lockMins * 60000) : null;
     await db.query('UPDATE members SET failed_login_attempts = ?, locked_until = ? WHERE id = ?', [attempts, lockedUntil, member.id]);
     await logLogin(member.id, ip, ua, 'failed');
-    return res.status(401).json({ success: false, message: 'Invalid email or password' });
+    return res.status(401).json({ success: false, message: 'Invalid TSC number or password' });
   }
 
   await db.query('UPDATE members SET failed_login_attempts = 0, locked_until = NULL, last_login = NOW() WHERE id = ?', [member.id]);
