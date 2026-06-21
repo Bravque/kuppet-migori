@@ -34,6 +34,30 @@ const adminApi = (() => {
     return data;
   }
 
+  // Authenticated file download. A plain window.open() can't send the
+  // Authorization header, so exports must be fetched as a blob with the token.
+  async function download(path, fallbackName) {
+    const token = getToken();
+    const res = await fetch(BASE + path, { headers: token ? { Authorization: `Bearer ${token}` } : {} });
+    if ((res.status === 401 || res.status === 403) && token) {
+      clearAuth(); window.location.href = '/admin/login.html'; return;
+    }
+    if (!res.ok) {
+      let msg = `Export failed (${res.status})`;
+      try { msg = (await res.json()).message || msg; } catch {}
+      throw new Error(msg);
+    }
+    const blob = await res.blob();
+    let name = fallbackName;
+    const cd = res.headers.get('Content-Disposition');
+    const m = cd && cd.match(/filename="?([^"]+)"?/);
+    if (m) name = m[1];
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = name; document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
+
   return {
     getUser, clearAuth, saveToken, saveUser,
 
@@ -105,7 +129,7 @@ const adminApi = (() => {
       approve: (id) => request(`/admin/members/${id}/approve`, { method: 'PUT', body: '{}' }),
       reject: (id, reason) => request(`/admin/members/${id}/reject`, { method: 'PUT', body: JSON.stringify({ reason }) }),
       suspend: (id, reason) => request(`/admin/members/${id}/suspend`, { method: 'PUT', body: JSON.stringify({ reason }) }),
-      exportExcel: () => window.open('/api/admin/members/export', '_blank'),
+      exportExcel: () => download('/admin/members/export', 'members.xlsx'),
     },
 
     bbf: {
@@ -115,6 +139,7 @@ const adminApi = (() => {
       approve: (id, amount, notes) => request(`/admin/bbf/${id}/approve`, { method: 'PUT', body: JSON.stringify({ amount, notes }) }),
       reject: (id, notes) => request(`/admin/bbf/${id}/reject`, { method: 'PUT', body: JSON.stringify({ notes }) }),
       markPaid: (id, ref) => request(`/admin/bbf/${id}/paid`, { method: 'PUT', body: JSON.stringify({ ref }) }),
+      exportExcel: () => download('/admin/bbf/export', 'bbf-claims.xlsx'),
     },
 
     schApps: {
@@ -136,12 +161,12 @@ const adminApi = (() => {
     analytics: {
       getSummary: () => request('/admin/analytics/summary'),
       getMonthly: () => request('/admin/analytics/monthly'),
-      exportPdf: () => window.open('/api/admin/analytics/export-pdf', '_blank'),
+      exportPdf: () => download('/admin/analytics/export-pdf', 'analytics-report.pdf'),
     },
 
     audit: {
       getAll: (p = {}) => request('/admin/audit?' + new URLSearchParams(p)),
-      exportPdf: () => window.open('/api/admin/audit/export', '_blank'),
+      exportPdf: () => download('/admin/audit/export', 'audit-logs.pdf'),
     },
 
     users: {

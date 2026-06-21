@@ -15,7 +15,7 @@
     <div class="portal-content">
       <div class="page-heading">
         <div class="page-heading-text"><h1>Audit Logs</h1><p>Security and activity audit trail.</p></div>
-        <button class="btn btn-outline btn-sm" onclick="adminApi.audit.exportPdf()"><i class="fas fa-file-pdf"></i> Export PDF</button>
+        <button class="btn btn-outline btn-sm" onclick="adminApi.audit.exportPdf().catch(e=>alert(e.message))"><i class="fas fa-file-pdf"></i> Export PDF</button>
       </div>
       <div class="filter-bar">
         <input type="search" id="action-filter" class="form-control" placeholder="Filter by action...">

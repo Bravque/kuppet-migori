@@ -15,7 +15,7 @@
     <div class="portal-content">
       <div class="page-heading">
         <div class="page-heading-text"><h1>Members</h1><p>Manage member registrations and accounts.</p></div>
-        <button class="btn btn-outline btn-sm" onclick="adminApi.members.exportExcel()"><i class="fas fa-file-excel"></i> Export</button>
+        <button class="btn btn-outline btn-sm" onclick="adminApi.members.exportExcel().catch(e=>alert(e.message))"><i class="fas fa-file-excel"></i> Export</button>
       </div>
       <div class="filter-tabs" id="status-tabs">
         <button class="filter-tab active" data-status="">All</button>

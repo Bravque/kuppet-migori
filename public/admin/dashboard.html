@@ -24,7 +24,7 @@
           <p>Welcome back. Here's what's happening at KUPPET Migori.</p>
         </div>
         <div class="page-heading-actions">
-          <button class="btn btn-outline btn-sm" onclick="adminApi.analytics.exportPdf()">
+          <button class="btn btn-outline btn-sm" onclick="adminApi.analytics.exportPdf().catch(e=>alert(e.message))">
             <i class="fas fa-file-pdf"></i> Export Report
           </button>
         </div>

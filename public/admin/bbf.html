@@ -15,7 +15,7 @@
     <div class="portal-content">
       <div class="page-heading">
         <div class="page-heading-text"><h1>BBF Claims</h1></div>
-        <button class="btn btn-outline btn-sm" onclick="adminApi.bbf.exportExcel ? adminApi.bbf.exportExcel() : window.open('/api/admin/bbf/export','_blank')"><i class="fas fa-file-excel"></i> Export</button>
+        <button class="btn btn-outline btn-sm" onclick="adminApi.bbf.exportExcel().catch(e=>alert(e.message))"><i class="fas fa-file-excel"></i> Export</button>
       </div>
       <div class="filter-tabs" id="bbf-tabs">
         <button class="filter-tab active" data-status="">All</button>
