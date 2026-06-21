@@ -6,7 +6,12 @@ async function send(req, res) {
     const { phone, message, member_id, template_id } = req.body;
     if (!phone || !message) return res.status(400).json({ success: false, message: 'Phone and message required' });
     const result = await smsService.sendSms({ phone, message, memberId: member_id || null, sentBy: req.user.id, templateId: template_id || null });
-    res.json({ success: true, data: result, message: result.success ? 'SMS sent' : 'SMS queued (check API key config)' });
+    const message_out = result.status === 'sent'
+      ? 'SMS sent'
+      : result.status === 'queued'
+        ? 'SMS queued — no API key configured'
+        : `SMS failed: ${result.error || 'check TalkSasa configuration'}`;
+    res.json({ success: result.success, data: result, message: message_out });
   } catch (err) {
     res.status(500).json({ success: false, message: 'Failed to send SMS', error: err.message });
   }

@@ -1,6 +1,6 @@
 const db = require('../config/database');
 
-const BASE_URL   = process.env.TALKSASA_BASE_URL || 'https://api.talksasa.com/v1';
+const BASE_URL   = (process.env.TALKSASA_BASE_URL || 'https://bulksms.talksasa.com/api/v3').replace(/\/+$/, '');
 const API_KEY    = process.env.TALKSASA_API_KEY  || '';
 const SENDER_ID  = process.env.TALKSASA_SENDER_ID || 'KUPPET';
 
@@ -21,28 +21,31 @@ async function sendSms({ phone, message, memberId = null, sentBy, templateId = n
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Accept': 'application/json',
           'Authorization': `Bearer ${API_KEY}`,
         },
         body: JSON.stringify({
-          to: normalizePhone(phone),
-          message,
+          recipient: normalizePhone(phone),
           sender_id: SENDER_ID,
+          type: 'plain',
+          message,
         }),
         signal: AbortSignal.timeout(10000),
       });
       const data = await response.json().catch(() => ({}));
-      if (response.ok) {
+      if (response.ok && data.status !== 'error') {
         status = 'sent';
-        talksasaRef = data.message_id || data.reference || null;
+        talksasaRef = data.data?.uid || data.data?.message_id || data.message_id || data.reference || null;
       } else {
-        errorMessage = data.message || `HTTP ${response.status}`;
+        errorMessage = data.message || data.error || `HTTP ${response.status}`;
       }
     } catch (err) {
       errorMessage = err.message;
     }
   } else {
-    // No API key — log as queued for later processing
+    // No API key configured — log as queued for later processing
     status = 'queued';
+    errorMessage = 'No TALKSASA_API_KEY configured';
   }
 
   try {
@@ -56,7 +59,7 @@ async function sendSms({ phone, message, memberId = null, sentBy, templateId = n
     );
   } catch (_) { /* log failure must not propagate */ }
 
-  return { success: status === 'sent' || status === 'queued', status, talksasaRef };
+  return { success: status === 'sent', status, talksasaRef, error: errorMessage };
 }
 
 // Send bulk SMS to an array of recipients. Returns array of results.
