@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Playfair+Display:wght@700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
-  <link rel="stylesheet" href="/css/style.css?v=20260617d">
+  <link rel="stylesheet" href="/css/style.css?v=20260621b">
   <style>
     .timeline { position: relative; padding-left: 2rem; }
     .timeline::before { content:''; position:absolute; left:0; top:0; bottom:0; width:2px; background:linear-gradient(to bottom, var(--primary), var(--gold)); }
@@ -20,6 +20,17 @@
     .timeline-item p { font-size:0.875rem; color:var(--text-muted); line-height:1.65; }
     .leaders-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(240px, 1fr)); gap:1.5rem; }
     .values-grid-4 { display:grid; grid-template-columns:repeat(4, 1fr); gap:1.25rem; }
+    .group-photos-grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(min(100%, 320px), 1fr)); gap:2rem; }
+    .group-photo-card { background:var(--bg-white); border:1px solid var(--border); border-radius:var(--radius-xl); overflow:hidden; box-shadow:var(--shadow-sm); transition:var(--transition); }
+    .group-photo-card:hover { box-shadow:var(--shadow-md); transform:translateY(-4px); }
+    .group-photo { position:relative; aspect-ratio:16/10; background:var(--bg); }
+    .group-photo img { width:100%; height:100%; object-fit:cover; display:block; }
+    .group-photo-placeholder { position:absolute; inset:0; flex-direction:column; align-items:center; justify-content:center; gap:0.625rem; color:var(--text-light); background:linear-gradient(135deg, rgba(27,58,110,0.06), rgba(200,150,42,0.06)); text-align:center; padding:1rem; }
+    .group-photo-placeholder i { font-size:2.25rem; color:var(--primary-light); opacity:0.6; }
+    .group-photo-placeholder span { font-size:0.8rem; font-weight:500; }
+    .group-photo-card figcaption { padding:1.5rem; }
+    .group-photo-card figcaption h3 { font-family:var(--font-serif); font-size:1.25rem; color:var(--primary); margin-bottom:0.5rem; }
+    .group-photo-card figcaption p { font-size:0.875rem; color:var(--text-muted); line-height:1.65; }
     @media(max-width:900px) { .values-grid-4 { grid-template-columns:repeat(2,1fr); } }
     @media(max-width:500px) { .values-grid-4 { grid-template-columns:1fr; } .leaders-grid { grid-template-columns:1fr; } }
   </style>
@@ -162,12 +173,12 @@
           <div style="background:var(--primary);color:#fff;border-radius:var(--radius-xl);padding:2.5rem;text-align:center">
             <div style="font-size:2.5rem;margin-bottom:1rem"><i class="fas fa-eye" style="color:var(--gold-light)"></i></div>
             <h3 style="font-family:var(--font-serif);color:#fff;font-size:1.375rem;margin-bottom:1rem">Our Vision</h3>
-            <p style="color:rgba(255,255,255,0.8);line-height:1.7">A respected, professional, and empowered teaching force that drives educational excellence and national development in Migori County and Kenya at large.</p>
+            <p style="color:rgba(255,255,255,0.8);line-height:1.7">To be a model branch of excellence in Advocacy, Leadership and offering Service with Distinction.</p>
           </div>
           <div style="background:var(--gold);color:#fff;border-radius:var(--radius-xl);padding:2.5rem;text-align:center">
             <div style="font-size:2.5rem;margin-bottom:1rem"><i class="fas fa-bullseye" style="color:rgba(255,255,255,0.8)"></i></div>
             <h3 style="font-family:var(--font-serif);color:#fff;font-size:1.375rem;margin-bottom:1rem">Our Mission</h3>
-            <p style="color:rgba(255,255,255,0.9);line-height:1.7">To promote and protect the rights, welfare, and professional interests of post-primary education teachers in Migori County through collective bargaining, advocacy, and professional development.</p>
+            <p style="color:rgba(255,255,255,0.9);line-height:1.7">To be a leading branch in effectively representing, protecting and advancing the professional, economic, and social interests of members through transparent governance, institutional strengthening, capacity development and innovative service delivery to secondary teachers in Migori.</p>
           </div>
           <div style="background:var(--green);color:#fff;border-radius:var(--radius-xl);padding:2.5rem;text-align:center">
             <div style="font-size:2.5rem;margin-bottom:1rem"><i class="fas fa-handshake" style="color:rgba(255,255,255,0.8)"></i></div>
@@ -183,28 +194,13 @@
         </div>
         <div class="values-grid-4">
           <div class="value-card">
-            <div class="value-icon" style="background:rgba(27,58,110,0.1);color:var(--primary)"><i class="fas fa-shield-alt"></i></div>
-            <h3>Integrity</h3>
-            <p>We uphold the highest standards of honesty, transparency, and accountability in all our dealings with members and stakeholders.</p>
-          </div>
-          <div class="value-card">
-            <div class="value-icon" style="background:rgba(200,150,42,0.12);color:var(--gold-dark)"><i class="fas fa-users"></i></div>
-            <h3>Unity</h3>
-            <p>We believe in the strength of collective action. Together, KUPPET members speak with one powerful voice that commands attention and respect.</p>
-          </div>
-          <div class="value-card">
-            <div class="value-icon" style="background:rgba(26,115,64,0.1);color:var(--green)"><i class="fas fa-balance-scale"></i></div>
-            <h3>Justice</h3>
-            <p>We advocate for fair treatment, equal opportunity, and equitable working conditions for every teacher, regardless of gender, region, or background.</p>
-          </div>
-          <div class="value-card">
-            <div class="value-icon" style="background:rgba(192,57,43,0.1);color:var(--red)"><i class="fas fa-graduation-cap"></i></div>
-            <h3>Professionalism</h3>
-            <p>We champion continuous professional development and hold our members to the highest standards of educational excellence and ethical conduct.</p>
+            <div class="value-icon" style="background:rgba(192,57,43,0.1);color:var(--red)"><i class="fas fa-gavel"></i></div>
+            <h3>Advocacy</h3>
+            <p>We are unapologetic in our advocacy for better pay, safer working environments, and policy reforms that elevate the teaching profession.</p>
           </div>
           <div class="value-card">
             <div class="value-icon" style="background:rgba(27,58,110,0.1);color:var(--primary)"><i class="fas fa-hands-helping"></i></div>
-            <h3>Service</h3>
+            <h3>Welfare</h3>
             <p>We are driven by a genuine commitment to serve our members — every program, campaign, and initiative is designed around the teacher's needs.</p>
           </div>
           <div class="value-card">
@@ -213,14 +209,29 @@
             <p>Our leaders are accountable to members. We maintain transparent financial management and regular reporting on all union activities and resources.</p>
           </div>
           <div class="value-card">
+            <div class="value-icon" style="background:rgba(27,58,110,0.1);color:var(--primary)"><i class="fas fa-shield-alt"></i></div>
+            <h3>Integrity</h3>
+            <p>We uphold the highest standards of honesty, transparency, and accountability in all our dealings with members and stakeholders.</p>
+          </div>
+          <div class="value-card">
             <div class="value-icon" style="background:rgba(26,115,64,0.1);color:var(--green)"><i class="fas fa-leaf"></i></div>
             <h3>Inclusivity</h3>
             <p>We celebrate diversity and ensure every member — regardless of gender, age, or sub-county — has equal voice and representation in KUPPET Migori.</p>
           </div>
           <div class="value-card">
-            <div class="value-icon" style="background:rgba(192,57,43,0.1);color:var(--red)"><i class="fas fa-gavel"></i></div>
-            <h3>Advocacy</h3>
-            <p>We are unapologetic in our advocacy for better pay, safer working environments, and policy reforms that elevate the teaching profession.</p>
+            <div class="value-icon" style="background:rgba(192,57,43,0.1);color:var(--red)"><i class="fas fa-graduation-cap"></i></div>
+            <h3>Professionalism</h3>
+            <p>We champion continuous professional development and hold our members to the highest standards of educational excellence and ethical conduct.</p>
+          </div>
+          <div class="value-card">
+            <div class="value-icon" style="background:rgba(26,115,64,0.1);color:var(--green)"><i class="fas fa-balance-scale"></i></div>
+            <h3>Justice</h3>
+            <p>We advocate for fair treatment, equal opportunity, and equitable working conditions for every teacher, regardless of gender, region, or background.</p>
+          </div>
+          <div class="value-card">
+            <div class="value-icon" style="background:rgba(200,150,42,0.12);color:var(--gold-dark)"><i class="fas fa-users"></i></div>
+            <h3>Solidarity</h3>
+            <p>We believe in the strength of collective action. Together, KUPPET members speak with one powerful voice that commands attention and respect.</p>
           </div>
         </div>
       </div>
@@ -249,7 +260,7 @@
             </p>
             <p style="color:var(--text-muted);line-height:1.8">
               Over three decades, KUPPET Migori has grown from a small regional office into a powerful union
-              representing over 4,500 teachers across all seven sub-counties of Migori County, covering more
+              representing over 4,500 teachers across all twelve sub-counties of Migori County, covering more
               than 320 secondary and technical institutions.
             </p>
           </div>
@@ -310,8 +321,19 @@
             <div class="org-level-title">National Level</div>
             <div class="org-nodes">
               <div class="org-node" style="border-color:var(--gold);background:rgba(200,150,42,0.05)">
-                <h4 style="color:var(--gold-dark)">KUPPET National</h4>
-                <p>National Executive Council</p>
+                <h4 style="color:var(--gold-dark)">KUPPET National Executive Board</h4>
+                <p>Supreme national leadership organ</p>
+              </div>
+            </div>
+          </div>
+
+          <div style="text-align:center;color:var(--border-dark);font-size:1.5rem;margin:0.5rem 0">↓</div>
+
+          <div class="org-level">
+            <div class="org-nodes">
+              <div class="org-node" style="border-color:var(--gold);background:rgba(200,150,42,0.05)">
+                <h4 style="color:var(--gold-dark)">National Governing Council</h4>
+                <p>National policy &amp; oversight body</p>
               </div>
             </div>
           </div>
@@ -323,7 +345,7 @@
             <div class="org-nodes">
               <div class="org-node primary">
                 <h4>Branch Executive Committee</h4>
-                <p>Elected governing body</p>
+                <p>Elected branch leadership organ</p>
               </div>
             </div>
           </div>
@@ -331,36 +353,31 @@
           <div style="text-align:center;color:var(--border-dark);font-size:1.5rem;margin:0.5rem 0">↓</div>
 
           <div class="org-level">
-            <div class="org-level-title">Branch Officials</div>
             <div class="org-nodes">
-              <div class="org-node"><h4>Branch Exec. Secretary</h4><p>Chief executive officer</p></div>
-              <div class="org-node"><h4>Chairperson</h4><p>Presiding officer</p></div>
-              <div class="org-node"><h4>Vice Chairperson</h4><p>Deputy presiding officer</p></div>
-              <div class="org-node"><h4>Branch Treasurer</h4><p>Financial controller</p></div>
+              <div class="org-node primary">
+                <h4>Branch Governing Council</h4>
+                <p>Branch policy &amp; oversight body</p>
+              </div>
             </div>
           </div>
 
           <div style="text-align:center;color:var(--border-dark);font-size:1.5rem;margin:0.5rem 0">↓</div>
 
           <div class="org-level">
-            <div class="org-level-title">Sub-County Branches (7)</div>
+            <div class="org-level-title">Sub-Counties (12)</div>
             <div class="org-nodes">
+              <div class="org-node"><h4>Rongo</h4><p>Sub-branch</p></div>
+              <div class="org-node"><h4>Awendo</h4><p>Sub-branch</p></div>
+              <div class="org-node"><h4>Uriri</h4><p>Sub-branch</p></div>
               <div class="org-node"><h4>Suna East</h4><p>Sub-branch</p></div>
               <div class="org-node"><h4>Suna West</h4><p>Sub-branch</p></div>
-              <div class="org-node"><h4>Uriri</h4><p>Sub-branch</p></div>
-              <div class="org-node"><h4>Nyatike</h4><p>Sub-branch</p></div>
-              <div class="org-node"><h4>Rongo</h4><p>Sub-branch</p></div>
-              <div class="org-node"><h4>Kuria East</h4><p>Sub-branch</p></div>
+              <div class="org-node"><h4>Ntimaru</h4><p>Sub-branch</p></div>
               <div class="org-node"><h4>Kuria West</h4><p>Sub-branch</p></div>
-            </div>
-          </div>
-
-          <div style="text-align:center;color:var(--border-dark);font-size:1.5rem;margin:0.5rem 0">↓</div>
-
-          <div class="org-level">
-            <div class="org-level-title">School Level Representatives</div>
-            <div class="org-nodes">
-              <div class="org-node"><h4>School Representatives</h4><p>Elected per institution</p></div>
+              <div class="org-node"><h4>Kuria East</h4><p>Sub-branch</p></div>
+              <div class="org-node"><h4>Mabera</h4><p>Sub-branch</p></div>
+              <div class="org-node"><h4>Nyatike South</h4><p>Sub-branch</p></div>
+              <div class="org-node"><h4>Nyatike West</h4><p>Sub-branch</p></div>
+              <div class="org-node"><h4>Nyatike North</h4><p>Sub-branch</p></div>
             </div>
           </div>
         </div>
@@ -398,6 +415,70 @@
         </h3>
         <div id="trustee-leaders">
           <div class="loading"><div class="spinner"></div><p>Loading trustees...</p></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Leadership Group Photos -->
+    <section class="section" id="group-photos" style="background:var(--bg-white)" aria-labelledby="group-photos-heading">
+      <div class="container">
+        <div class="section-title">
+          <span class="label">Our Teams in Pictures</span>
+          <h2 id="group-photos-heading">Leadership in Pictures</h2>
+          <p>The committees and councils that steer KUPPET Migori on behalf of every member across the county.</p>
+        </div>
+
+        <div class="group-photos-grid">
+          <figure class="group-photo-card">
+            <div class="group-photo">
+              <img src="/images/groups/branch-executive-committee.jpg"
+                   alt="KUPPET Migori Branch Executive Committee group photo"
+                   loading="lazy"
+                   onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+              <div class="group-photo-placeholder" style="display:none">
+                <i class="fas fa-camera"></i>
+                <span>Group photo coming soon</span>
+              </div>
+            </div>
+            <figcaption>
+              <h3>Branch Executive Committee</h3>
+              <p>The elected governing body responsible for the day-to-day leadership and decision-making of KUPPET Migori Branch.</p>
+            </figcaption>
+          </figure>
+
+          <figure class="group-photo-card">
+            <div class="group-photo">
+              <img src="/images/groups/branch-governing-council.jpg"
+                   alt="KUPPET Migori Branch Governing Council group photo"
+                   loading="lazy"
+                   onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+              <div class="group-photo-placeholder" style="display:none">
+                <i class="fas fa-camera"></i>
+                <span>Group photo coming soon</span>
+              </div>
+            </div>
+            <figcaption>
+              <h3>Branch Governing Council</h3>
+              <p>The wider council of representatives that provides oversight and policy direction for the branch across all sub-counties.</p>
+            </figcaption>
+          </figure>
+
+          <figure class="group-photo-card">
+            <div class="group-photo">
+              <img src="/images/groups/welfare-steering-committee.jpg"
+                   alt="KUPPET Migori Welfare Steering Committee group photo"
+                   loading="lazy"
+                   onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+              <div class="group-photo-placeholder" style="display:none">
+                <i class="fas fa-camera"></i>
+                <span>Group photo coming soon</span>
+              </div>
+            </div>
+            <figcaption>
+              <h3>Welfare Steering Committee</h3>
+              <p>The team that champions members' welfare, including the Benevolent &amp; Burial Fund and member support programs.</p>
+            </figcaption>
+          </figure>
         </div>
       </div>
     </section>
@@ -468,7 +549,7 @@
     </div>
   </footer>
 
-  <script src="/js/api.js?v=20260617d"></script>
-  <script src="/js/main.js?v=20260617d"></script>
+  <script src="/js/api.js?v=20260621b"></script>
+  <script src="/js/main.js?v=20260621b"></script>
 </body>
 </html>

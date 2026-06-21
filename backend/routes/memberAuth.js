@@ -28,6 +28,7 @@ router.post('/register',
     body('date_of_birth').isDate().withMessage('Valid date of birth required'),
     body('school_name').trim().notEmpty().withMessage('School name required').isLength({ max: 300 }),
     body('sub_county').trim().notEmpty().withMessage('Sub-county required').isLength({ max: 150 }),
+    body('school_category').isIn(['senior_school','junior_school']).withMessage('Category (senior or junior school) required'),
   ],
   validate,
   ctrl.register

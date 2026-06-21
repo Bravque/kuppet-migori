@@ -5,7 +5,7 @@
   <title>BBF Claims — KUPPET Migori Admin</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
-  <link rel="stylesheet" href="/css/style.css?v=20260617d"><link rel="stylesheet" href="/css/portal.css?v=20260617d">
+  <link rel="stylesheet" href="/css/style.css?v=20260621b"><link rel="stylesheet" href="/css/portal.css?v=20260621b">
 </head>
 <body class="portal-body admin-bbf-page">
 <div class="portal-layout">
@@ -51,7 +51,7 @@
       tbody.innerHTML = res.data.map(c=>`<tr>
         <td><strong>${escHtml(c.claim_number)}</strong></td>
         <td>${escHtml(c.full_name)}<br><small>${escHtml(c.member_number)}</small></td>
-        <td>${escHtml(c.claim_type.replace(/_/g,' '))}</td>
+        <td>${escHtml(bbfTypeLabel(c.claim_type))}</td>
         <td>${c.amount_requested ? 'KES '+Number(c.amount_requested).toLocaleString() : '—'}</td>
         <td>${statusBadge(c.status)}</td>
         <td>${formatDate(c.submitted_at)}</td>

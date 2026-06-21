@@ -431,6 +431,159 @@ async function initAdvocacyPage() {
 }
 
 // ============================================
+// ARTICLE DETAIL PAGE (news)
+// ============================================
+async function initArticlePage() {
+  if (!document.querySelector('.article-page')) return;
+
+  const container = document.getElementById('article-container');
+  if (!container) return;
+
+  const slug = new URLSearchParams(window.location.search).get('slug');
+  if (!slug) {
+    container.innerHTML = renderEmptyState('No article specified. <a href="/pages/news.html">Back to Notice Board</a>.');
+    return;
+  }
+
+  container.innerHTML = renderLoading();
+
+  try {
+    const { data } = await api.news.getOne(slug);
+    const cat = data.category || 'news';
+    const date = new Date(data.published_at).toLocaleDateString('en-KE', { day: 'numeric', month: 'long', year: 'numeric' });
+
+    document.title = `${data.title} | KUPPET Migori`;
+    setText('page-header-title', data.title);
+    setText('breadcrumb-title', data.title);
+
+    const tags = (data.tags || '').split(',').map(t => t.trim()).filter(Boolean);
+
+    container.innerHTML = `
+      <article class="article-full">
+        ${data.featured_image
+          ? `<img class="article-hero" src="${escHtml(data.featured_image)}" alt="${escHtml(data.title)}">`
+          : `<div class="article-hero-placeholder"><i class="fas fa-newspaper"></i></div>`}
+        <div class="article-body-wrap">
+          <span class="badge badge-${cat}">${cat.replace('_', ' ')}</span>
+          <h1 class="article-title">${escHtml(data.title)}</h1>
+          <div class="article-meta-row">
+            <span class="meta-item"><i class="fas fa-user"></i> ${escHtml(data.author || 'KUPPET Migori')}</span>
+            <span class="meta-item"><i class="far fa-calendar-alt"></i> ${date}</span>
+            <span class="meta-item"><i class="far fa-eye"></i> ${data.views || 0} views</span>
+          </div>
+          <div class="article-content">${data.content || ''}</div>
+          ${tags.length ? `<div class="article-tags">${tags.map(t => `<span class="article-tag">#${escHtml(t)}</span>`).join('')}</div>` : ''}
+          <a href="/pages/news.html" class="btn btn-outline btn-sm article-back"><i class="fas fa-arrow-left"></i> Back to Notice Board</a>
+        </div>
+      </article>`;
+    initScrollAnimations();
+  } catch (err) {
+    container.innerHTML = renderEmptyState(
+      (err && err.status === 404)
+        ? 'This article could not be found. It may have been removed. <a href="/pages/news.html">Back to Notice Board</a>.'
+        : 'Failed to load this article. Please try again later.'
+    );
+  }
+
+  // Recent articles in the sidebar
+  const recent = document.getElementById('recent-articles');
+  if (recent) {
+    try {
+      const { data } = await api.news.getAll({ limit: 5, offset: 0 });
+      const others = data.filter(a => a.slug !== slug).slice(0, 4);
+      recent.innerHTML = others.length
+        ? others.map(a => {
+            const d = new Date(a.published_at).toLocaleDateString('en-KE', { day: 'numeric', month: 'short', year: 'numeric' });
+            return `
+              <div class="sidebar-recent-item">
+                <div class="sidebar-recent-img">
+                  ${a.featured_image ? `<img src="${escHtml(a.featured_image)}" alt="${escHtml(a.title)}" loading="lazy">` : '<i class="fas fa-newspaper"></i>'}
+                </div>
+                <div class="sidebar-recent-info">
+                  <div class="date">${d}</div>
+                  <a href="/pages/article.html?slug=${encodeURIComponent(a.slug)}">${escHtml(a.title)}</a>
+                </div>
+              </div>`;
+          }).join('')
+        : '<p style="color:var(--text-muted);font-size:0.85rem">No other articles yet.</p>';
+    } catch {
+      recent.innerHTML = '<p style="color:var(--text-muted);font-size:0.85rem">Could not load recent articles.</p>';
+    }
+  }
+}
+
+// ============================================
+// ADVOCACY DETAIL PAGE
+// ============================================
+async function initAdvocacyArticlePage() {
+  if (!document.querySelector('.advocacy-article-page')) return;
+
+  const container = document.getElementById('article-container');
+  if (!container) return;
+
+  const slug = new URLSearchParams(window.location.search).get('slug');
+  if (!slug) {
+    container.innerHTML = renderEmptyState('No item specified. <a href="/pages/advocacy.html">Back to Advocacy Desk</a>.');
+    return;
+  }
+
+  container.innerHTML = renderLoading();
+  const icons = { rights: 'fa-shield-alt', legal: 'fa-balance-scale', labour: 'fa-handshake', policy: 'fa-file-alt', news: 'fa-newspaper', report: 'fa-flag' };
+
+  try {
+    const { data } = await api.advocacy.getOne(slug);
+    const cat = data.category || 'rights';
+    const date = new Date(data.created_at).toLocaleDateString('en-KE', { day: 'numeric', month: 'long', year: 'numeric' });
+
+    document.title = `${data.title} | KUPPET Migori`;
+    setText('page-header-title', data.title);
+    setText('breadcrumb-title', data.title);
+
+    container.innerHTML = `
+      <article class="article-full">
+        <div class="article-body-wrap">
+          <div class="article-icon-badge"><i class="fas ${icons[cat] || 'fa-info-circle'}"></i></div>
+          <h1 class="article-title">${escHtml(data.title)}</h1>
+          <div class="article-meta-row">
+            <span class="meta-item"><i class="fas fa-tag"></i> ${cat.replace('_', ' ')}</span>
+            <span class="meta-item"><i class="far fa-calendar-alt"></i> ${date}</span>
+          </div>
+          <div class="article-content">${data.content || ''}</div>
+          ${data.document_url ? `<a href="${escHtml(data.document_url)}" target="_blank" rel="noopener" class="btn btn-primary btn-sm article-doc"><i class="fas fa-file-download"></i> Download Document</a>` : ''}
+          <div><a href="/pages/advocacy.html" class="btn btn-outline btn-sm article-back"><i class="fas fa-arrow-left"></i> Back to Advocacy Desk</a></div>
+        </div>
+      </article>`;
+    initScrollAnimations();
+  } catch (err) {
+    container.innerHTML = renderEmptyState(
+      (err && err.status === 404)
+        ? 'This item could not be found. It may have been removed. <a href="/pages/advocacy.html">Back to Advocacy Desk</a>.'
+        : 'Failed to load this content. Please try again later.'
+    );
+  }
+
+  // More advocacy in the sidebar
+  const recent = document.getElementById('recent-advocacy');
+  if (recent) {
+    try {
+      const { data } = await api.advocacy.getAll();
+      const others = data.filter(a => a.slug !== slug).slice(0, 5);
+      recent.innerHTML = others.length
+        ? others.map(a => `
+            <div class="sidebar-recent-item">
+              <div class="sidebar-recent-icon"><i class="fas ${icons[a.category] || 'fa-info-circle'}"></i></div>
+              <div class="sidebar-recent-info">
+                <a href="/pages/advocacy-article.html?slug=${encodeURIComponent(a.slug)}">${escHtml(a.title)}</a>
+              </div>
+            </div>`).join('')
+        : '<p style="color:var(--text-muted);font-size:0.85rem">No other items yet.</p>';
+    } catch {
+      recent.innerHTML = '<p style="color:var(--text-muted);font-size:0.85rem">Could not load more items.</p>';
+    }
+  }
+}
+
+// ============================================
 // RENDER HELPERS
 // ============================================
 function renderNewsCard(article) {
@@ -453,7 +606,7 @@ function renderNewsCard(article) {
       </div>
       <div class="news-card-footer">
         <span><i class="fas fa-user"></i> ${escHtml(article.author || 'KUPPET Migori')}</span>
-        <a href="/pages/news.html?slug=${article.slug}" class="read-more">
+        <a href="/pages/article.html?slug=${encodeURIComponent(article.slug)}" class="read-more">
           Read More <i class="fas fa-arrow-right"></i>
         </a>
       </div>
@@ -543,7 +696,7 @@ function renderScholarshipCard(s) {
           <i class="far fa-calendar-alt"></i> Deadline: ${isExpired ? '<strong>Closed</strong>' : deadline}
         </span>
         <span class="scholarship-meta-item">
-          <i class="fas fa-graduation-cap"></i> ${(s.scholarship_type || '').replace('_', ' ')}
+          <i class="fas fa-graduation-cap"></i> ${scholarshipTypeLabel(s.scholarship_type)}
         </span>
       </div>
       <div style="display:flex;gap:0.75rem;flex-wrap:wrap">
@@ -569,7 +722,7 @@ function renderAdvocacyCard(item) {
       </div>
       <h3>${escHtml(item.title)}</h3>
       <p>${escHtml((item.category || '').replace('_', ' '))} resource</p>
-      <a href="/pages/advocacy.html?slug=${item.slug}" class="service-link">
+      <a href="/pages/advocacy-article.html?slug=${encodeURIComponent(item.slug)}" class="service-link">
         Read More <i class="fas fa-arrow-right"></i>
       </a>
     </div>`;
@@ -608,6 +761,15 @@ function escHtml(str) {
   return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#039;');
 }
 
+function setText(id, text) {
+  const el = document.getElementById(id);
+  if (el) el.textContent = text;
+}
+
+function scholarshipTypeLabel(t) {
+  return ({ kcse: 'KCSE', kjsea: 'KJSEA', dte: 'DTE' })[t] || (t || '').toUpperCase();
+}
+
 function formatTime(time) {
   if (!time) return '';
   const [h, m] = time.split(':');
@@ -638,4 +800,6 @@ document.addEventListener('DOMContentLoaded', () => {
   initScholarshipsPage();
   initContactForm();
   initAdvocacyPage();
+  initArticlePage();
+  initAdvocacyArticlePage();
 });

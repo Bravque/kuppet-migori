@@ -4,7 +4,7 @@ async function getProfile(req, res) {
   try {
     const [[m]] = await db.query(
       `SELECT id, member_number, full_name, tsc_number, national_id, employment_number,
-              phone, email, gender, date_of_birth, school_name, sub_county,
+              phone, email, gender, date_of_birth, school_name, sub_county, school_category,
               passport_photo_url, status, created_at, approved_at
        FROM members WHERE id = ?`,
       [req.member.id]
@@ -18,10 +18,15 @@ async function getProfile(req, res) {
 
 async function updateProfile(req, res) {
   try {
-    const allowed = ['phone','school_name','sub_county','employment_number'];
+    const allowed = ['phone','school_name','sub_county','employment_number','school_category'];
     const fields = [], params = [];
     for (const key of allowed) {
-      if (req.body[key] !== undefined) { fields.push(`${key} = ?`); params.push(req.body[key]); }
+      if (req.body[key] !== undefined) {
+        if (key === 'school_category' && !['senior_school','junior_school'].includes(req.body[key])) {
+          return res.status(400).json({ success: false, message: 'Invalid school category' });
+        }
+        fields.push(`${key} = ?`); params.push(req.body[key]);
+      }
     }
     if (!fields.length) return res.status(400).json({ success: false, message: 'No fields to update' });
     params.push(req.member.id);

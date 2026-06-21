@@ -3,35 +3,42 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="KUPPET Migori Teachers Notice Board - Latest news, announcements, circulars, press releases, and events from KUPPET Migori Branch and the wider education sector.">
-  <title>Teachers Notice Board | KUPPET Migori</title>
+  <meta name="description" content="Read the full advocacy update from KUPPET Migori — teachers' rights, legal, labour and policy matters.">
+  <title>Advocacy | KUPPET Migori</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Playfair+Display:wght@700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
   <link rel="stylesheet" href="/css/style.css?v=20260621b">
   <style>
-    .news-layout { display:grid; grid-template-columns:1fr 320px; gap:3rem; align-items:start; }
-    .news-sidebar { position:sticky; top:calc(var(--header-height) + 1.5rem); }
+    .article-layout { display:grid; grid-template-columns:minmax(0,1fr) 320px; gap:3rem; align-items:start; }
+    .article-sidebar { position:sticky; top:calc(var(--header-height) + 1.5rem); }
     .sidebar-card { background:var(--bg-white); border:1px solid var(--border); border-radius:var(--radius-lg); padding:1.5rem; margin-bottom:1.5rem; }
     .sidebar-card h4 { font-size:0.875rem; font-weight:700; color:var(--text); letter-spacing:0.06em; text-transform:uppercase; margin-bottom:1.25rem; padding-bottom:0.75rem; border-bottom:2px solid var(--gold); display:inline-block; }
     .sidebar-recent-list { display:flex; flex-direction:column; gap:1rem; }
-    .sidebar-recent-item { display:flex; gap:0.75rem; }
-    .sidebar-recent-img { width:60px; height:60px; flex-shrink:0; background:var(--bg); border-radius:var(--radius); display:flex; align-items:center; justify-content:center; color:var(--text-muted); font-size:1.25rem; overflow:hidden; }
-    .sidebar-recent-img img { width:100%; height:100%; object-fit:cover; }
-    .sidebar-recent-info {}
-    .sidebar-recent-info .date { font-size:0.7rem; color:var(--text-light); margin-bottom:0.25rem; }
+    .sidebar-recent-item { display:flex; gap:0.75rem; align-items:flex-start; }
+    .sidebar-recent-icon { width:40px; height:40px; flex-shrink:0; background:var(--bg); border-radius:var(--radius); display:flex; align-items:center; justify-content:center; color:var(--red); }
     .sidebar-recent-info a { font-size:0.8375rem; color:var(--text); font-weight:500; line-height:1.35; }
     .sidebar-recent-info a:hover { color:var(--primary); }
-    .sidebar-cats { display:flex; flex-direction:column; gap:0.5rem; }
-    .sidebar-cat { display:flex; align-items:center; justify-content:space-between; padding:0.625rem 0.875rem; border-radius:var(--radius); background:var(--bg); border:1px solid var(--border); cursor:pointer; transition:var(--transition); }
-    .sidebar-cat:hover { border-color:var(--primary); background:rgba(27,58,110,0.04); }
-    .sidebar-cat span { font-size:0.875rem; font-weight:500; color:var(--text); }
-    .sidebar-cat .count { font-size:0.75rem; background:var(--primary); color:#fff; padding:0.125rem 0.5rem; border-radius:var(--radius-full); }
-    @media(max-width:900px) { .news-layout { grid-template-columns:1fr; } .news-sidebar { position:static; } }
+    .article-full { background:var(--bg-white); border:1px solid var(--border); border-radius:var(--radius-lg); overflow:hidden; }
+    .article-body-wrap { padding:2.5rem; }
+    .article-icon-badge { width:64px; height:64px; border-radius:var(--radius-lg); background:rgba(192,57,43,0.08); color:var(--red); display:flex; align-items:center; justify-content:center; font-size:1.75rem; margin-bottom:1.25rem; }
+    .article-title { font-family:'Playfair Display',serif; font-size:2.25rem; line-height:1.2; color:var(--text); margin:0 0 1.25rem; }
+    .article-meta-row { display:flex; flex-wrap:wrap; gap:1.25rem; align-items:center; color:var(--text-muted); font-size:0.875rem; padding-bottom:1.5rem; margin-bottom:1.5rem; border-bottom:1px solid var(--border); }
+    .article-meta-row .meta-item { display:flex; align-items:center; gap:0.4rem; }
+    .article-content { font-size:1.0625rem; line-height:1.85; color:var(--text); }
+    .article-content p { margin-bottom:1.25rem; }
+    .article-content h2,.article-content h3 { margin:2rem 0 1rem; color:var(--text); }
+    .article-content ul,.article-content ol { margin:0 0 1.25rem 1.5rem; }
+    .article-content li { margin-bottom:0.5rem; }
+    .article-content img { max-width:100%; height:auto; border-radius:var(--radius); margin:1.5rem 0; }
+    .article-content a { color:var(--primary); text-decoration:underline; }
+    .article-doc { display:inline-flex; align-items:center; gap:0.5rem; margin-top:1.5rem; }
+    .article-back { display:inline-flex; align-items:center; gap:0.5rem; margin-top:2rem; }
+    @media(max-width:900px) { .article-layout { grid-template-columns:1fr; } .article-sidebar { position:static; } .article-body-wrap { padding:1.5rem; } .article-title { font-size:1.75rem; } }
   </style>
 </head>
-<body class="news-page">
+<body class="advocacy-article-page">
 
   <!-- Nav Overlay -->
   <div class="nav-overlay" aria-hidden="true"></div>
@@ -93,7 +100,7 @@
             </div>
           </li>
           <li class="nav-item">
-            <a href="/pages/news.html" class="nav-link active" aria-current="page">
+            <a href="/pages/news.html" class="nav-link">
               Notice Board
             </a>
           </li>
@@ -103,7 +110,7 @@
             </a>
           </li>
           <li class="nav-item">
-            <a href="/pages/advocacy.html" class="nav-link">
+            <a href="/pages/advocacy.html" class="nav-link active" aria-current="page">
               Advocacy
             </a>
           </li>
@@ -149,87 +156,37 @@
       <nav class="breadcrumb" aria-label="Breadcrumb">
         <a href="/">Home</a>
         <span><i class="fas fa-chevron-right"></i></span>
-        <span aria-current="page">Teachers Notice Board</span>
+        <a href="/pages/advocacy.html">Advocacy</a>
+        <span><i class="fas fa-chevron-right"></i></span>
+        <span aria-current="page" id="breadcrumb-title">Update</span>
       </nav>
-      <h1>Teachers Notice Board</h1>
-      <p>Stay informed with the latest news, announcements, circulars, and updates from KUPPET Migori and the education sector.</p>
+      <h1 id="page-header-title">Advocacy Desk</h1>
+      <p>Defending teachers' rights, welfare, and professional dignity.</p>
     </div>
   </section>
 
   <main id="main-content">
     <section class="section" style="background:var(--bg)">
       <div class="container">
-        <!-- Search & Filter Bar -->
-        <div style="display:flex;gap:1rem;flex-wrap:wrap;align-items:center;justify-content:space-between;margin-bottom:2rem;background:var(--bg-white);padding:1.5rem;border-radius:var(--radius-lg);border:1px solid var(--border)">
-          <div class="search-bar" style="max-width:420px;flex:1">
-            <i class="fas fa-search" style="color:var(--text-light)"></i>
-            <input type="search" id="news-search" placeholder="Search news and announcements..." aria-label="Search news">
-            <button class="btn btn-primary btn-sm" id="news-search-btn">Search</button>
-          </div>
-          <div style="display:flex;align-items:center;gap:0.5rem;color:var(--text-muted);font-size:0.875rem">
-            <i class="fas fa-rss" style="color:var(--gold)"></i>
-            Subscribe to updates
-          </div>
-        </div>
-
-        <!-- Category Filter -->
-        <div class="filter-tabs" role="tablist" aria-label="Filter by category">
-          <button class="filter-tab active" data-category="" role="tab" aria-selected="true">All</button>
-          <button class="filter-tab" data-category="news" role="tab">News</button>
-          <button class="filter-tab" data-category="announcement" role="tab">Announcements</button>
-          <button class="filter-tab" data-category="circular" role="tab">Circulars</button>
-          <button class="filter-tab" data-category="press_release" role="tab">Press Releases</button>
-          <button class="filter-tab" data-category="event" role="tab">Events</button>
-        </div>
-
-        <div class="news-layout">
-          <div>
-            <div id="news-container">
-              <div class="loading"><div class="spinner"></div><p>Loading articles...</p></div>
-            </div>
-            <div id="news-pagination"></div>
+        <div class="article-layout">
+          <div id="article-container">
+            <div class="loading"><div class="spinner"></div><p>Loading content...</p></div>
           </div>
 
           <!-- Sidebar -->
-          <aside class="news-sidebar" aria-label="News sidebar">
+          <aside class="article-sidebar" aria-label="Advocacy sidebar">
             <div class="sidebar-card">
-              <h4>Categories</h4>
-              <div class="sidebar-cats">
-                <div class="sidebar-cat" onclick="document.querySelector('.filter-tab[data-category=\\'\\']').click()">
-                  <span><i class="fas fa-th-list" style="color:var(--primary);margin-right:0.5rem"></i> All Articles</span>
-                  <span class="count">All</span>
-                </div>
-                <div class="sidebar-cat" onclick="document.querySelector('.filter-tab[data-category=\\'news\\']').click()">
-                  <span><i class="fas fa-newspaper" style="color:var(--primary);margin-right:0.5rem"></i> News</span>
-                </div>
-                <div class="sidebar-cat" onclick="document.querySelector('.filter-tab[data-category=\\'announcement\\']').click()">
-                  <span><i class="fas fa-bullhorn" style="color:var(--red);margin-right:0.5rem"></i> Announcements</span>
-                </div>
-                <div class="sidebar-cat" onclick="document.querySelector('.filter-tab[data-category=\\'circular\\']').click()">
-                  <span><i class="fas fa-file-alt" style="color:var(--gold-dark);margin-right:0.5rem"></i> Circulars</span>
-                </div>
-                <div class="sidebar-cat" onclick="document.querySelector('.filter-tab[data-category=\\'event\\']').click()">
-                  <span><i class="fas fa-calendar-alt" style="color:var(--green);margin-right:0.5rem"></i> Events</span>
-                </div>
+              <h4>More Advocacy</h4>
+              <div class="sidebar-recent-list" id="recent-advocacy">
+                <p style="color:var(--text-muted);font-size:0.85rem">Loading…</p>
               </div>
             </div>
 
-            <div class="sidebar-card">
-              <h4>Quick Links</h4>
-              <div class="footer-links">
-                <a href="/pages/resources.html"><i class="fas fa-chevron-right"></i> Download Resources</a>
-                <a href="/pages/advocacy.html"><i class="fas fa-chevron-right"></i> Report an Issue</a>
-                <a href="/pages/scholarships.html"><i class="fas fa-chevron-right"></i> View Scholarships</a>
-                <a href="/pages/contact.html?category=bbf"><i class="fas fa-chevron-right"></i> BBF Claims</a>
-                <a href="/pages/contact.html"><i class="fas fa-chevron-right"></i> Contact Branch</a>
-              </div>
-            </div>
-
-            <div class="sidebar-card" style="background:var(--primary)">
-              <h4 style="color:#fff;border-bottom-color:var(--gold-light)">Need Assistance?</h4>
-              <p style="color:rgba(255,255,255,0.8);font-size:0.875rem;line-height:1.65;margin-bottom:1.25rem">Our branch office is open Monday to Friday, 8 AM – 5 PM. Walk in or call us.</p>
-              <a href="/pages/contact.html" class="btn btn-gold btn-sm" style="width:100%;justify-content:center">
-                <i class="fas fa-phone-alt"></i> Contact Us
+            <div class="sidebar-card" style="background:var(--red)">
+              <h4 style="color:#fff;border-bottom-color:var(--gold-light)">Report an Issue</h4>
+              <p style="color:rgba(255,255,255,0.85);font-size:0.875rem;line-height:1.65;margin-bottom:1.25rem">Facing a rights, welfare or contractual issue? Reach the Advocacy Desk directly.</p>
+              <a href="/pages/contact.html?category=advocacy" class="btn btn-gold btn-sm" style="width:100%;justify-content:center">
+                <i class="fas fa-flag"></i> Report Now
               </a>
             </div>
           </aside>

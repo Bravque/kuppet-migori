@@ -5,7 +5,7 @@
   <title>Member Detail — KUPPET Migori Admin</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
-  <link rel="stylesheet" href="/css/style.css?v=20260617d"><link rel="stylesheet" href="/css/portal.css?v=20260617d">
+  <link rel="stylesheet" href="/css/style.css?v=20260621b"><link rel="stylesheet" href="/css/portal.css?v=20260621b">
 </head>
 <body class="portal-body admin-member-detail-page">
 <div class="portal-layout">
@@ -55,7 +55,7 @@
         ['Member No', m.member_number],['TSC Number',m.tsc_number],['National ID',m.national_id],
         ['Employment No',m.employment_number||'—'],['Phone',m.phone],['Email',m.email],
         ['Gender',m.gender],['Date of Birth',formatDate(m.date_of_birth)],
-        ['School',m.school_name],['Sub-County',m.sub_county],
+        ['School',m.school_name],['Sub-County',m.sub_county],['Category',bbfSchoolCatLabel(m.school_category)],
         ['Status',statusBadge(m.status)],['Registered',formatDate(m.created_at)],
         ['Approved',formatDate(m.approved_at)],
       ];

@@ -105,7 +105,7 @@ CREATE TABLE IF NOT EXISTS scholarships (
   application_link VARCHAR(500),
   contact_email VARCHAR(255),
   contact_phone VARCHAR(30),
-  scholarship_type ENUM('undergraduate','postgraduate','vocational','research','international') DEFAULT 'undergraduate',
+  scholarship_type ENUM('kcse','kjsea','dte') DEFAULT 'kcse',
   is_active BOOLEAN DEFAULT TRUE,
   is_featured BOOLEAN DEFAULT FALSE,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -169,6 +169,7 @@ CREATE TABLE IF NOT EXISTS members (
   date_of_birth DATE NOT NULL,
   school_name VARCHAR(300) NOT NULL,
   sub_county VARCHAR(150) NOT NULL,
+  school_category ENUM('senior_school','junior_school'),
   passport_photo_url VARCHAR(500),
   national_id_url VARCHAR(500),
   status ENUM('pending_approval','approved','rejected','suspended') DEFAULT 'pending_approval',
@@ -187,7 +188,14 @@ CREATE TABLE IF NOT EXISTS bbf_claims (
   id INT PRIMARY KEY AUTO_INCREMENT,
   claim_number VARCHAR(20) UNIQUE NOT NULL,
   member_id INT NOT NULL,
-  claim_type ENUM('death_benefit','disability','medical_emergency','other') NOT NULL,
+  claim_type ENUM('death','retirement') NOT NULL,
+  deceased_name VARCHAR(200),
+  tsc_no VARCHAR(50),
+  sub_county VARCHAR(100),
+  school VARCHAR(200),
+  school_category ENUM('senior_school','junior_school'),
+  relationship VARCHAR(100),
+  date_of_death DATE,
   description TEXT,
   amount_requested DECIMAL(12,2),
   amount_approved DECIMAL(12,2),
@@ -411,11 +419,11 @@ INSERT IGNORE INTO resources (title, description, category, subject, grade_level
 
 -- Scholarships
 INSERT IGNORE INTO scholarships (title, provider, description, eligibility, benefits, application_deadline, scholarship_type, is_featured, is_active) VALUES
-('KUPPET National Scholarship Fund 2026', 'KUPPET National', 'Annual scholarship fund for children of KUPPET members pursuing university education. Awarded based on academic merit and financial need.', 'Children of fully paid-up KUPPET members. Must have scored B+ or above in KCSE. Must be joining university for the first time. Family income below KES 50,000 per month.', 'KES 50,000 annual tuition support. Renewable for up to 4 years subject to academic performance. Priority placement in KUPPET mentorship program.', '2026-07-31', 'undergraduate', TRUE, TRUE),
-('Teachers Welfare Fund Education Grant', 'TSC Teachers Welfare Fund', 'Education grants for children of TSC teachers pursuing technical and vocational training or university education.', 'Children of TSC-employed teachers (KUPPET members). Must be enrolled in accredited institution. Must not be benefiting from another TSC scholarship.', 'KES 30,000 one-time grant. Applicable to tuition fees, books, and accommodation.', '2026-08-15', 'vocational', TRUE, TRUE),
-('Migori County Government Bursary Fund', 'Migori County Government', 'County government bursary for students from Migori County pursuing higher education, open to children of teachers among others.', 'Residents of Migori County. Must have joined Form 1 or university. Financial need demonstrated through affidavit. Priority to orphans and vulnerable children.', 'KES 10,000 - 30,000 depending on need assessment. Renewable annually subject to availability of funds.', '2026-09-30', 'undergraduate', FALSE, TRUE),
-('CBA Foundation Teacher Children Scholarship', 'CBA Foundation (Commercial Bank of Africa)', 'CBA Foundation scholarship targeting children of teachers across Kenya, promoting access to quality higher education.', 'Children of teachers (public or private). Scored minimum B plain in KCSE. Must be joining university or TVET. No age limit.', 'Full tuition for 4 years at public universities. KES 15,000 monthly stipend. Laptop and academic support.', '2026-06-30', 'undergraduate', TRUE, TRUE),
-('Government of Kenya Postgraduate Scholarship', 'Ministry of Education - HELB', 'Government postgraduate scholarship for Kenyan professionals including teachers seeking advanced degrees locally or internationally.', 'Kenyan citizen. Currently employed in public sector. Minimum 2 years work experience. Unconditional admission to accredited postgraduate program. Below 45 years of age.', 'Full tuition fees at public universities. KES 20,000 monthly stipend. Research allowance for PhD candidates.', '2026-07-15', 'postgraduate', FALSE, TRUE);
+('KUPPET National Scholarship Fund 2026', 'KUPPET National', 'Annual scholarship fund for children of KUPPET members pursuing university education. Awarded based on academic merit and financial need.', 'Children of fully paid-up KUPPET members. Must have scored B+ or above in KCSE. Must be joining university for the first time. Family income below KES 50,000 per month.', 'KES 50,000 annual tuition support. Renewable for up to 4 years subject to academic performance. Priority placement in KUPPET mentorship program.', '2026-07-31', 'kcse', TRUE, TRUE),
+('Teachers Welfare Fund Education Grant', 'TSC Teachers Welfare Fund', 'Education grants for children of TSC teachers pursuing technical and vocational training or university education.', 'Children of TSC-employed teachers (KUPPET members). Must be enrolled in accredited institution. Must not be benefiting from another TSC scholarship.', 'KES 30,000 one-time grant. Applicable to tuition fees, books, and accommodation.', '2026-08-15', 'dte', TRUE, TRUE),
+('Migori County Government Bursary Fund', 'Migori County Government', 'County government bursary for students from Migori County pursuing higher education, open to children of teachers among others.', 'Residents of Migori County. Must have joined Form 1 or university. Financial need demonstrated through affidavit. Priority to orphans and vulnerable children.', 'KES 10,000 - 30,000 depending on need assessment. Renewable annually subject to availability of funds.', '2026-09-30', 'kjsea', FALSE, TRUE),
+('CBA Foundation Teacher Children Scholarship', 'CBA Foundation (Commercial Bank of Africa)', 'CBA Foundation scholarship targeting children of teachers across Kenya, promoting access to quality higher education.', 'Children of teachers (public or private). Scored minimum B plain in KCSE. Must be joining university or TVET. No age limit.', 'Full tuition for 4 years at public universities. KES 15,000 monthly stipend. Laptop and academic support.', '2026-06-30', 'kcse', TRUE, TRUE),
+('Government of Kenya Postgraduate Scholarship', 'Ministry of Education - HELB', 'Government postgraduate scholarship for Kenyan professionals including teachers seeking advanced degrees locally or internationally.', 'Kenyan citizen. Currently employed in public sector. Minimum 2 years work experience. Unconditional admission to accredited postgraduate program. Below 45 years of age.', 'Full tuition fees at public universities. KES 20,000 monthly stipend. Research allowance for PhD candidates.', '2026-07-15', 'kcse', FALSE, TRUE);
 
 -- Advocacy content
 INSERT IGNORE INTO advocacy (title, slug, content, category, is_featured, is_published) VALUES

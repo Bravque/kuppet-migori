@@ -1,5 +1,7 @@
 const db = require('../config/database');
 
+const SCHOLARSHIP_TYPES = ['kcse', 'kjsea', 'dte'];
+
 const getAll = async (req, res) => {
   try {
     const { type, active = 'true', limit = 20, offset = 0 } = req.query;
@@ -23,11 +25,14 @@ const adminCreate = async (req, res) => {
   try {
     const { title, provider, description, eligibility, benefits, application_deadline, application_link, contact_email, contact_phone, scholarship_type, is_active, is_featured } = req.body;
     if (!title || !provider || !description) return res.status(400).json({ success: false, message: 'Title, provider and description required' });
+    if (scholarship_type && !SCHOLARSHIP_TYPES.includes(scholarship_type)) {
+      return res.status(400).json({ success: false, message: 'Type must be one of: KCSE, KJSEA, DTE' });
+    }
     const [result] = await db.query(
       `INSERT INTO scholarships (title, provider, description, eligibility, benefits, application_deadline, application_link, contact_email, contact_phone, scholarship_type, is_active, is_featured)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [title, provider, description, eligibility || null, benefits || null, application_deadline || null,
-       application_link || null, contact_email || null, contact_phone || null, scholarship_type || 'undergraduate',
+       application_link || null, contact_email || null, contact_phone || null, scholarship_type || 'kcse',
        is_active !== false ? 1 : 0, is_featured ? 1 : 0]
     );
     const [[row]] = await db.query('SELECT * FROM scholarships WHERE id = ?', [result.insertId]);
@@ -41,6 +46,9 @@ const adminUpdate = async (req, res) => {
   try {
     const [[existing]] = await db.query('SELECT id FROM scholarships WHERE id = ?', [req.params.id]);
     if (!existing) return res.status(404).json({ success: false, message: 'Scholarship not found' });
+    if (req.body.scholarship_type !== undefined && !SCHOLARSHIP_TYPES.includes(req.body.scholarship_type)) {
+      return res.status(400).json({ success: false, message: 'Type must be one of: KCSE, KJSEA, DTE' });
+    }
     const allowed = ['title','provider','description','eligibility','benefits','application_deadline','application_link','contact_email','contact_phone','scholarship_type','is_active','is_featured'];
     const fields = [], params = [];
     for (const key of allowed) {
