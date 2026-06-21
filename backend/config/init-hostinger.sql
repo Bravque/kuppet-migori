@@ -376,16 +376,21 @@ INSERT IGNORE INTO settings (setting_key, setting_value, description) VALUES
 ('schapp_seq', '0', 'Scholarship application number sequence counter');
 
 -- Leadership data
-INSERT IGNORE INTO leadership (name, position, position_category, bio, email, phone, display_order) VALUES
-('Henri Otunga', 'Branch Executive Secretary & Chairperson', 'executive', 'Henri Otunga serves as the Branch Executive Secretary and Chairperson of KUPPET Migori Branch, championing the welfare and rights of post-primary education teachers across Migori County.', 'bes@kuppetmigori.co.ke', '+254 721 808 993', 1),
-('Br. John Otieno Ouma', 'Branch Chairperson', 'executive', 'Br. John Otieno Ouma is a seasoned educator and union leader with over 20 years in the education sector. He holds a Bachelor of Education degree and has championed the rights of post-primary teachers in Migori County, successfully leading negotiations that resulted in improved working conditions for members.', 'chair@kuppetmigori.co.ke', '+254 700 000 002', 2),
-('Sr. Mary Achieng Onyango', 'Branch Vice Chairperson', 'executive', 'Sr. Mary Achieng Onyango brings over 18 years of teaching experience and union leadership to her role. She is passionate about gender equity in education and has spearheaded numerous programs supporting female educators in Migori County. She holds a Masters in Gender and Development Studies.', 'vchair@kuppetmigori.co.ke', '+254 700 000 003', 3),
-('Br. Peter Omondi Ayieko', 'Branch Treasurer', 'executive', 'Br. Peter Omondi Ayieko is a certified public accountant and educator with expertise in financial management. He ensures transparent and accountable management of union funds, and has introduced modern financial reporting systems that have enhanced member confidence in the branch.', 'treasurer@kuppetmigori.co.ke', '+254 700 000 004', 4),
-('Sr. Grace Adhiambo Odero', 'Executive Committee Member - Gender Affairs', 'committee', 'Sr. Grace Adhiambo Odero chairs the Gender and Social Affairs desk, advocating for inclusive policies that support women educators and vulnerable members. She has over 12 years of experience in gender advocacy within the education sector.', NULL, NULL, 5),
-('Br. David Ochieng Ombima', 'Executive Committee Member - Welfare', 'committee', 'Br. David Ochieng Ombima oversees the welfare desk, coordinating BBF claims processing and member welfare programs. He has streamlined claim processing timelines significantly since taking office.', NULL, NULL, 6),
-('Sr. Agnes Kerubo Mwangi', 'Executive Committee Member - Education', 'committee', 'Sr. Agnes Kerubo Mwangi manages professional development and continuing education programs for members. She holds a PhD in Curriculum Studies and has published several papers on teacher professional development.', NULL, NULL, 7),
-('Br. Robert Juma Ogola', 'Branch Trustee', 'trustee', 'Br. Robert Juma Ogola has served the branch as trustee for over 10 years, providing oversight and governance guidance. He is a retired principal with extensive experience in institutional management.', NULL, NULL, 8),
-('Sr. Beatrice Nyambura Kimani', 'Branch Trustee', 'trustee', 'Sr. Beatrice Nyambura Kimani brings legal expertise to the board, having practiced law for over 15 years before joining the education sector. She provides crucial legal guidance on member rights and union governance.', NULL, NULL, 9);
+INSERT IGNORE INTO leadership (name, position, position_category, photo_url, bio, email, phone, display_order) VALUES
+('Kevin Odhiambo',    'Chairman',                          'executive', NULL,                              NULL, NULL, '+254723608514', 1),
+('Henry Otunga',      'Executive Secretary',               'executive', '/images/leaders/henri-otunga.jpg', NULL, NULL, '+254721808993', 2),
+('May Abong''o',      'Treasurer',                         'executive', NULL,                              NULL, NULL, '+254722226590', 3),
+('Rollex Owino',      'Assistant Executive Secretary',     'committee', NULL,                              NULL, NULL, '+254721689112', 4),
+('Bernard Obonyo',    'Vice Chairman',                     'committee', NULL,                              NULL, NULL, '+254724612920', 5),
+('Bon Ogalo',         'Assistant Treasurer',               'committee', NULL,                              NULL, NULL, '+254723052321', 6),
+('Lilian Ogutu',      'Secretary, Gender',                 'committee', NULL,                              NULL, NULL, '+254711560019', 7),
+('Fredrick Nyabuogi', 'Secretary, Secondary',              'committee', NULL,                              NULL, NULL, '+254716007037', 8),
+('Philip Nyojero',    'Secretary, Tertiary',               'committee', NULL,                              NULL, NULL, '+254704853949', 9),
+('Dennish Ong''onge', 'Organizing Secretary',              'committee', NULL,                              NULL, NULL, '+254722397732', 10),
+('Sharon Magai',      'Assistant Secretary, Gender 1',     'committee', NULL,                              NULL, NULL, '+254791000243', 11),
+('Mildred Adagala',   'Assistant Secretary, Gender 2',     'committee', NULL,                              NULL, NULL, '+254725163344', 12),
+('Harriet Okoth',     'Assistant Secretary, Gender 3',     'committee', NULL,                              NULL, NULL, '+254708820801', 13),
+('Boliph Odhiambo',   'Secretary, Junior School',          'committee', NULL,                              NULL, NULL, '+254714623990', 14);
 
 -- News articles
 INSERT IGNORE INTO news (title, slug, excerpt, content, category, is_featured, author, published_at) VALUES

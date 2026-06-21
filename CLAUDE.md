@@ -72,7 +72,8 @@ There are no tests or linting scripts configured yet.
 | **Email notifications — nodemailer (registration, approval, rejection)** | ✓ Complete |
 | **CSRF protection — double-submit cookie on all portal mutations** | ✓ Complete |
 
-**Branch Chairperson / Executive Secretary:** Henri Otunga  
+**Branch Chairman:** Kevin Odhiambo · **Executive Secretary:** Henry Otunga · **Treasurer:** May Abong'o  
+(Full 14-official roster seeded in `init*.sql`; on the live DB run `backend/config/update-leadership.sql` once. About page groups them: 3 principal officials in their own row, then the rest. Phones stored E.164 and shown as click-to-call icons; no emails were in the source scan.)  
 **Official contact details (used sitewide — single source):**
 - Phone: +254 721 808 993
 - Email: info@kuppetmigori.co.ke (the **only** email used across the site)

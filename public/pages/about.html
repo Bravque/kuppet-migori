@@ -19,6 +19,8 @@
     .timeline-item h3 { font-size:1rem; color:var(--primary); margin-bottom:0.375rem; }
     .timeline-item p { font-size:0.875rem; color:var(--text-muted); line-height:1.65; }
     .leaders-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(240px, 1fr)); gap:1.5rem; }
+    .principal-officials .leaders-grid { grid-template-columns:repeat(3, minmax(0,1fr)); }
+    @media(max-width:760px) { .principal-officials .leaders-grid { grid-template-columns:1fr; } }
     .values-grid-4 { display:grid; grid-template-columns:repeat(4, 1fr); gap:1.25rem; }
     .group-photos-grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(min(100%, 320px), 1fr)); gap:2rem; }
     .group-photo-card { background:var(--bg-white); border:1px solid var(--border); border-radius:var(--radius-xl); overflow:hidden; box-shadow:var(--shadow-sm); transition:var(--transition); }
@@ -395,26 +397,18 @@
 
         <h3 style="font-size:1rem;font-weight:700;color:var(--text-muted);letter-spacing:0.08em;text-transform:uppercase;margin-bottom:1.5rem;display:flex;align-items:center;gap:0.5rem">
           <span style="height:2px;width:24px;background:var(--gold);border-radius:2px;display:inline-block"></span>
-          Executive Officers
+          Principal Officials
         </h3>
-        <div id="executive-leaders" style="margin-bottom:3rem">
+        <div id="executive-leaders" class="principal-officials" style="margin-bottom:3rem">
           <div class="loading"><div class="spinner"></div><p>Loading leadership...</p></div>
         </div>
 
         <h3 style="font-size:1rem;font-weight:700;color:var(--text-muted);letter-spacing:0.08em;text-transform:uppercase;margin-bottom:1.5rem;display:flex;align-items:center;gap:0.5rem">
           <span style="height:2px;width:24px;background:var(--gold);border-radius:2px;display:inline-block"></span>
-          Executive Committee Members
+          Other Branch Officials
         </h3>
-        <div id="committee-leaders" style="margin-bottom:3rem">
-          <div class="loading"><div class="spinner"></div><p>Loading committee...</p></div>
-        </div>
-
-        <h3 style="font-size:1rem;font-weight:700;color:var(--text-muted);letter-spacing:0.08em;text-transform:uppercase;margin-bottom:1.5rem;display:flex;align-items:center;gap:0.5rem">
-          <span style="height:2px;width:24px;background:var(--gold);border-radius:2px;display:inline-block"></span>
-          Branch Trustees
-        </h3>
-        <div id="trustee-leaders">
-          <div class="loading"><div class="spinner"></div><p>Loading trustees...</p></div>
+        <div id="committee-leaders">
+          <div class="loading"><div class="spinner"></div><p>Loading officials...</p></div>
         </div>
       </div>
     </section>
