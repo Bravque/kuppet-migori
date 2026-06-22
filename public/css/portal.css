@@ -943,7 +943,8 @@ textarea.form-control { resize: vertical; min-height: 100px; }
 /* ── Login page ──────────────────────────────────────────────────────────────── */
 .portal-login-page {
   min-height: 100vh;
-  background: linear-gradient(135deg, var(--bg-dark, #0F1B2D) 0%, var(--primary, #1B3A6E) 100%);
+  /* KUPPET logo-green gradient — matches the site hero + inner-page banners */
+  background: linear-gradient(135deg, #00641C 0%, #008B23 55%, #1FB24A 100%);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -965,16 +966,20 @@ textarea.form-control { resize: vertical; min-height: 100px; }
 }
 
 .login-logo-icon {
-  width: 56px;
-  height: 56px;
-  background: var(--gold, #C8962A);
-  border-radius: 14px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.5rem;
-  color: #fff;
   margin-bottom: 1rem;
+}
+
+/* Show the full KUPPET logo on a clean white badge (no gold box, no cropping) */
+.login-logo-icon .logo-img {
+  height: 88px;
+  width: auto;
+  background: #fff;
+  border-radius: 16px;
+  padding: 10px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
 }
 
 .login-logo h1 {

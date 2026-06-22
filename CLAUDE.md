@@ -133,7 +133,7 @@ WHERE email = 'admin@kuppetmigori.co.ke';
 - **Homepage hero → green gradient** too (matches the inner-page banners).
 - **SMS / TalkSasa** — fixed the integration to the **v3 API** (correct endpoint + `{recipient,sender_id,type,message}`); built the **delivery webhook** (`/api/sms/webhook`) and `test-sms.js`/`test-email.js` diagnostics. SMTP (Hostinger mailbox) confirmed working. SMS delivery is blocked on **TalkSasa sender-ID network registration** (see Task 5) — code is complete.
 - **Green/gold rebrand tried & reverted (22 June 2026)** — a full logo-colour rebrand (`eb23842`, `700b0a9`) was reverted (`891027a`) per owner preference. Final scheme: **green hero + inner-page banners, deep-blue everything else.**
-- **Cache token** — now `20260622a` across all public HTML (bumped several times for `style.css`/`main.js`/`api.js` edits). NOTE: portal JS (`member/js/*`, `admin/js/*`) is **unversioned** — after editing it, hard-refresh; consider adding `?v=` to those `<script>` tags if stale-cache issues appear.
+- **Cache token** — now `20260622b` across all public HTML (bumped several times for `style.css`/`main.js`/`api.js` edits). NOTE: portal JS (`member/js/*`, `admin/js/*`) is **unversioned** — after editing it, hard-refresh; consider adding `?v=` to those `<script>` tags if stale-cache issues appear.
 
 ### Done in the 17 June 2026 session
 - **Responsive overhaul** — eliminated horizontal overflow on every public page across 320–1920px (Playwright-audited). Root-cause fixes only (no `overflow:hidden` masking): header compression `≤1780px`, icon-only CTA `≤1300px`, inline nav collapses to the hamburger **drawer at `≤960px`**, `.search-bar`/inputs `min-width:0`, `.btn { max-width:100% }`, advocacy form grid → `minmax(0,1fr)`.
@@ -233,7 +233,7 @@ Every `<body>` tag carries a class that gates the matching `init*` function in `
 Admin and member portal pages use `admin-*-page` / `member-*-page` classes gating functions in their respective portal JS files.
 
 ### Asset cache-busting (IMPORTANT)
-Hostinger serves CSS/JS with **no `cache-control`/`etag`**, so browsers hold stale assets after a deploy. Public CSS/JS links carry a version query, e.g. `href="/css/style.css?v=20260622a"`. **When you edit `style.css`, `portal.css`, `main.js`, or `api.js`, bump the `?v=` string on every page** (sed across `public/**/*.html`) or returning visitors won't see the change. HTML files themselves aren't versioned (they revalidate). Current token: `20260622a`.
+Hostinger serves CSS/JS with **no `cache-control`/`etag`**, so browsers hold stale assets after a deploy. Public CSS/JS links carry a version query, e.g. `href="/css/style.css?v=20260622b"`. **When you edit `style.css`, `portal.css`, `main.js`, or `api.js`, bump the `?v=` string on every page** (sed across `public/**/*.html`) or returning visitors won't see the change. HTML files themselves aren't versioned (they revalidate). Current token: `20260622b`.
 > ⚠ Caveat: portal JS (`member/js/member-portal.js`, `member/js/member-api.js`, `admin/js/admin-portal.js`, `admin/js/admin-api.js`) is loaded **without** a `?v=` query, so the convention above does not cover it. Editing those files relies on browser revalidation — hard-refresh after deploying portal-JS changes (e.g. member TSC login + admin export fixes live there); if stale-cache issues appear, add a `?v=` to those `<script>` tags.
 
 ### Responsive header (public pages)
