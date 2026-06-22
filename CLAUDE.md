@@ -126,8 +126,7 @@ WHERE id = 1;
 - **Inner-page banner → logo-green gradient** — `.page-header` now `#00641C → #008B23 → #1FB24A` (the logo green) on **all** inner pages incl. Advocacy. Homepage hero unchanged.
 - **Uploads** — profile photo uses a new image-only `memberPhoto` multer filter (JPEG/PNG/WebP, no PDF); `.jpg/.jpeg` extensions added to every `accept` for clearer file pickers.
 - **Admin panel completed** — built the 7 previously broken/stub pages: `scholarship-app-detail` (review/approve/reject), content CRUD for **leadership/resources/advocacy/scholarships** (modals; leadership photo + resource file uploads via FormData), `sms-templates` (create/edit/deactivate), `sms-logs` (filter + pagination). BBF + member approve/reject/etc. upgraded from `prompt()` to inline modals (also fixed BBF action buttons that were bound to an unreachable IIFE-scoped function). **Authenticated exports** — added a blob-download helper in `admin-api.js` (members/BBF/analytics/audit); `window.open()` exports were failing with "Access token required" because they couldn't send the Bearer header.
-- **KUPPET green/gold rebrand** — recoloured the whole site from deep-blue to the official logo palette via `:root` tokens (see Design tokens): green nav/buttons/gradients, gold accents, green-tinted tables/cards, dark-green footer.
-- **Cache token** — now `20260621h` across all public HTML (bumped several times this session for `main.js`/`api.js`/`style.css` edits). NOTE: portal JS (`member/js/*`, `admin/js/*`) is **unversioned** — after editing it, hard-refresh; consider adding `?v=` to those `<script>` tags if stale-cache issues appear.
+- **Cache token** — now `20260621f` across all public HTML (bumped several times this session for `main.js`/`api.js`/`style.css` edits). NOTE: portal JS (`member/js/*`, `admin/js/*`) is **unversioned** — after editing it, hard-refresh; consider adding `?v=` to those `<script>` tags if stale-cache issues appear.
 
 ### Done in the 17 June 2026 session
 - **Responsive overhaul** — eliminated horizontal overflow on every public page across 320–1920px (Playwright-audited). Root-cause fixes only (no `overflow:hidden` masking): header compression `≤1780px`, icon-only CTA `≤1300px`, inline nav collapses to the hamburger **drawer at `≤960px`**, `.search-bar`/inputs `min-width:0`, `.btn { max-width:100% }`, advocacy form grid → `minmax(0,1fr)`.
@@ -225,7 +224,7 @@ Every `<body>` tag carries a class that gates the matching `init*` function in `
 Admin and member portal pages use `admin-*-page` / `member-*-page` classes gating functions in their respective portal JS files.
 
 ### Asset cache-busting (IMPORTANT)
-Hostinger serves CSS/JS with **no `cache-control`/`etag`**, so browsers hold stale assets after a deploy. Public CSS/JS links carry a version query, e.g. `href="/css/style.css?v=20260621h"`. **When you edit `style.css`, `portal.css`, `main.js`, or `api.js`, bump the `?v=` string on every page** (sed across `public/**/*.html`) or returning visitors won't see the change. HTML files themselves aren't versioned (they revalidate). Current token: `20260621h`.
+Hostinger serves CSS/JS with **no `cache-control`/`etag`**, so browsers hold stale assets after a deploy. Public CSS/JS links carry a version query, e.g. `href="/css/style.css?v=20260622a"`. **When you edit `style.css`, `portal.css`, `main.js`, or `api.js`, bump the `?v=` string on every page** (sed across `public/**/*.html`) or returning visitors won't see the change. HTML files themselves aren't versioned (they revalidate). Current token: `20260622a`.
 > ⚠ Caveat: portal JS (`member/js/member-portal.js`, `member/js/member-api.js`, `admin/js/admin-portal.js`, `admin/js/admin-api.js`) is loaded **without** a `?v=` query, so the convention above does not cover it. Editing those files relies on browser revalidation — hard-refresh after deploying portal-JS changes (e.g. member TSC login + admin export fixes live there); if stale-cache issues appear, add a `?v=` to those `<script>` tags.
 
 ### Responsive header (public pages)
@@ -312,34 +311,20 @@ Upload subdirectories: `photos/`, `documents/`, `bbf/`, `scholarships/`, `member
 | `POST /api/admin/sms/send` | 20 req / min |
 | `POST /api/admin/sms/bulk` | 3 req / hr |
 
-### Design tokens (CSS custom properties) — KUPPET brand palette (logo colours)
-Redefined 21 June 2026 from deep-blue to the official KUPPET green/gold. The whole
-site is token-driven, so most components recolour from `:root`; remaining hardcoded
-tints were swapped (old blue RGB `27,58,110` → `0,138,75`, old gold `200,150,42` →
-`200,168,107`). Hero/page-header/membership gradients use `var(--primary) → var(--primary-dark)`.
+### Design tokens (CSS custom properties)
 ```
---primary:       #008B23  (logo green — nav active, buttons, headers, gradients)
---primary-dark:  #006E1B  (green hover; footer + topbar background)
---primary-light: #2BA84A
---primary-tint:  #E3F3E8  (subtle green surface — table zebra, hovers, badges)
---gold:          #E0A500  (vivid logo gold — highlights, badges, CTA accents)
---gold-light:    #FFD200  (bright logo yellow)
---gold-dark:     #B47D00  (deep logo gold — hover)
---red:           #DC2626  (error)
---green:         #10B981  (success)
---warning:       #F59E0B
---text:          #15241A  (headings)
---text-muted:    #44524A  (body)
---text-light:    #8B968F
---bg:            #EEF4EF  (soft green off-white — relieves harsh white)
---bg-white:      #FFFFFF  (cards)
---bg-dark:       #053D14  (deep green — portal sidebar)
---border:        #DCE6DF  (soft green-gray)
---shadow-card:   0 4px 20px rgba(0,0,0,0.08)
+--primary:       #1B3A6E  (deep blue — nav, buttons, headers)
+--primary-dark:  #0F2347
+--primary-light: #2D5AA0
+--gold:          #C8962A  (accent — badges, highlights, CTA)
+--gold-light:    #E5B94E
+--red:           #C0392B  (advocacy, alerts, errors)
+--green:         #1a7340  (success states, Kenya green)
+--text:          #1A202C
+--text-muted:    #718096
+--bg:            #F7F9FC
+--bg-dark:       #0F1B2D  (footer, portal sidebar)
 ```
-Component conventions: cards = 16px radius + soft shadow + 3px green top accent;
-data-tables = green header + green-tint zebra; footer = `--primary-dark` + gold top
-border; nav active = green tint + gold underline. Note: `.btn-gold` uses dark text on bright gold for WCAG-compliant readability.
 
 Portal-specific status badge classes (in `portal.css`):
 `.status-badge--pending_approval`, `.status-badge--approved`, `.status-badge--rejected`,
