@@ -113,6 +113,30 @@ WHERE email = 'admin@kuppetmigori.co.ke';
 
 ---
 
+### Done in the 22 June 2026 session (security audit + hardening, branding, deps)
+
+A full security audit was run against the codebase and **all findings fixed** (committed to `main`, deployed). Highlights:
+
+**Critical**
+- **Sensitive uploads no longer publicly downloadable.** `server.js` now 404-blocks `/uploads/{members,bbf,scholarships}` *before* `express.static`, so National IDs / passport scans / claim docs can't be fetched directly. Members stream their own files via `GET /api/member/documents/:filename` (ownership-checked); admins use the **new** `GET /api/admin/documents/:filename` (`backend/routes/adminDocuments.js`, auth+admin). Admin detail pages (`bbf-detail`, `scholarship-app-detail`, `member-detail`) now open docs through a `viewDoc()` blob-fetch helper in `admin-portal.js` instead of direct `<a href>` links. (`photos/` + `documents/` stay public — leader photos, resource downloads.)
+- **No more default admin credential.** `init*.sql` now seeds the admin **inactive with an unusable hash (`'!'`)**; the published `Admin@123` was removed from this file. Set a real password + `is_active=1` per the reset procedure above.
+
+**High**
+- **TOTP key guard** — `server.js` refuses to boot unless `TOTP_ENCRYPTION_KEY` is 64 random hex (was an all-zero fallback). Removed the zero default from `.env.example`.
+- **Dependencies** — removed `xlsx` (high, no-fix) → exports migrated to **`exceljs`** via `backend/utils/excel.js`; **nodemailer → 9.x**; added **`express-async-errors`** (rejected async handlers now reach the error handler). Later (Hostinger CVE email): **multer → 2.x** (7 DoS CVEs) and a **`uuid` override → ^11.1.1** (exceljs transitive). `npm audit`: **0 vulnerabilities**.
+
+**Medium/Low**
+- **CSRF is now actually enforced** (it was previously dead code). `csrfProtection` is applied to `/api/member` + `/api/admin`; `issueCsrfCookie` moved to run **globally before static serving** so portal HTML always carries the `__csrf` cookie. Both API wrappers already send `X-CSRF-Token`.
+- Stripped internal `err.message` from all 500 responses (log server-side only); `.gitignore` now covers `.env*` (keep `.env.example`); `FRONTEND_URL` asserted in production; added `Permissions-Policy` + explicit 2-yr HSTS preload; `morgan('combined')` in prod; traversal-guard on the catch-all `sendFile`; password complexity (≥8 + letter + number) on member/admin password set.
+
+> **Deferred (breaking, not done):** moving JWTs from `localStorage` → `httpOnly` cookies, and dropping CSP `script-src 'unsafe-inline'` (would require refactoring inline handlers incl. the new `viewDoc` `onclick`s).
+
+**Branding / assets**
+- **Login pages** (`member/login.html`, `admin/login.html`) — background changed blue → **green** (the logo-green banner gradient); logo no longer crammed in a gold box — now a clean white badge (`88px`, `.login-logo-icon .logo-img` in `portal.css`). Fixed a stray `</i>` in admin login.
+- **Favicon** added across **all 42 pages** — `favicon.ico` (16/32/48), `favicon-16/32`, `apple-touch-icon` (180), generated from the **emblem crop** of the logo (full-logo text is illegible at 16–32px). Source: owner-supplied `kuppetfavicon.png`. Files at `public/favicon.ico`, `public/apple-touch-icon.png`, `public/images/favicon-*.png`.
+- **Image compression** — `kuppetlogo.png` 532KB→24KB (320px palette PNG); `leaders/henri-otunga.jpg` 642KB→28KB (600px mozjpeg). Done with `sharp` (installed `--no-save`, not a project dep).
+- **Cache token bumped `20260622a → 20260622b`** across all public HTML (portal.css changed).
+
 ### Done in the 21 June 2026 session
 - **Article detail pages** — new `public/pages/article.html` (`article-page` body class) reads `?slug=` → `api.news.getOne` and `public/pages/advocacy-article.html` (`advocacy-article-page`) → `api.advocacy.getOne`. Added `initArticlePage()` + `initAdvocacyArticlePage()` to `main.js`; repointed both "Read More" links to these pages; `api.js` now attaches `err.status` for 404 handling. (Backend `GET /api/news/:slug` & `/api/advocacy/:slug` already existed.)
 - **Schema phone fix** — `index.html` schema.org `contactPoint.telephone` set to the real `+254-721-808-993`.
@@ -258,6 +282,11 @@ Two separate secrets are **required** and must differ:
 
 Server throws at startup if they are equal.
 
+### Startup guards (server.js refuses to boot if violated)
+- `JWT_SECRET` ≠ `JWT_MEMBER_SECRET` (above).
+- `TOTP_ENCRYPTION_KEY` must be **64 random hex chars** (32 bytes) and not all-zero — generate with `openssl rand -hex 32`. (Encrypts admin 2FA secrets at rest; the old all-zero default was removed.)
+- In production (`NODE_ENV=production`), `FRONTEND_URL` must be set (CORS origin — no localhost fallback).
+
 ### Auth identifiers
 - **Members** log in with **TSC number + password** (`members.tsc_number`). Email is still collected at registration (unique) but isn't the login identifier. Password reset is by email (see forgot/reset flow).
 - **Admins** log in with **email + password** (+ optional TOTP 2FA).
@@ -302,7 +331,9 @@ The new-claim form (`member/bbf-claims.html`) shows the member's identity in a r
 Member numbers (`MBR-YYYY-NNNNNN`), BBF claim numbers (`BBF-YYYY-NNNNNN`), and scholarship application numbers (`SAPP-YYYY-NNNNNN`) use atomic MySQL counters stored in the `settings` table (`member_seq`, `bbf_seq`, `schapp_seq`). Never use `COUNT(*)+1`.
 
 ### File uploads
-Files stored in `public/uploads/{category}/` with UUID filenames. Sensitive member documents (national ID, passport photo) are **not** served as static files — they go through `GET /api/member/documents/:filename` which verifies ownership before streaming.
+Files stored in `public/uploads/{category}/` with UUID filenames (multer **2.x**). The sensitive subdirs — `members/`, `bbf/`, `scholarships/` — are **404-blocked from static serving** in `server.js` (before `express.static`); only `photos/` and `documents/` are public. Sensitive files are streamed only through ownership/role-checked endpoints:
+- **Members:** `GET /api/member/documents/:filename` — verifies the file belongs to the logged-in member.
+- **Admins:** `GET /api/admin/documents/:filename` (`backend/routes/adminDocuments.js`) — `authenticate` + `authorizeAdmin`; admin detail pages fetch these as a blob via `viewDoc()` in `admin-portal.js` (a plain link can't send the Bearer token).
 
 Upload subdirectories: `photos/`, `documents/`, `bbf/`, `scholarships/`, `members/`
 
@@ -336,9 +367,9 @@ Upload subdirectories: `photos/`, `documents/`, `bbf/`, `scholarships/`, `member
 ```
 
 **Colour scheme (current):** deep-blue design system **except** the green banners — the
-homepage `.hero` and every inner-page `.page-header` use a green gradient
-`linear-gradient(135deg, #00641C 0%, #008B23 55%, #1FB24A 100%)` (the only hardcoded
-gradients in `style.css`). A full green/gold rebrand was tried and reverted on 22 June 2026
+homepage `.hero`, every inner-page `.page-header`, and the **portal login pages**
+(`.portal-login-page` in `portal.css`) use the green gradient
+`linear-gradient(135deg, #00641C 0%, #008B23 55%, #1FB24A 100%)`. A full green/gold rebrand was tried and reverted on 22 June 2026
 (commit `891027a`) — keep this green-banner / blue-rest split unless asked otherwise.
 
 Portal-specific status badge classes (in `portal.css`):
