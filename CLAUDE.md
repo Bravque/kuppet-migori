@@ -123,10 +123,13 @@ WHERE id = 1;
 - **Forgot / reset password (members)** — `forgot-password.html` + `reset-password.html`; routes `POST /api/member/auth/forgot-password` (rate-limited 5/hr) & `/reset-password`. Reset token is a JWT signed with `JWT_MEMBER_SECRET + member.password` → single-use & self-expiring (1h), no DB column. Delivered by email → **requires SMTP env vars** (`SMTP_HOST/PORT/USER/PASS`); `APP_URL` builds the link. `backend/scripts/test-email.js you@x.com` checks SMTP. ✓ SMTP confirmed working on live.
 - **Leadership roster** — replaced placeholder leaders with the 14 real officials (`update-leadership.sql` for the live DB; seeded in `init*.sql`). About page: 3 **Principal Officials** (Chairman, Exec Sec, Treasurer) in their own row, then **Other Branch Officials**; Trustees section removed. Cards show photo + position + name + click-to-call phone + email icon (no bio). Phones E.164; placeholder email `info@kuppetmigori.co.ke` on all (owner to replace). Leader photo CSS → `object-fit:contain` (full image centered, not cropped).
 - **BBF claim detail split** — member + admin claim pages show **Claim / Applicant's Details / Deceased Person Details** as separate blocks (`memberBbfController.getOne` now returns `applicant_name`).
-- **Inner-page banner → logo-green gradient** — `.page-header` now `#00641C → #008B23 → #1FB24A` (the logo green) on **all** inner pages incl. Advocacy. Homepage hero unchanged.
+- **Inner-page banner → logo-green gradient** — `.page-header` now `#00641C → #008B23 → #1FB24A` (the logo green) on **all** inner pages incl. Advocacy (homepage hero greened too — see below).
 - **Uploads** — profile photo uses a new image-only `memberPhoto` multer filter (JPEG/PNG/WebP, no PDF); `.jpg/.jpeg` extensions added to every `accept` for clearer file pickers.
 - **Admin panel completed** — built the 7 previously broken/stub pages: `scholarship-app-detail` (review/approve/reject), content CRUD for **leadership/resources/advocacy/scholarships** (modals; leadership photo + resource file uploads via FormData), `sms-templates` (create/edit/deactivate), `sms-logs` (filter + pagination). BBF + member approve/reject/etc. upgraded from `prompt()` to inline modals (also fixed BBF action buttons that were bound to an unreachable IIFE-scoped function). **Authenticated exports** — added a blob-download helper in `admin-api.js` (members/BBF/analytics/audit); `window.open()` exports were failing with "Access token required" because they couldn't send the Bearer header.
-- **Cache token** — now `20260621f` across all public HTML (bumped several times this session for `main.js`/`api.js`/`style.css` edits). NOTE: portal JS (`member/js/*`, `admin/js/*`) is **unversioned** — after editing it, hard-refresh; consider adding `?v=` to those `<script>` tags if stale-cache issues appear.
+- **Homepage hero → green gradient** too (matches the inner-page banners).
+- **SMS / TalkSasa** — fixed the integration to the **v3 API** (correct endpoint + `{recipient,sender_id,type,message}`); built the **delivery webhook** (`/api/sms/webhook`) and `test-sms.js`/`test-email.js` diagnostics. SMTP (Hostinger mailbox) confirmed working. SMS delivery is blocked on **TalkSasa sender-ID network registration** (see Task 5) — code is complete.
+- **Green/gold rebrand tried & reverted (22 June 2026)** — a full logo-colour rebrand (`eb23842`, `700b0a9`) was reverted (`891027a`) per owner preference. Final scheme: **green hero + inner-page banners, deep-blue everything else.**
+- **Cache token** — now `20260622a` across all public HTML (bumped several times for `style.css`/`main.js`/`api.js` edits). NOTE: portal JS (`member/js/*`, `admin/js/*`) is **unversioned** — after editing it, hard-refresh; consider adding `?v=` to those `<script>` tags if stale-cache issues appear.
 
 ### Done in the 17 June 2026 session
 - **Responsive overhaul** — eliminated horizontal overflow on every public page across 320–1920px (Playwright-audited). Root-cause fixes only (no `overflow:hidden` masking): header compression `≤1780px`, icon-only CTA `≤1300px`, inline nav collapses to the hamburger **drawer at `≤960px`**, `.search-bar`/inputs `min-width:0`, `.btn { max-width:100% }`, advocacy form grid → `minmax(0,1fr)`.
@@ -158,10 +161,12 @@ Still placeholder in the codebase:
 - Branded `og:image` 1200×630 px, add `<meta property="og:image">` to all pages
 - Add canonical and full `og:url` tags to inner pages
 
-**Task 5 — TalkSasa SMS activation**
-`backend/services/smsService.js` is fully built. `TALKSASA_API_KEY` and `TALKSASA_BASE_URL` are set in `.env`; remaining:
-- Change `TALKSASA_SENDER_ID` from the default `TALKSASA` to the registered/approved sender ID
-- Register a delivery webhook at `POST /api/sms/webhook` with TalkSasa
+**Task 5 — TalkSasa SMS (code complete; blocked on TalkSasa account)**
+Code is done and correct (verified 21–22 June 2026):
+- `smsService.js` posts to the **TalkSasa v3** API `https://bulksms.talksasa.com/api/v3/sms/send` with `{recipient, sender_id, type:'plain', message}` (the old `api.talksasa.com/v1` + `{to,...}` payload was wrong and failed every send). Default `TALKSASA_BASE_URL` updated; trailing slash stripped.
+- **Delivery webhook** at `POST /api/sms/webhook` (`backend/routes/smsWebhook.js` → `smsController.webhook`) updates `sms_logs.status` from the DLR; robust to TalkSasa's varied field names.
+- Diagnostics: `node backend/scripts/test-sms.js +2547… "msg"` (prints balance + raw send response).
+- **Remaining (TalkSasa side, not code):** the **Sender ID must be network-registered with Safaricom/Airtel** — sends report "Delivered" but don't arrive (TalkSasa's own dashboard send fails the same way), which is the classic unregistered-sender-ID symptom. Set the approved/registered ID in `TALKSASA_SENDER_ID` and confirm `TALKSASA_BASE_URL=https://bulksms.talksasa.com/api/v3`, then register the webhook URL in the TalkSasa dashboard.
 
 ---
 
@@ -325,6 +330,12 @@ Upload subdirectories: `photos/`, `documents/`, `bbf/`, `scholarships/`, `member
 --bg:            #F7F9FC
 --bg-dark:       #0F1B2D  (footer, portal sidebar)
 ```
+
+**Colour scheme (current):** deep-blue design system **except** the green banners — the
+homepage `.hero` and every inner-page `.page-header` use a green gradient
+`linear-gradient(135deg, #00641C 0%, #008B23 55%, #1FB24A 100%)` (the only hardcoded
+gradients in `style.css`). A full green/gold rebrand was tried and reverted on 22 June 2026
+(commit `891027a`) — keep this green-banner / blue-rest split unless asked otherwise.
 
 Portal-specific status badge classes (in `portal.css`):
 `.status-badge--pending_approval`, `.status-badge--approved`, `.status-badge--rejected`,
