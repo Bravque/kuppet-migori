@@ -379,9 +379,15 @@ ALTER TABLE bbf_claim_documents MODIFY COLUMN doc_type ENUM('tsc_slip','burial_p
 -- SEED DATA
 -- ============================================
 
--- Default super admin (password: Admin@123 — CHANGE IN PRODUCTION)
-INSERT IGNORE INTO users (name, email, password, role) VALUES
-('Admin KUPPET', 'admin@kuppetmigori.co.ke', '$2b$10$YwQPKWUz5zxS9D4LyAEG3.HxEU6Hy1AoGjJ7kXpN1xDz2Wrl9RVGi', 'super_admin');
+-- Default super admin — seeded INACTIVE with an UNUSABLE password hash ('!').
+-- No login is possible until an operator sets a real password and activates it.
+-- This avoids shipping a known/default credential in a public repository.
+-- After install, set a strong password (bcrypt hash) and activate, e.g. via SQL:
+--   UPDATE users SET password = '<bcrypt-hash>', is_active = 1,
+--          failed_login_attempts = 0, locked_until = NULL
+--   WHERE email = 'admin@kuppetmigori.co.ke';
+INSERT IGNORE INTO users (name, email, password, role, is_active) VALUES
+('Admin KUPPET', 'admin@kuppetmigori.co.ke', '!', 'super_admin', 0);
 
 -- Site settings
 INSERT IGNORE INTO settings (setting_key, setting_value, description) VALUES

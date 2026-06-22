@@ -8,6 +8,28 @@ function escHtml(s) {
     .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
 }
 
+// Open a protected member/claim/scholarship document. The file is no longer a
+// public static asset — it is streamed from /api/admin/documents/:filename with
+// the admin Bearer token, so a plain link can't fetch it. We pull it as a blob
+// and open it in a new tab.
+async function viewDoc(fileUrlOrName) {
+  if (!fileUrlOrName) return;
+  const filename = String(fileUrlOrName).split('/').pop();
+  try {
+    const token = localStorage.getItem('adminToken');
+    const res = await fetch('/api/admin/documents/' + encodeURIComponent(filename), {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    });
+    if (!res.ok) throw new Error('Could not load document (' + res.status + ')');
+    const url = URL.createObjectURL(await res.blob());
+    window.open(url, '_blank');
+    setTimeout(() => URL.revokeObjectURL(url), 60000);
+  } catch (err) {
+    alert(err.message || 'Failed to open document');
+  }
+}
+window.viewDoc = viewDoc;
+
 function formatDate(d, opts = {}) {
   if (!d) return '—';
   return new Date(d).toLocaleDateString('en-KE', { day: 'numeric', month: 'short', year: 'numeric', ...opts });

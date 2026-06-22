@@ -10,7 +10,7 @@ async function getAll(req, res) {
     );
     res.json({ success: true, data: claims });
   } catch (err) {
-    res.status(500).json({ success: false, message: 'Failed to fetch claims', error: err.message });
+    res.status(500).json({ success: false, message: 'Failed to fetch claims' });
   }
 }
 
@@ -56,7 +56,7 @@ async function create(req, res) {
     const [[claim]] = await db.query('SELECT * FROM bbf_claims WHERE id = ?', [result.insertId]);
     res.status(201).json({ success: true, data: claim });
   } catch (err) {
-    res.status(500).json({ success: false, message: 'Failed to create claim', error: err.message });
+    res.status(500).json({ success: false, message: 'Failed to create claim' });
   }
 }
 
@@ -73,7 +73,7 @@ async function getOne(req, res) {
     const [docs] = await db.query('SELECT * FROM bbf_claim_documents WHERE claim_id = ?', [claim.id]);
     res.json({ success: true, data: { ...claim, documents: docs } });
   } catch (err) {
-    res.status(500).json({ success: false, message: 'Failed to fetch claim', error: err.message });
+    res.status(500).json({ success: false, message: 'Failed to fetch claim' });
   }
 }
 
@@ -117,7 +117,7 @@ async function submitClaim(req, res) {
 
     res.json({ success: true, message: 'Claim submitted successfully' });
   } catch (err) {
-    res.status(500).json({ success: false, message: 'Failed to submit claim', error: err.message });
+    res.status(500).json({ success: false, message: 'Failed to submit claim' });
   }
 }
 
@@ -139,7 +139,7 @@ async function uploadDocuments(req, res) {
     }
     res.json({ success: true, message: `${req.files.length} document(s) uploaded` });
   } catch (err) {
-    res.status(500).json({ success: false, message: 'Upload failed', error: err.message });
+    res.status(500).json({ success: false, message: 'Upload failed' });
   }
 }
 
@@ -157,7 +157,7 @@ async function getTimeline(req, res) {
     );
     res.json({ success: true, data: timeline });
   } catch (err) {
-    res.status(500).json({ success: false, message: 'Failed to fetch timeline', error: err.message });
+    res.status(500).json({ success: false, message: 'Failed to fetch timeline' });
   }
 }
 

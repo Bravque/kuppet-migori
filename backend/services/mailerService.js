@@ -33,7 +33,7 @@ async function sendMail({ to, subject, html, text }) {
     return { success: true, messageId: info.messageId };
   } catch (err) {
     console.error('[mailer] Send failed:', err.message);
-    return { success: false, error: err.message };
+    return { success: false };
   }
 }
 

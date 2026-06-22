@@ -13,7 +13,7 @@ const getAll = async (req, res) => {
     const [rows] = await db.query(query, params);
     res.json({ success: true, data: rows });
   } catch (err) {
-    res.status(500).json({ success: false, message: 'Failed to fetch advocacy content', error: err.message });
+    res.status(500).json({ success: false, message: 'Failed to fetch advocacy content' });
   }
 };
 
@@ -23,7 +23,7 @@ const getOne = async (req, res) => {
     if (!rows.length) return res.status(404).json({ success: false, message: 'Content not found' });
     res.json({ success: true, data: rows[0] });
   } catch (err) {
-    res.status(500).json({ success: false, message: 'Failed to fetch content', error: err.message });
+    res.status(500).json({ success: false, message: 'Failed to fetch content' });
   }
 };
 
@@ -45,7 +45,7 @@ const adminCreate = async (req, res) => {
     const [[row]] = await db.query('SELECT * FROM advocacy WHERE id = ?', [result.insertId]);
     res.status(201).json({ success: true, data: row });
   } catch (err) {
-    res.status(500).json({ success: false, message: 'Failed to create content', error: err.message });
+    res.status(500).json({ success: false, message: 'Failed to create content' });
   }
 };
 
@@ -64,7 +64,7 @@ const adminUpdate = async (req, res) => {
     const [[row]] = await db.query('SELECT * FROM advocacy WHERE id = ?', [req.params.id]);
     res.json({ success: true, data: row });
   } catch (err) {
-    res.status(500).json({ success: false, message: 'Failed to update content', error: err.message });
+    res.status(500).json({ success: false, message: 'Failed to update content' });
   }
 };
 
@@ -75,7 +75,7 @@ const adminRemove = async (req, res) => {
     await db.query('DELETE FROM advocacy WHERE id = ?', [req.params.id]);
     res.json({ success: true, message: 'Content deleted' });
   } catch (err) {
-    res.status(500).json({ success: false, message: 'Failed to delete content', error: err.message });
+    res.status(500).json({ success: false, message: 'Failed to delete content' });
   }
 };
 

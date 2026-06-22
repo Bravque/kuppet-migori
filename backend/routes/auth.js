@@ -31,7 +31,8 @@ router.get('/me', authenticate, ctrl.getMe);
 // Change password
 router.put('/password', authenticate,
   body('oldPassword').notEmpty(),
-  body('newPassword').isLength({ min: 8 }).withMessage('Minimum 8 characters'),
+  body('newPassword').isLength({ min: 8 }).matches(/^(?=.*[A-Za-z])(?=.*\d).{8,}$/)
+    .withMessage('Password must be at least 8 characters and include a letter and a number'),
   validate,
   ctrl.changePassword
 );

@@ -93,17 +93,21 @@ Rongo, Awendo, Uriri, Suna East, Suna West, Ntimaru, Kuria West, Kuria East, Mab
 - **Password:** set via phpMyAdmin (see reset procedure below)
 - **Role:** `super_admin`
 
-**If locked out or password unknown — reset via phpMyAdmin:**
-1. hPanel → Databases → phpMyAdmin → `u735599564_KuppetMigori44` → SQL tab
-2. Run:
+**If locked out or password unknown — reset via phpMyAdmin (no default password is published):**
+1. Generate a fresh bcrypt hash for a strong, secret password of your choosing:
+   `node -e "console.log(require('bcryptjs').hashSync(process.argv[1], 10))" 'YOUR-NEW-STRONG-PASSWORD'`
+   (run locally; never commit the password or the resulting hash)
+2. hPanel → Databases → phpMyAdmin → `u735599564_KuppetMigori44` → SQL tab
+3. Run (paste your generated hash; `is_active = 1` activates the inactive seed account):
 ```sql
 UPDATE users
-SET password = '$2a$10$Q5k3rg.2bJrNPs7k4UpT8OHR5HdqW.OmOOQ/t6.QfCXf0EVIz3som',
+SET password = '<paste-your-generated-bcrypt-hash>',
+    is_active = 1,
     failed_login_attempts = 0,
     locked_until = NULL
-WHERE id = 1;
+WHERE email = 'admin@kuppetmigori.co.ke';
 ```
-3. This sets the password to `Admin@123`. Change it immediately after logging in.
+4. Log in, then enable TOTP 2FA on the account immediately. Never store the password in this repo.
 
 > Account lockout triggers after repeated failed attempts — `locked_until` and `failed_login_attempts` columns on the `users` table. The app uses `bcryptjs` (not `bcrypt`).
 

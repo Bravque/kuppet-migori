@@ -1,5 +1,8 @@
 node_modules/
+# Ignore all env files (secrets) except the committed template
 .env
+.env.*
+!.env.example
 *.log
 npm-debug.log*
 .DS_Store

@@ -16,7 +16,7 @@ const getAll = async (req, res) => {
     const [rows] = await db.query(query, params);
     res.json({ success: true, data: rows });
   } catch (err) {
-    res.status(500).json({ success: false, message: 'Failed to fetch events', error: err.message });
+    res.status(500).json({ success: false, message: 'Failed to fetch events' });
   }
 };
 
@@ -27,7 +27,7 @@ const getUpcoming = async (req, res) => {
     );
     res.json({ success: true, data: rows });
   } catch (err) {
-    res.status(500).json({ success: false, message: 'Failed to fetch events', error: err.message });
+    res.status(500).json({ success: false, message: 'Failed to fetch events' });
   }
 };
 
@@ -44,7 +44,7 @@ const adminCreate = async (req, res) => {
     const [[row]] = await db.query('SELECT * FROM events WHERE id = ?', [result.insertId]);
     res.status(201).json({ success: true, data: row });
   } catch (err) {
-    res.status(500).json({ success: false, message: 'Failed to create event', error: err.message });
+    res.status(500).json({ success: false, message: 'Failed to create event' });
   }
 };
 
@@ -63,7 +63,7 @@ const adminUpdate = async (req, res) => {
     const [[row]] = await db.query('SELECT * FROM events WHERE id = ?', [req.params.id]);
     res.json({ success: true, data: row });
   } catch (err) {
-    res.status(500).json({ success: false, message: 'Failed to update event', error: err.message });
+    res.status(500).json({ success: false, message: 'Failed to update event' });
   }
 };
 
@@ -74,7 +74,7 @@ const adminRemove = async (req, res) => {
     await db.query('DELETE FROM events WHERE id = ?', [req.params.id]);
     res.json({ success: true, message: 'Event deleted' });
   } catch (err) {
-    res.status(500).json({ success: false, message: 'Failed to delete event', error: err.message });
+    res.status(500).json({ success: false, message: 'Failed to delete event' });
   }
 };
 

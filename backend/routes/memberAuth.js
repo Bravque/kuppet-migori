@@ -23,7 +23,8 @@ router.post('/register',
     body('national_id').trim().notEmpty().withMessage('National ID required').isLength({ max: 30 }),
     body('phone').trim().notEmpty().withMessage('Phone required').isLength({ max: 30 }),
     body('email').trim().isEmail().normalizeEmail().withMessage('Valid email required'),
-    body('password').isLength({ min: 8 }).withMessage('Password must be at least 8 characters'),
+    body('password').isLength({ min: 8 }).matches(/^(?=.*[A-Za-z])(?=.*\d).{8,}$/)
+      .withMessage('Password must be at least 8 characters and include a letter and a number'),
     body('gender').isIn(['male','female','other']).withMessage('Gender required'),
     body('date_of_birth').isDate().withMessage('Valid date of birth required'),
     body('school_name').trim().notEmpty().withMessage('School name required').isLength({ max: 300 }),
@@ -50,7 +51,8 @@ router.post('/forgot-password', ctrl.forgotPassword);
 router.post('/reset-password',
   [
     body('token').notEmpty().withMessage('Reset token required'),
-    body('password').isLength({ min: 8 }).withMessage('Password must be at least 8 characters'),
+    body('password').isLength({ min: 8 }).matches(/^(?=.*[A-Za-z])(?=.*\d).{8,}$/)
+      .withMessage('Password must be at least 8 characters and include a letter and a number'),
   ],
   validate,
   ctrl.resetPassword
@@ -59,7 +61,8 @@ router.post('/reset-password',
 // Protected routes
 router.get('/me', authenticateMember, ctrl.getMe);
 router.put('/password', authenticateMember,
-  body('newPassword').isLength({ min: 8 }).withMessage('Minimum 8 characters'),
+  body('newPassword').isLength({ min: 8 }).matches(/^(?=.*[A-Za-z])(?=.*\d).{8,}$/)
+    .withMessage('Password must be at least 8 characters and include a letter and a number'),
   validate,
   ctrl.changePassword
 );

@@ -7,12 +7,28 @@ const cookieParser = require('cookie-parser');
 const path = require('path');
 const fs = require('fs');
 require('dotenv').config();
+require('express-async-errors'); // forwards rejected async-handler promises to the error handler
 const { csrfProtection, issueCsrfCookie } = require('./middleware/csrf');
+
+const isProd = process.env.NODE_ENV === 'production';
 
 // Guard: member and admin JWT secrets must differ
 if (process.env.JWT_SECRET && process.env.JWT_MEMBER_SECRET &&
     process.env.JWT_SECRET === process.env.JWT_MEMBER_SECRET) {
   throw new Error('JWT_SECRET and JWT_MEMBER_SECRET must be different values');
+}
+
+// Guard: TOTP secrets are encrypted at rest — refuse to boot with a missing/weak key
+{
+  const k = process.env.TOTP_ENCRYPTION_KEY || '';
+  if (!/^[0-9a-fA-F]{64}$/.test(k) || /^0+$/.test(k)) {
+    throw new Error('TOTP_ENCRYPTION_KEY must be 64 random hex characters (32 bytes). Generate with: openssl rand -hex 32');
+  }
+}
+
+// Guard: in production the CORS origin must be set explicitly (no localhost fallback)
+if (isProd && !process.env.FRONTEND_URL) {
+  throw new Error('FRONTEND_URL must be set in production (CORS origin)');
 }
 
 // Bootstrap upload directories at startup
@@ -41,11 +57,23 @@ app.use(helmet({
       connectSrc: ["'self'"],
     },
   },
+  hsts: { maxAge: 63072000, includeSubDomains: true, preload: true }, // 2 years
 }));
 
+// Permissions-Policy (Helmet does not set this) — deny powerful features by default
+app.use((req, res, next) => {
+  res.setHeader('Permissions-Policy', 'geolocation=(), microphone=(), camera=(), payment=()');
+  next();
+});
+
 app.use(cors({ origin: process.env.FRONTEND_URL || `http://localhost:${PORT}` }));
-app.use(morgan('dev'));
+app.use(morgan(isProd ? 'combined' : 'dev'));
 app.use(cookieParser());
+// Issue the CSRF token cookie early (before static file serving) so portal HTML
+// pages — which are served as static files — always carry it. The SPA JS reads
+// this cookie and echoes it as X-CSRF-Token on state-changing requests, which
+// csrfProtection validates on /api/member and /api/admin.
+app.use(issueCsrfCookie);
 app.use(express.json({ limit: '50kb' }));
 app.use(express.urlencoded({ extended: true, limit: '50kb' }));
 
@@ -101,9 +129,18 @@ app.use('/api/member/auth/login', authLimiter);
 app.use('/api/member/auth/register', regLimiter);
 app.use('/api/member/auth/forgot-password', forgotPwLimiter);
 
-// Static files (public/uploads served here but sensitive member docs blocked — see /api/member/documents)
+// Block direct static access to sensitive document directories — these contain
+// member PII (National IDs, passport photos) and claim/scholarship attachments.
+// They are served ONLY through ownership/role-checked endpoints:
+//   members:   GET /api/member/documents/:filename   (owning member)
+//   admin:     GET /api/admin/documents/:filename     (authenticated admin)
+app.use(['/uploads/members', '/uploads/bbf', '/uploads/scholarships'], (req, res) => {
+  res.status(404).json({ success: false, message: 'Not found' });
+});
+
+// Static files (public/uploads/photos + /documents remain public; sensitive dirs blocked above)
 app.use(express.static(path.join(__dirname, '../public'), {
-  maxAge: process.env.NODE_ENV === 'production' ? '1d' : 0,
+  maxAge: isProd ? '1d' : 0,
 }));
 
 // ============================================
@@ -123,9 +160,11 @@ app.use('/api/settings',    require('./routes/settings'));
 // ============================================
 app.use('/api/auth',        require('./routes/auth'));
 
-// CSRF cookie for portal pages
-app.use('/member', issueCsrfCookie);
-app.use('/admin', issueCsrfCookie);
+// CSRF enforcement (double-submit cookie) on all state-changing portal API
+// requests. Skips safe methods internally; the cookie is issued globally above
+// (issueCsrfCookie) and the front-end echoes it as the X-CSRF-Token header.
+app.use('/api/member', csrfProtection);
+app.use('/api/admin',  csrfProtection);
 
 // ============================================
 // MEMBER PORTAL ROUTES
@@ -140,6 +179,7 @@ app.use('/api/member/documents',     require('./routes/memberDocuments'));
 // ============================================
 // ADMIN ROUTES
 // ============================================
+app.use('/api/admin/documents',        require('./routes/adminDocuments'));
 app.use('/api/admin/members',          require('./routes/adminMembers'));
 app.use('/api/admin/bbf',              require('./routes/adminBbf'));
 app.use('/api/admin/scholarship-apps', require('./routes/adminScholarshipApps'));
@@ -158,27 +198,38 @@ app.get('/api/health', (req, res) => {
   res.json({ success: true, service: 'KUPPET Migori API', timestamp: new Date().toISOString() });
 });
 
+const PUBLIC_ROOT = path.join(__dirname, '../public');
+
+// Resolve a request path safely inside PUBLIC_ROOT; returns null on traversal attempts.
+function safePublicPath(reqPath) {
+  const rel = reqPath.replace(/^\/+/, '');
+  const resolved = path.join(PUBLIC_ROOT, rel);
+  return resolved === PUBLIC_ROOT || resolved.startsWith(PUBLIC_ROOT + path.sep) ? resolved : null;
+}
+
 // Portal page handlers — must be above the wildcard to prevent index.html fallback
-app.get('/member/*', (req, res, next) => {
-  const file = path.join(__dirname, '../public', req.path);
+app.get('/member/*', (req, res) => {
+  const file = safePublicPath(req.path);
+  if (!file) return res.status(400).end();
   res.sendFile(file.endsWith('.html') ? file : file + '.html', err => {
-    if (err) res.sendFile(path.join(__dirname, '../public/member/login.html'));
+    if (err) res.sendFile(path.join(PUBLIC_ROOT, 'member/login.html'));
   });
 });
 
-app.get('/admin/*', (req, res, next) => {
-  const file = path.join(__dirname, '../public', req.path);
+app.get('/admin/*', (req, res) => {
+  const file = safePublicPath(req.path);
+  if (!file) return res.status(400).end();
   res.sendFile(file.endsWith('.html') ? file : file + '.html', err => {
-    if (err) res.sendFile(path.join(__dirname, '../public/admin/login.html'));
+    if (err) res.sendFile(path.join(PUBLIC_ROOT, 'admin/login.html'));
   });
 });
 
 // SPA fallback for public pages
 app.get('*', (req, res) => {
-  const requestedFile = req.path === '/' ? 'index.html' : req.path;
-  const filePath = path.join(__dirname, '../public', requestedFile);
+  const filePath = req.path === '/' ? path.join(PUBLIC_ROOT, 'index.html') : safePublicPath(req.path);
+  if (!filePath) return res.status(400).end();
   res.sendFile(filePath, err => {
-    if (err) res.sendFile(path.join(__dirname, '../public', 'index.html'));
+    if (err) res.sendFile(path.join(PUBLIC_ROOT, 'index.html'));
   });
 });
 

@@ -6,7 +6,7 @@ async function getAll(req, res) {
     const [rows] = await db.query('SELECT id, name, email, role, is_active, last_login, created_at FROM users ORDER BY created_at DESC');
     res.json({ success: true, data: rows });
   } catch (err) {
-    res.status(500).json({ success: false, message: 'Failed to fetch users', error: err.message });
+    res.status(500).json({ success: false, message: 'Failed to fetch users' });
   }
 }
 
@@ -28,7 +28,7 @@ async function create(req, res) {
     const [[user]] = await db.query('SELECT id, name, email, role, is_active, created_at FROM users WHERE id = ?', [result.insertId]);
     res.status(201).json({ success: true, data: user });
   } catch (err) {
-    res.status(500).json({ success: false, message: 'Failed to create user', error: err.message });
+    res.status(500).json({ success: false, message: 'Failed to create user' });
   }
 }
 
@@ -48,7 +48,7 @@ async function update(req, res) {
     await db.query(`UPDATE users SET ${fields.join(', ')} WHERE id = ?`, params);
     res.json({ success: true, message: 'User updated' });
   } catch (err) {
-    res.status(500).json({ success: false, message: 'Failed to update user', error: err.message });
+    res.status(500).json({ success: false, message: 'Failed to update user' });
   }
 }
 
@@ -60,7 +60,7 @@ async function remove(req, res) {
     await db.query('DELETE FROM users WHERE id = ?', [req.params.id]);
     res.json({ success: true, message: 'User deleted' });
   } catch (err) {
-    res.status(500).json({ success: false, message: 'Failed to delete user', error: err.message });
+    res.status(500).json({ success: false, message: 'Failed to delete user' });
   }
 }
 

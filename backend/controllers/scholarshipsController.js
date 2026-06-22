@@ -17,7 +17,7 @@ const getAll = async (req, res) => {
     const [rows] = await db.query(query, params);
     res.json({ success: true, data: rows });
   } catch (err) {
-    res.status(500).json({ success: false, message: 'Failed to fetch scholarships', error: err.message });
+    res.status(500).json({ success: false, message: 'Failed to fetch scholarships' });
   }
 };
 
@@ -38,7 +38,7 @@ const adminCreate = async (req, res) => {
     const [[row]] = await db.query('SELECT * FROM scholarships WHERE id = ?', [result.insertId]);
     res.status(201).json({ success: true, data: row });
   } catch (err) {
-    res.status(500).json({ success: false, message: 'Failed to create scholarship', error: err.message });
+    res.status(500).json({ success: false, message: 'Failed to create scholarship' });
   }
 };
 
@@ -60,7 +60,7 @@ const adminUpdate = async (req, res) => {
     const [[row]] = await db.query('SELECT * FROM scholarships WHERE id = ?', [req.params.id]);
     res.json({ success: true, data: row });
   } catch (err) {
-    res.status(500).json({ success: false, message: 'Failed to update scholarship', error: err.message });
+    res.status(500).json({ success: false, message: 'Failed to update scholarship' });
   }
 };
 
@@ -71,7 +71,7 @@ const adminRemove = async (req, res) => {
     await db.query('DELETE FROM scholarships WHERE id = ?', [req.params.id]);
     res.json({ success: true, message: 'Scholarship deleted' });
   } catch (err) {
-    res.status(500).json({ success: false, message: 'Failed to delete scholarship', error: err.message });
+    res.status(500).json({ success: false, message: 'Failed to delete scholarship' });
   }
 };
 

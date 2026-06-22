@@ -16,7 +16,7 @@ async function getAll(req, res) {
     const [rows] = await db.query(query, params);
     res.json({ success: true, data: rows });
   } catch (err) {
-    res.status(500).json({ success: false, message: 'Failed to fetch applications', error: err.message });
+    res.status(500).json({ success: false, message: 'Failed to fetch applications' });
   }
 }
 
@@ -33,7 +33,7 @@ async function getOne(req, res) {
     const [docs] = await db.query('SELECT * FROM scholarship_application_documents WHERE application_id = ?', [app.id]);
     res.json({ success: true, data: { ...app, documents: docs } });
   } catch (err) {
-    res.status(500).json({ success: false, message: 'Failed to fetch', error: err.message });
+    res.status(500).json({ success: false, message: 'Failed to fetch' });
   }
 }
 
@@ -60,7 +60,7 @@ async function approve(req, res) {
     });
     res.json({ success: true, message: 'Application approved' });
   } catch (err) {
-    res.status(500).json({ success: false, message: 'Failed to approve', error: err.message });
+    res.status(500).json({ success: false, message: 'Failed to approve' });
   }
 }
 
@@ -86,7 +86,7 @@ async function reject(req, res) {
     });
     res.json({ success: true, message: 'Application rejected' });
   } catch (err) {
-    res.status(500).json({ success: false, message: 'Failed to reject', error: err.message });
+    res.status(500).json({ success: false, message: 'Failed to reject' });
   }
 }
 

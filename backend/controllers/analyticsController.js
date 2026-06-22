@@ -37,7 +37,7 @@ async function getSummary(req, res) {
       total_downloads: resources.total_downloads || 0,
     }});
   } catch (err) {
-    res.status(500).json({ success: false, message: 'Failed to fetch analytics', error: err.message });
+    res.status(500).json({ success: false, message: 'Failed to fetch analytics' });
   }
 }
 
@@ -80,7 +80,7 @@ async function getMonthlyTrends(req, res) {
       sms: toArray(smsRows),
     }});
   } catch (err) {
-    res.status(500).json({ success: false, message: 'Failed to fetch trends', error: err.message });
+    res.status(500).json({ success: false, message: 'Failed to fetch trends' });
   }
 }
 
@@ -127,7 +127,7 @@ async function exportPdf(req, res) {
 
     doc.end();
   } catch (err) {
-    res.status(500).json({ success: false, message: 'PDF export failed', error: err.message });
+    res.status(500).json({ success: false, message: 'PDF export failed' });
   }
 }
 

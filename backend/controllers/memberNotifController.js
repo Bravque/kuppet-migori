@@ -16,7 +16,7 @@ async function getAll(req, res) {
     );
     res.json({ success: true, data: rows, unreadCount });
   } catch (err) {
-    res.status(500).json({ success: false, message: 'Failed to fetch notifications', error: err.message });
+    res.status(500).json({ success: false, message: 'Failed to fetch notifications' });
   }
 }
 
@@ -28,7 +28,7 @@ async function markRead(req, res) {
     );
     res.json({ success: true, message: 'Marked as read' });
   } catch (err) {
-    res.status(500).json({ success: false, message: 'Failed to update', error: err.message });
+    res.status(500).json({ success: false, message: 'Failed to update' });
   }
 }
 
@@ -37,7 +37,7 @@ async function markAllRead(req, res) {
     await db.query('UPDATE notifications SET is_read = 1 WHERE member_id = ?', [req.member.id]);
     res.json({ success: true, message: 'All notifications marked as read' });
   } catch (err) {
-    res.status(500).json({ success: false, message: 'Failed to update', error: err.message });
+    res.status(500).json({ success: false, message: 'Failed to update' });
   }
 }
 

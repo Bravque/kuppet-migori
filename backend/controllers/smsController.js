@@ -13,7 +13,7 @@ async function send(req, res) {
         : `SMS failed: ${result.error || 'check TalkSasa configuration'}`;
     res.json({ success: result.success, data: result, message: message_out });
   } catch (err) {
-    res.status(500).json({ success: false, message: 'Failed to send SMS', error: err.message });
+    res.status(500).json({ success: false, message: 'Failed to send SMS' });
   }
 }
 
@@ -25,7 +25,7 @@ async function bulk(req, res) {
     const sent = results.filter(r => r.success).length;
     res.json({ success: true, data: results, message: `${sent}/${results.length} messages sent` });
   } catch (err) {
-    res.status(500).json({ success: false, message: 'Bulk send failed', error: err.message });
+    res.status(500).json({ success: false, message: 'Bulk send failed' });
   }
 }
 
@@ -44,7 +44,7 @@ async function sendToGroup(req, res) {
     const sent = results.filter(r => r.success).length;
     res.json({ success: true, message: `${sent}/${results.length} messages sent to ${group} group` });
   } catch (err) {
-    res.status(500).json({ success: false, message: 'Group send failed', error: err.message });
+    res.status(500).json({ success: false, message: 'Group send failed' });
   }
 }
 
@@ -60,7 +60,7 @@ async function getLogs(req, res) {
     const [[{ total }]] = await db.query('SELECT COUNT(*) as total FROM sms_logs' + (status ? ' WHERE status = ?' : ''), status ? [status] : []);
     res.json({ success: true, data: rows, total });
   } catch (err) {
-    res.status(500).json({ success: false, message: 'Failed to fetch logs', error: err.message });
+    res.status(500).json({ success: false, message: 'Failed to fetch logs' });
   }
 }
 
@@ -69,7 +69,7 @@ async function getTemplates(req, res) {
     const [rows] = await db.query('SELECT * FROM sms_templates WHERE is_active = 1 ORDER BY category, name');
     res.json({ success: true, data: rows });
   } catch (err) {
-    res.status(500).json({ success: false, message: 'Failed to fetch templates', error: err.message });
+    res.status(500).json({ success: false, message: 'Failed to fetch templates' });
   }
 }
 
@@ -84,7 +84,7 @@ async function createTemplate(req, res) {
     const [[row]] = await db.query('SELECT * FROM sms_templates WHERE id = ?', [result.insertId]);
     res.status(201).json({ success: true, data: row });
   } catch (err) {
-    res.status(500).json({ success: false, message: 'Failed to create template', error: err.message });
+    res.status(500).json({ success: false, message: 'Failed to create template' });
   }
 }
 
@@ -101,7 +101,7 @@ async function updateTemplate(req, res) {
     await db.query(`UPDATE sms_templates SET ${fields.join(', ')} WHERE id = ?`, params);
     res.json({ success: true, message: 'Template updated' });
   } catch (err) {
-    res.status(500).json({ success: false, message: 'Failed to update template', error: err.message });
+    res.status(500).json({ success: false, message: 'Failed to update template' });
   }
 }
 

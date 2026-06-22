@@ -107,7 +107,7 @@
 
       const DOC_LABELS = { kcse_certificate:'KCSE Certificate', admission_letter:'Admission Letter', fee_structure:'Fee Structure', id_copy:'ID Copy', other:'Other' };
       document.getElementById('doc-list').innerHTML = a.documents && a.documents.length
-        ? a.documents.map(d=>`<li class="doc-item"><i class="fas fa-file doc-icon"></i><span class="doc-name">${escHtml(d.file_name||d.file_url)}</span><span class="doc-size">${escHtml(DOC_LABELS[d.doc_type]||d.doc_type||'')}</span><a href="${escHtml(d.file_url)}" target="_blank" class="btn btn-outline btn-xs">View</a></li>`).join('')
+        ? a.documents.map(d=>`<li class="doc-item"><i class="fas fa-file doc-icon"></i><span class="doc-name">${escHtml(d.file_name||d.file_url)}</span><span class="doc-size">${escHtml(DOC_LABELS[d.doc_type]||d.doc_type||'')}</span><button type="button" onclick="viewDoc('${escHtml(d.file_url)}')" class="btn btn-outline btn-xs">View</button></li>`).join('')
         : '<li style="padding:0.5rem;color:var(--text-muted)">No documents</li>';
 
       // Show the review card only while the application is still actionable

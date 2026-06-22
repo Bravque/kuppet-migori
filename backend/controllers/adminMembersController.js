@@ -1,5 +1,5 @@
 const db = require('../config/database');
-const XLSX = require('xlsx');
+const { sendXlsx } = require('../utils/excel');
 const notificationService = require('../services/notificationService');
 const mailerService = require('../services/mailerService');
 
@@ -25,7 +25,7 @@ async function getAll(req, res) {
     );
     res.json({ success: true, data: rows, total });
   } catch (err) {
-    res.status(500).json({ success: false, message: 'Failed to fetch members', error: err.message });
+    res.status(500).json({ success: false, message: 'Failed to fetch members' });
   }
 }
 
@@ -42,7 +42,7 @@ async function getOne(req, res) {
     if (!member) return res.status(404).json({ success: false, message: 'Member not found' });
     res.json({ success: true, data: member });
   } catch (err) {
-    res.status(500).json({ success: false, message: 'Failed to fetch member', error: err.message });
+    res.status(500).json({ success: false, message: 'Failed to fetch member' });
   }
 }
 
@@ -71,7 +71,7 @@ async function approve(req, res) {
 
     res.json({ success: true, message: 'Member approved' });
   } catch (err) {
-    res.status(500).json({ success: false, message: 'Failed to approve', error: err.message });
+    res.status(500).json({ success: false, message: 'Failed to approve' });
   }
 }
 
@@ -91,7 +91,7 @@ async function reject(req, res) {
 
     res.json({ success: true, message: 'Member rejected' });
   } catch (err) {
-    res.status(500).json({ success: false, message: 'Failed to reject', error: err.message });
+    res.status(500).json({ success: false, message: 'Failed to reject' });
   }
 }
 
@@ -102,7 +102,7 @@ async function suspend(req, res) {
     await db.query('UPDATE members SET status = "suspended" WHERE id = ?', [req.params.id]);
     res.json({ success: true, message: 'Member suspended' });
   } catch (err) {
-    res.status(500).json({ success: false, message: 'Failed to suspend', error: err.message });
+    res.status(500).json({ success: false, message: 'Failed to suspend' });
   }
 }
 
@@ -111,7 +111,7 @@ async function remove(req, res) {
     await db.query('DELETE FROM members WHERE id = ?', [req.params.id]);
     res.json({ success: true, message: 'Member deleted' });
   } catch (err) {
-    res.status(500).json({ success: false, message: 'Failed to delete', error: err.message });
+    res.status(500).json({ success: false, message: 'Failed to delete' });
   }
 }
 
@@ -122,15 +122,10 @@ async function exportExcel(req, res) {
               sub_county, school_category, status, DATE(created_at) as registered
        FROM members ORDER BY created_at DESC`
     );
-    const wb = XLSX.utils.book_new();
-    const ws = XLSX.utils.json_to_sheet(rows);
-    XLSX.utils.book_append_sheet(wb, ws, 'Members');
-    const buf = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
-    res.setHeader('Content-Disposition', 'attachment; filename="kuppet-members.xlsx"');
-    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-    res.send(buf);
+    await sendXlsx(res, { sheetName: 'Members', filename: 'kuppet-members.xlsx', rows });
   } catch (err) {
-    res.status(500).json({ success: false, message: 'Export failed', error: err.message });
+    console.error('Members export failed:', err);
+    res.status(500).json({ success: false, message: 'Export failed' });
   }
 }
 

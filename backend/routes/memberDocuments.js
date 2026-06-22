@@ -41,7 +41,7 @@ router.get('/:filename', authenticateMember, async (req, res) => {
     }
     res.status(404).json({ success: false, message: 'File not found on server' });
   } catch (err) {
-    res.status(500).json({ success: false, message: 'Failed to serve document', error: err.message });
+    res.status(500).json({ success: false, message: 'Failed to serve document' });
   }
 });
 

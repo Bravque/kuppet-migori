@@ -12,7 +12,7 @@ async function getProfile(req, res) {
     if (!m) return res.status(404).json({ success: false, message: 'Member not found' });
     res.json({ success: true, data: m });
   } catch (err) {
-    res.status(500).json({ success: false, message: 'Failed to fetch profile', error: err.message });
+    res.status(500).json({ success: false, message: 'Failed to fetch profile' });
   }
 }
 
@@ -33,7 +33,7 @@ async function updateProfile(req, res) {
     await db.query(`UPDATE members SET ${fields.join(', ')} WHERE id = ?`, params);
     res.json({ success: true, message: 'Profile updated' });
   } catch (err) {
-    res.status(500).json({ success: false, message: 'Failed to update profile', error: err.message });
+    res.status(500).json({ success: false, message: 'Failed to update profile' });
   }
 }
 
@@ -44,7 +44,7 @@ async function uploadPhoto(req, res) {
     await db.query('UPDATE members SET passport_photo_url = ? WHERE id = ?', [url, req.member.id]);
     res.json({ success: true, data: { url } });
   } catch (err) {
-    res.status(500).json({ success: false, message: 'Upload failed', error: err.message });
+    res.status(500).json({ success: false, message: 'Upload failed' });
   }
 }
 

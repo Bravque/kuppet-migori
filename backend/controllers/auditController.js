@@ -16,7 +16,7 @@ async function getAll(req, res) {
     const [[{ total }]] = await db.query('SELECT COUNT(*) as total FROM audit_logs WHERE 1=1' + (actor_type ? ' AND actor_type = ?' : ''), actor_type ? [actor_type] : []);
     res.json({ success: true, data: rows, total });
   } catch (err) {
-    res.status(500).json({ success: false, message: 'Failed to fetch audit logs', error: err.message });
+    res.status(500).json({ success: false, message: 'Failed to fetch audit logs' });
   }
 }
 
@@ -39,7 +39,7 @@ async function exportPdf(req, res) {
     });
     doc.end();
   } catch (err) {
-    res.status(500).json({ success: false, message: 'Export failed', error: err.message });
+    res.status(500).json({ success: false, message: 'Export failed' });
   }
 }
 

@@ -21,7 +21,7 @@ const getAll = async (req, res) => {
 
     res.json({ success: true, data: rows, total, limit: parseInt(limit), offset: parseInt(offset) });
   } catch (err) {
-    res.status(500).json({ success: false, message: 'Failed to fetch news', error: err.message });
+    res.status(500).json({ success: false, message: 'Failed to fetch news' });
   }
 };
 
@@ -32,7 +32,7 @@ const getOne = async (req, res) => {
     await db.query('UPDATE news SET views = views + 1 WHERE id = ?', [rows[0].id]);
     res.json({ success: true, data: rows[0] });
   } catch (err) {
-    res.status(500).json({ success: false, message: 'Failed to fetch article', error: err.message });
+    res.status(500).json({ success: false, message: 'Failed to fetch article' });
   }
 };
 
@@ -43,7 +43,7 @@ const getFeatured = async (req, res) => {
     );
     res.json({ success: true, data: rows });
   } catch (err) {
-    res.status(500).json({ success: false, message: 'Failed to fetch featured news', error: err.message });
+    res.status(500).json({ success: false, message: 'Failed to fetch featured news' });
   }
 };
 
@@ -72,7 +72,7 @@ const adminCreate = async (req, res) => {
     const [[row]] = await db.query('SELECT * FROM news WHERE id = ?', [result.insertId]);
     res.status(201).json({ success: true, data: row });
   } catch (err) {
-    res.status(500).json({ success: false, message: 'Failed to create article', error: err.message });
+    res.status(500).json({ success: false, message: 'Failed to create article' });
   }
 };
 
@@ -99,7 +99,7 @@ const adminUpdate = async (req, res) => {
     const [[row]] = await db.query('SELECT * FROM news WHERE id = ?', [req.params.id]);
     res.json({ success: true, data: row });
   } catch (err) {
-    res.status(500).json({ success: false, message: 'Failed to update article', error: err.message });
+    res.status(500).json({ success: false, message: 'Failed to update article' });
   }
 };
 
@@ -110,7 +110,7 @@ const adminRemove = async (req, res) => {
     await db.query('DELETE FROM news WHERE id = ?', [req.params.id]);
     res.json({ success: true, message: 'Article deleted' });
   } catch (err) {
-    res.status(500).json({ success: false, message: 'Failed to delete article', error: err.message });
+    res.status(500).json({ success: false, message: 'Failed to delete article' });
   }
 };
 
@@ -127,7 +127,7 @@ const adminGetAll = async (req, res) => {
     const [[{ total }]] = await db.query('SELECT COUNT(*) as total FROM news WHERE 1=1' + (category ? ' AND category = ?' : ''), category ? [category] : []);
     res.json({ success: true, data: rows, total, limit: parseInt(limit), offset: parseInt(offset) });
   } catch (err) {
-    res.status(500).json({ success: false, message: 'Failed to fetch news', error: err.message });
+    res.status(500).json({ success: false, message: 'Failed to fetch news' });
   }
 };
 

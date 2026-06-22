@@ -1,5 +1,5 @@
 const db = require('../config/database');
-const XLSX = require('xlsx');
+const { sendXlsx } = require('../utils/excel');
 const notificationService = require('../services/notificationService');
 
 const VALID_TRANSITIONS = {
@@ -29,7 +29,7 @@ async function getAll(req, res) {
     const [rows] = await db.query(query, params);
     res.json({ success: true, data: rows });
   } catch (err) {
-    res.status(500).json({ success: false, message: 'Failed to fetch claims', error: err.message });
+    res.status(500).json({ success: false, message: 'Failed to fetch claims' });
   }
 }
 
@@ -46,7 +46,7 @@ async function getOne(req, res) {
     const [timeline] = await db.query('SELECT * FROM bbf_claim_timeline WHERE claim_id = ? ORDER BY created_at ASC', [claim.id]);
     res.json({ success: true, data: { ...claim, documents: docs, timeline } });
   } catch (err) {
-    res.status(500).json({ success: false, message: 'Failed to fetch claim', error: err.message });
+    res.status(500).json({ success: false, message: 'Failed to fetch claim' });
   }
 }
 
@@ -61,7 +61,7 @@ async function startReview(req, res) {
     await addTimeline(claim.id, claim.status, 'under_review', req.body.notes, req.user.id);
     res.json({ success: true, message: 'Claim marked under review' });
   } catch (err) {
-    res.status(500).json({ success: false, message: 'Failed to update', error: err.message });
+    res.status(500).json({ success: false, message: 'Failed to update' });
   }
 }
 
@@ -89,7 +89,7 @@ async function approveClaim(req, res) {
     });
     res.json({ success: true, message: 'Claim approved' });
   } catch (err) {
-    res.status(500).json({ success: false, message: 'Failed to approve', error: err.message });
+    res.status(500).json({ success: false, message: 'Failed to approve' });
   }
 }
 
@@ -114,7 +114,7 @@ async function rejectClaim(req, res) {
     });
     res.json({ success: true, message: 'Claim rejected' });
   } catch (err) {
-    res.status(500).json({ success: false, message: 'Failed to reject', error: err.message });
+    res.status(500).json({ success: false, message: 'Failed to reject' });
   }
 }
 
@@ -139,7 +139,7 @@ async function markPaid(req, res) {
     });
     res.json({ success: true, message: 'Claim marked as paid' });
   } catch (err) {
-    res.status(500).json({ success: false, message: 'Failed to mark paid', error: err.message });
+    res.status(500).json({ success: false, message: 'Failed to mark paid' });
   }
 }
 
@@ -153,14 +153,10 @@ async function exportExcel(req, res) {
               DATE(bc.resolved_at) as resolved
        FROM bbf_claims bc JOIN members m ON bc.member_id = m.id ORDER BY bc.created_at DESC`
     );
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(rows), 'BBF Claims');
-    const buf = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
-    res.setHeader('Content-Disposition', 'attachment; filename="bbf-claims.xlsx"');
-    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-    res.send(buf);
+    await sendXlsx(res, { sheetName: 'BBF Claims', filename: 'bbf-claims.xlsx', rows });
   } catch (err) {
-    res.status(500).json({ success: false, message: 'Export failed', error: err.message });
+    console.error('BBF export failed:', err);
+    res.status(500).json({ success: false, message: 'Export failed' });
   }
 }
 

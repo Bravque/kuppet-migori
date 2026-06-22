@@ -86,7 +86,7 @@ async function register(req, res) {
       message: 'Registration submitted. Your application will be reviewed by an administrator.',
     });
   } catch (err) {
-    return res.status(500).json({ success: false, message: 'Registration failed', error: err.message });
+    return res.status(500).json({ success: false, message: 'Registration failed' });
   }
 }
 
@@ -212,7 +212,7 @@ async function forgotPassword(req, res) {
     await mailerService.sendMail({ to: member.email, subject: tpl.subject, html: tpl.html });
     return res.json(generic);
   } catch (err) {
-    return res.status(500).json({ success: false, message: 'Could not process request', error: err.message });
+    return res.status(500).json({ success: false, message: 'Could not process request' });
   }
 }
 
@@ -242,7 +242,7 @@ async function resetPassword(req, res) {
     await db.query('UPDATE members SET password = ?, failed_login_attempts = 0, locked_until = NULL WHERE id = ?', [hash, member.id]);
     return res.json({ success: true, message: 'Password reset successful. You can now log in with your TSC number and new password.' });
   } catch (err) {
-    return res.status(500).json({ success: false, message: 'Could not reset password', error: err.message });
+    return res.status(500).json({ success: false, message: 'Could not reset password' });
   }
 }
 

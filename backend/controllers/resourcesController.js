@@ -20,7 +20,7 @@ const getAll = async (req, res) => {
 
     res.json({ success: true, data: rows, total });
   } catch (err) {
-    res.status(500).json({ success: false, message: 'Failed to fetch resources', error: err.message });
+    res.status(500).json({ success: false, message: 'Failed to fetch resources' });
   }
 };
 
@@ -31,7 +31,7 @@ const download = async (req, res) => {
     await db.query('UPDATE resources SET download_count = download_count + 1 WHERE id = ?', [req.params.id]);
     res.json({ success: true, data: { file_url: rows[0].file_url, external_url: rows[0].external_url } });
   } catch (err) {
-    res.status(500).json({ success: false, message: 'Failed to process download', error: err.message });
+    res.status(500).json({ success: false, message: 'Failed to process download' });
   }
 };
 
@@ -50,7 +50,7 @@ const adminCreate = async (req, res) => {
     const [[row]] = await db.query('SELECT * FROM resources WHERE id = ?', [result.insertId]);
     res.status(201).json({ success: true, data: row });
   } catch (err) {
-    res.status(500).json({ success: false, message: 'Failed to create resource', error: err.message });
+    res.status(500).json({ success: false, message: 'Failed to create resource' });
   }
 };
 
@@ -70,7 +70,7 @@ const adminUpdate = async (req, res) => {
     const [[row]] = await db.query('SELECT * FROM resources WHERE id = ?', [req.params.id]);
     res.json({ success: true, data: row });
   } catch (err) {
-    res.status(500).json({ success: false, message: 'Failed to update resource', error: err.message });
+    res.status(500).json({ success: false, message: 'Failed to update resource' });
   }
 };
 
@@ -81,7 +81,7 @@ const adminRemove = async (req, res) => {
     await db.query('DELETE FROM resources WHERE id = ?', [req.params.id]);
     res.json({ success: true, message: 'Resource deleted' });
   } catch (err) {
-    res.status(500).json({ success: false, message: 'Failed to delete resource', error: err.message });
+    res.status(500).json({ success: false, message: 'Failed to delete resource' });
   }
 };
 

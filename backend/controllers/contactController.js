@@ -38,7 +38,7 @@ const adminGetAll = async (req, res) => {
     );
     res.json({ success: true, data: rows, total });
   } catch (err) {
-    res.status(500).json({ success: false, message: 'Failed to fetch contacts', error: err.message });
+    res.status(500).json({ success: false, message: 'Failed to fetch contacts' });
   }
 };
 
@@ -52,7 +52,7 @@ const adminUpdateStatus = async (req, res) => {
     await db.query('UPDATE contacts SET status = ? WHERE id = ?', [status, req.params.id]);
     res.json({ success: true, message: 'Status updated' });
   } catch (err) {
-    res.status(500).json({ success: false, message: 'Failed to update status', error: err.message });
+    res.status(500).json({ success: false, message: 'Failed to update status' });
   }
 };
 

@@ -12,7 +12,7 @@ const getAll = async (req, res) => {
     const [rows] = await db.query(query, params);
     res.json({ success: true, data: rows });
   } catch (err) {
-    res.status(500).json({ success: false, message: 'Failed to fetch leadership', error: err.message });
+    res.status(500).json({ success: false, message: 'Failed to fetch leadership' });
   }
 };
 
@@ -28,7 +28,7 @@ const adminCreate = async (req, res) => {
     const [[row]] = await db.query('SELECT * FROM leadership WHERE id = ?', [result.insertId]);
     res.status(201).json({ success: true, data: row });
   } catch (err) {
-    res.status(500).json({ success: false, message: 'Failed to create leader', error: err.message });
+    res.status(500).json({ success: false, message: 'Failed to create leader' });
   }
 };
 
@@ -48,7 +48,7 @@ const adminUpdate = async (req, res) => {
     const [[row]] = await db.query('SELECT * FROM leadership WHERE id = ?', [req.params.id]);
     res.json({ success: true, data: row });
   } catch (err) {
-    res.status(500).json({ success: false, message: 'Failed to update leader', error: err.message });
+    res.status(500).json({ success: false, message: 'Failed to update leader' });
   }
 };
 
@@ -59,7 +59,7 @@ const adminRemove = async (req, res) => {
     await db.query('DELETE FROM leadership WHERE id = ?', [req.params.id]);
     res.json({ success: true, message: 'Leader deleted' });
   } catch (err) {
-    res.status(500).json({ success: false, message: 'Failed to delete leader', error: err.message });
+    res.status(500).json({ success: false, message: 'Failed to delete leader' });
   }
 };
 
