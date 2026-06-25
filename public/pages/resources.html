@@ -13,8 +13,8 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Playfair+Display:wght@700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
-  <link rel="stylesheet" href="/css/style.css?v=20260622b">
-  <link rel="stylesheet" href="/css/resources-extra.css?v=20260622b">
+  <link rel="stylesheet" href="/css/style.css?v=20260626a">
+  <link rel="stylesheet" href="/css/resources-extra.css?v=20260626a">
   <style>
     .resources-list-grid { display:flex; flex-direction:column; gap:1rem; }
     .resource-list-item {
@@ -247,6 +247,11 @@
             <h4>Legal Resources</h4>
             <p>Rights & law</p>
           </div>
+          <div class="category-card" data-category="sport_entertainment" role="tab">
+            <div class="cat-icon" style="background:rgba(200,150,42,0.12);color:var(--gold-dark)"><i class="fas fa-futbol"></i></div>
+            <h4>Sports & Entertainment</h4>
+            <p>Games & talent</p>
+          </div>
         </div>
 
         <!-- Search -->
@@ -344,43 +349,8 @@
     </div>
   </footer>
 
-  <script src="/js/api.js?v=20260622b"></script>
-  <script src="/js/main.js?v=20260622b"></script>
-  <script>
-    // Category card filter integration
-    document.querySelectorAll('.category-card').forEach(card => {
-      card.addEventListener('click', () => {
-        document.querySelectorAll('.category-card').forEach(c => c.classList.remove('active'));
-        card.classList.add('active');
-        const cat = card.dataset.category;
-        // Also sync filter tabs if any
-        document.querySelectorAll('.filter-tab[data-category]').forEach(t => {
-          t.classList.toggle('active', t.dataset.category === cat);
-        });
-        // Trigger resources reload via global event
-        const event = new CustomEvent('resourcesCategoryChange', { detail: cat });
-        document.dispatchEvent(event);
-      });
-    });
-
-    // Listen for category change from category cards
-    document.addEventListener('resourcesCategoryChange', (e) => {
-      const input = document.getElementById('resources-search');
-      const params = new URLSearchParams(window.location.search);
-      if (e.detail) params.set('category', e.detail);
-      else params.delete('category');
-    });
-
-    // Read category from URL on load
-    const urlParams = new URLSearchParams(window.location.search);
-    const urlCat = urlParams.get('category');
-    if (urlCat) {
-      const card = document.querySelector(`.category-card[data-category="${urlCat}"]`);
-      if (card) {
-        document.querySelectorAll('.category-card').forEach(c => c.classList.remove('active'));
-        card.classList.add('active');
-      }
-    }
-  </script>
+  <script src="/js/api.js?v=20260626a"></script>
+  <script src="/js/main.js?v=20260626a"></script>
+  <!-- Category-card clicks, filtering and ?category= deep links are handled by initResourcesPage() in main.js -->
 </body>
 </html>

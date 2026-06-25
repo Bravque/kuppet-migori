@@ -355,19 +355,43 @@ async function loadNewsTable(params = {}) {
 }
 
 let editingNewsId = null;
+function setNewsHint(elId, label, url) {
+  const el = document.getElementById(elId);
+  if (!el) return;
+  el.innerHTML = url
+    ? `Current: <a href="${escHtml(url)}" target="_blank" rel="noopener">${escHtml(label || 'view')}</a> — choosing a new file replaces it.`
+    : '';
+}
 async function openNewsModal(id) {
   editingNewsId = id;
   const modal = document.getElementById('news-modal');
   if (!modal) return;
+  const form = document.getElementById('news-form');
+  form.reset();
   document.getElementById('news-modal-title').textContent = id ? 'Edit Article' : 'New Article';
   document.getElementById('news-form-alert').className = 'hidden';
+  ['news-image1-current', 'news-image2-current'].forEach(elId => setNewsHint(elId, '', ''));
+  document.getElementById('news-document-current').textContent =
+    'PDF, Word or image — up to 10 MB. Members can download it from the article.';
+
   if (id) {
     try {
-      const rows = await adminApi.news.getAll({ limit: 1 });
-      // Fetch individual from full list for simplicity
-    } catch (_) {}
-  } else {
-    document.getElementById('news-form').reset();
+      const { data: n } = await adminApi.news.getOne(id);
+      form.querySelector('[name=title]').value = n.title || '';
+      form.querySelector('[name=category]').value = n.category || 'news';
+      form.querySelector('[name=author]').value = n.author || '';
+      form.querySelector('[name=excerpt]').value = n.excerpt || '';
+      form.querySelector('[name=content]').value = n.content || '';
+      form.querySelector('[name=is_featured]').checked = !!n.is_featured;
+      form.querySelector('[name=is_published]').checked = !!n.is_published;
+      setNewsHint('news-image1-current', n.featured_image || '', n.featured_image);
+      setNewsHint('news-image2-current', n.image_2 || '', n.image_2);
+      if (n.document_url) setNewsHint('news-document-current', n.document_name || 'attachment', n.document_url);
+    } catch (err) {
+      const alertEl = document.getElementById('news-form-alert');
+      alertEl.className = 'alert alert-danger';
+      alertEl.textContent = 'Could not load this article: ' + err.message;
+    }
   }
   modal.classList.add('open');
 }
@@ -376,25 +400,33 @@ async function saveNews() {
   const form = document.getElementById('news-form');
   const alertEl = document.getElementById('news-form-alert');
   alertEl.className = 'hidden';
-  const data = {
-    title: form.querySelector('[name=title]').value.trim(),
-    excerpt: form.querySelector('[name=excerpt]').value.trim(),
-    content: form.querySelector('[name=content]').value.trim(),
-    category: form.querySelector('[name=category]').value,
-    author: form.querySelector('[name=author]').value.trim(),
-    is_featured: form.querySelector('[name=is_featured]').checked,
-    is_published: form.querySelector('[name=is_published]').checked,
-  };
-  if (!data.title || !data.content) {
+  const title = form.querySelector('[name=title]').value.trim();
+  const content = form.querySelector('[name=content]').value.trim();
+  if (!title || !content) {
     alertEl.className = 'alert alert-danger';
     alertEl.textContent = 'Title and content are required';
     return;
   }
+  const fd = new FormData();
+  fd.append('title', title);
+  fd.append('content', content);
+  fd.append('excerpt', form.querySelector('[name=excerpt]').value.trim());
+  fd.append('category', form.querySelector('[name=category]').value);
+  fd.append('author', form.querySelector('[name=author]').value.trim());
+  fd.append('is_featured', form.querySelector('[name=is_featured]').checked);
+  fd.append('is_published', form.querySelector('[name=is_published]').checked);
+  const image1 = form.querySelector('[name=image1]').files[0];
+  const image2 = form.querySelector('[name=image2]').files[0];
+  const doc = form.querySelector('[name=document]').files[0];
+  if (image1) fd.append('image1', image1);
+  if (image2) fd.append('image2', image2);
+  if (doc) fd.append('document', doc);
+
   try {
     if (editingNewsId) {
-      await adminApi.news.update(editingNewsId, data);
+      await adminApi.news.update(editingNewsId, fd);
     } else {
-      await adminApi.news.create(data);
+      await adminApi.news.create(fd);
     }
     document.getElementById('news-modal').classList.remove('open');
     loadNewsTable();

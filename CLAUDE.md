@@ -173,6 +173,8 @@ A full security audit was run against the codebase and **all findings fixed** (c
 **⚠ Pending DB scripts (run once on the live DB via phpMyAdmin → SQL tab)**
 1. `backend/config/migration-bbf-claim-fields.sql` — (a) restructures `bbf_claims` to the two-type model + claim-particular columns, (b) adds `members.school_category`, (c) remaps `scholarships.scholarship_type` to kcse/kjsea/dte. Until run, member registration + BBF/scholarship features fail on production.
 2. `backend/config/update-leadership.sql` — clears placeholder leaders and inserts the 14 real officials. Until run, the About page shows the old placeholder names.
+3. `backend/config/migration-news-media.sql` — adds the `sport_entertainment` category to `news.category` and three media columns (`image_2`, `document_url`, `document_name`). Until run, creating/saving Notice Board articles fails on production.
+4. `backend/config/migration-resources-category.sql` — adds `sport_entertainment` to the `resources.category` ENUM. Until run, saving a resource under the new Sports & Entertainment category fails on production.
 
 Fresh installs already include all of this via `init.sql` / `init-hostinger.sql`.
 

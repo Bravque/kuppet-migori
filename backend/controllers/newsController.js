@@ -53,21 +53,33 @@ function slugify(str) {
   return str.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
 }
 
+// FormData sends booleans/checkboxes as strings ('true'/'false'/'on'); JSON sends real booleans.
+const truthy = (v) => v === true || v === 'true' || v === '1' || v === 'on';
+const fileUrl = (f) => (f ? `/uploads/news/${f.filename}` : null);
+
 const adminCreate = async (req, res) => {
   try {
     const { title, excerpt, content, category, featured_image, author, is_featured, is_published, tags } = req.body;
     if (!title || !content) return res.status(400).json({ success: false, message: 'Title and content required' });
+
+    const files = req.files || {};
+    const image1 = fileUrl(files.image1?.[0]) || featured_image || null;
+    const image2 = fileUrl(files.image2?.[0]) || req.body.image_2 || null;
+    const docFile = files.document?.[0];
+    const docUrl = fileUrl(docFile) || req.body.document_url || null;
+    const docName = docFile ? docFile.originalname : (req.body.document_name || null);
 
     let slug = slugify(title);
     const [[{ count }]] = await db.query('SELECT COUNT(*) as count FROM news WHERE slug LIKE ?', [`${slug}%`]);
     if (count > 0) slug = `${slug}-${Date.now()}`;
 
     const [result] = await db.query(
-      `INSERT INTO news (title, slug, excerpt, content, category, featured_image, author,
-         is_featured, is_published, tags)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [title, slug, excerpt || null, content, category || 'news', featured_image || null,
-       author || 'KUPPET Migori', is_featured ? 1 : 0, is_published !== false ? 1 : 0, tags || null]
+      `INSERT INTO news (title, slug, excerpt, content, category, featured_image, image_2,
+         document_url, document_name, author, is_featured, is_published, tags)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [title, slug, excerpt || null, content, category || 'news', image1, image2,
+       docUrl, docName, author || 'KUPPET Migori',
+       truthy(is_featured) ? 1 : 0, is_published === undefined || truthy(is_published) ? 1 : 0, tags || null]
     );
     const [[row]] = await db.query('SELECT * FROM news WHERE id = ?', [result.insertId]);
     res.status(201).json({ success: true, data: row });
@@ -82,16 +94,31 @@ const adminUpdate = async (req, res) => {
     const [[existing]] = await db.query('SELECT id FROM news WHERE id = ?', [req.params.id]);
     if (!existing) return res.status(404).json({ success: false, message: 'Article not found' });
 
+    const files = req.files || {};
     const fields = [], params = [];
     if (title !== undefined)          { fields.push('title = ?'); params.push(title); }
     if (excerpt !== undefined)        { fields.push('excerpt = ?'); params.push(excerpt); }
     if (content !== undefined)        { fields.push('content = ?'); params.push(content); }
     if (category !== undefined)       { fields.push('category = ?'); params.push(category); }
-    if (featured_image !== undefined) { fields.push('featured_image = ?'); params.push(featured_image); }
     if (author !== undefined)         { fields.push('author = ?'); params.push(author); }
-    if (is_featured !== undefined)    { fields.push('is_featured = ?'); params.push(is_featured ? 1 : 0); }
-    if (is_published !== undefined)   { fields.push('is_published = ?'); params.push(is_published ? 1 : 0); }
+    if (is_featured !== undefined)    { fields.push('is_featured = ?'); params.push(truthy(is_featured) ? 1 : 0); }
+    if (is_published !== undefined)   { fields.push('is_published = ?'); params.push(truthy(is_published) ? 1 : 0); }
     if (tags !== undefined)           { fields.push('tags = ?'); params.push(tags); }
+
+    // Images: a newly uploaded file wins; otherwise honour an explicit URL/clear from the body.
+    if (files.image1?.[0])            { fields.push('featured_image = ?'); params.push(fileUrl(files.image1[0])); }
+    else if (featured_image !== undefined) { fields.push('featured_image = ?'); params.push(featured_image || null); }
+    if (files.image2?.[0])            { fields.push('image_2 = ?'); params.push(fileUrl(files.image2[0])); }
+    else if (req.body.image_2 !== undefined) { fields.push('image_2 = ?'); params.push(req.body.image_2 || null); }
+
+    // Document: a new upload replaces both url + original name.
+    if (files.document?.[0]) {
+      fields.push('document_url = ?');  params.push(fileUrl(files.document[0]));
+      fields.push('document_name = ?'); params.push(files.document[0].originalname);
+    } else if (req.body.document_url !== undefined) {
+      fields.push('document_url = ?');  params.push(req.body.document_url || null);
+      fields.push('document_name = ?'); params.push(req.body.document_name || null);
+    }
 
     if (!fields.length) return res.status(400).json({ success: false, message: 'No fields to update' });
     params.push(req.params.id);
@@ -100,6 +127,16 @@ const adminUpdate = async (req, res) => {
     res.json({ success: true, data: row });
   } catch (err) {
     res.status(500).json({ success: false, message: 'Failed to update article' });
+  }
+};
+
+const adminGetOne = async (req, res) => {
+  try {
+    const [[row]] = await db.query('SELECT * FROM news WHERE id = ?', [req.params.id]);
+    if (!row) return res.status(404).json({ success: false, message: 'Article not found' });
+    res.json({ success: true, data: row });
+  } catch (err) {
+    res.status(500).json({ success: false, message: 'Failed to fetch article' });
   }
 };
 
@@ -131,4 +168,4 @@ const adminGetAll = async (req, res) => {
   }
 };
 
-module.exports = { getAll, getOne, getFeatured, adminCreate, adminUpdate, adminRemove, adminGetAll };
+module.exports = { getAll, getOne, getFeatured, adminCreate, adminUpdate, adminRemove, adminGetAll, adminGetOne };

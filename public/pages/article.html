@@ -13,7 +13,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Playfair+Display:wght@700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
-  <link rel="stylesheet" href="/css/style.css?v=20260622b">
+  <link rel="stylesheet" href="/css/style.css?v=20260626a">
   <style>
     .article-layout { display:grid; grid-template-columns:minmax(0,1fr) 320px; gap:3rem; align-items:start; }
     .article-sidebar { position:sticky; top:calc(var(--header-height) + 1.5rem); }
@@ -40,6 +40,15 @@
     .article-content li { margin-bottom:0.5rem; }
     .article-content img { max-width:100%; height:auto; border-radius:var(--radius); margin:1.5rem 0; }
     .article-content a { color:var(--primary); text-decoration:underline; }
+    .article-gallery { margin:1.5rem 0 0; }
+    .article-gallery img { width:100%; height:auto; border-radius:var(--radius); display:block; }
+    .article-attachment { display:flex; align-items:center; gap:1rem; margin-top:1.75rem; padding:1rem 1.25rem; background:var(--bg); border:1px solid var(--border); border-radius:var(--radius); text-decoration:none; transition:border-color .15s,box-shadow .15s; }
+    .article-attachment:hover { border-color:var(--gold); box-shadow:var(--shadow); }
+    .article-attachment > .fa-paperclip { font-size:1.4rem; color:var(--gold-dark); flex-shrink:0; }
+    .article-attachment-info { display:flex; flex-direction:column; min-width:0; flex:1; }
+    .article-attachment-info strong { color:var(--text); font-size:0.95rem; word-break:break-word; }
+    .article-attachment-info small { color:var(--text-muted); font-size:0.8rem; }
+    .article-attachment-dl { color:var(--primary); font-size:1.1rem; flex-shrink:0; }
     .article-tags { display:flex; flex-wrap:wrap; gap:0.5rem; margin-top:2rem; padding-top:1.5rem; border-top:1px solid var(--border); }
     .article-tag { font-size:0.75rem; background:var(--bg); border:1px solid var(--border); color:var(--text-muted); padding:0.3rem 0.75rem; border-radius:var(--radius-full); }
     .article-back { display:inline-flex; align-items:center; gap:0.5rem; margin-top:2rem; }
@@ -272,7 +281,7 @@
     </div>
   </footer>
 
-  <script src="/js/api.js?v=20260622b"></script>
-  <script src="/js/main.js?v=20260622b"></script>
+  <script src="/js/api.js?v=20260626a"></script>
+  <script src="/js/main.js?v=20260626a"></script>
 </body>
 </html>

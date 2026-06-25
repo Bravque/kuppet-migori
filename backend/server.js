@@ -32,7 +32,7 @@ if (isProd && !process.env.FRONTEND_URL) {
 }
 
 // Bootstrap upload directories at startup
-const UPLOAD_DIRS = ['photos', 'documents', 'bbf', 'scholarships', 'members'];
+const UPLOAD_DIRS = ['photos', 'documents', 'bbf', 'scholarships', 'members', 'news'];
 const UPLOAD_ROOT = path.join(__dirname, '../public/uploads');
 for (const dir of UPLOAD_DIRS) {
   fs.mkdirSync(path.join(UPLOAD_ROOT, dir), { recursive: true });

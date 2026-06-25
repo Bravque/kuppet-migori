@@ -10,8 +10,8 @@
   <title>News &amp; Circulars — KUPPET Migori Admin</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
-  <link rel="stylesheet" href="/css/style.css?v=20260622b">
-  <link rel="stylesheet" href="/css/portal.css?v=20260622b">
+  <link rel="stylesheet" href="/css/style.css?v=20260626a">
+  <link rel="stylesheet" href="/css/portal.css?v=20260626a">
 </head>
 <body class="portal-body admin-news-page">
 <div class="portal-layout">
@@ -33,6 +33,8 @@
           <option value="announcement">Announcement</option>
           <option value="circular">Circular</option>
           <option value="press_release">Press Release</option>
+          <option value="event">Event</option>
+          <option value="sport_entertainment">Sport &amp; Entertainment</option>
         </select>
         <input type="search" class="form-control" id="news-search" placeholder="Search articles…" oninput="loadNewsTable({search:this.value})">
       </div>
@@ -71,6 +73,8 @@
               <option value="announcement">Announcement</option>
               <option value="circular">Circular</option>
               <option value="press_release">Press Release</option>
+              <option value="event">Event</option>
+              <option value="sport_entertainment">Sport &amp; Entertainment</option>
             </select>
           </div>
           <div class="form-group">
@@ -85,6 +89,23 @@
         <div class="form-group">
           <label>Content <span class="required">*</span></label>
           <textarea name="content" class="form-control" rows="8" placeholder="Full article content (HTML supported)" required></textarea>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Image 1 (main / featured)</label>
+            <input type="file" name="image1" class="form-control" accept="image/jpeg,image/jpg,image/png,image/webp">
+            <small class="form-hint" id="news-image1-current"></small>
+          </div>
+          <div class="form-group">
+            <label>Image 2</label>
+            <input type="file" name="image2" class="form-control" accept="image/jpeg,image/jpg,image/png,image/webp">
+            <small class="form-hint" id="news-image2-current"></small>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Attachment (downloadable document)</label>
+          <input type="file" name="document" class="form-control" accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,image/jpeg,image/png">
+          <small class="form-hint" id="news-document-current">PDF, Word or image — up to 10 MB. Members can download it from the article.</small>
         </div>
         <div class="flex gap-2" style="flex-wrap:wrap">
           <label style="display:flex;align-items:center;gap:0.4rem;font-size:0.82rem;cursor:pointer">

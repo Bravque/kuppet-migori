@@ -286,13 +286,19 @@ async function initResourcesPage() {
     }
   }
 
-  document.querySelectorAll('.filter-tab[data-category]').forEach(tab => {
-    tab.addEventListener('click', () => {
-      document.querySelectorAll('.filter-tab').forEach(t => t.classList.remove('active'));
-      tab.classList.add('active');
-      currentCategory = tab.dataset.category;
-      loadResources();
-    });
+  // Set the active category, sync the UI (category cards + filter tabs) and reload.
+  function setCategory(cat) {
+    currentCategory = cat || '';
+    document.querySelectorAll('.category-card[data-category]').forEach(c =>
+      c.classList.toggle('active', (c.dataset.category || '') === currentCategory));
+    document.querySelectorAll('.filter-tab[data-category]').forEach(t =>
+      t.classList.toggle('active', (t.dataset.category || '') === currentCategory));
+    loadResources();
+  }
+
+  // Both the big category cards and any filter tabs trigger a filtered reload.
+  document.querySelectorAll('.category-card[data-category], .filter-tab[data-category]').forEach(el => {
+    el.addEventListener('click', () => setCategory(el.dataset.category || ''));
   });
 
   if (searchBtn) searchBtn.addEventListener('click', () => { currentSearch = searchInput?.value.trim() || ''; loadResources(); });
@@ -314,7 +320,13 @@ async function initResourcesPage() {
     });
   }
 
-  loadResources();
+  // Honour ?category= in the URL on first load (e.g. deep links from other pages).
+  const urlCat = new URLSearchParams(window.location.search).get('category') || '';
+  if (urlCat && document.querySelector(`.category-card[data-category="${urlCat}"], .filter-tab[data-category="${urlCat}"]`)) {
+    setCategory(urlCat);
+  } else {
+    loadResources();
+  }
 }
 
 // ============================================
@@ -457,6 +469,7 @@ async function initArticlePage() {
     setText('breadcrumb-title', data.title);
 
     const tags = (data.tags || '').split(',').map(t => t.trim()).filter(Boolean);
+    const docName = data.document_name || 'Download attachment';
 
     container.innerHTML = `
       <article class="article-full">
@@ -464,7 +477,7 @@ async function initArticlePage() {
           ? `<img class="article-hero" src="${escHtml(data.featured_image)}" alt="${escHtml(data.title)}">`
           : `<div class="article-hero-placeholder"><i class="fas fa-newspaper"></i></div>`}
         <div class="article-body-wrap">
-          <span class="badge badge-${cat}">${cat.replace('_', ' ')}</span>
+          <span class="badge badge-${cat}">${cat.replace(/_/g, ' ')}</span>
           <h1 class="article-title">${escHtml(data.title)}</h1>
           <div class="article-meta-row">
             <span class="meta-item"><i class="fas fa-user"></i> ${escHtml(data.author || 'KUPPET Migori')}</span>
@@ -472,6 +485,19 @@ async function initArticlePage() {
             <span class="meta-item"><i class="far fa-eye"></i> ${data.views || 0} views</span>
           </div>
           <div class="article-content">${data.content || ''}</div>
+          ${data.image_2
+            ? `<figure class="article-gallery"><img src="${escHtml(data.image_2)}" alt="${escHtml(data.title)} — additional image" loading="lazy"></figure>`
+            : ''}
+          ${data.document_url
+            ? `<a class="article-attachment" href="${escHtml(data.document_url)}" download target="_blank" rel="noopener">
+                 <i class="fas fa-paperclip"></i>
+                 <span class="article-attachment-info">
+                   <strong>${escHtml(docName)}</strong>
+                   <small>Click to download attachment</small>
+                 </span>
+                 <i class="fas fa-download article-attachment-dl"></i>
+               </a>`
+            : ''}
           ${tags.length ? `<div class="article-tags">${tags.map(t => `<span class="article-tag">#${escHtml(t)}</span>`).join('')}</div>` : ''}
           <a href="/pages/news.html" class="btn btn-outline btn-sm article-back"><i class="fas fa-arrow-left"></i> Back to Notice Board</a>
         </div>
@@ -598,7 +624,7 @@ function renderNewsCard(article) {
       </div>
       <div class="news-card-body">
         <div class="news-meta">
-          <span class="badge badge-${cat}">${cat.replace('_', ' ')}</span>
+          <span class="badge badge-${cat}">${cat.replace(/_/g, ' ')}</span>
           <span class="news-date"><i class="far fa-calendar-alt"></i> ${date}</span>
         </div>
         <h3>${escHtml(article.title)}</h3>

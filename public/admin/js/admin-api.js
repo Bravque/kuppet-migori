@@ -73,8 +73,10 @@ const adminApi = (() => {
 
     news: {
       getAll: (p = {}) => request('/news/admin/all?' + new URLSearchParams(p)),
-      create: (d) => request('/news', { method: 'POST', body: JSON.stringify(d) }),
-      update: (id, d) => request(`/news/${id}`, { method: 'PUT', body: JSON.stringify(d) }),
+      getOne: (id) => request(`/news/admin/${id}`),
+      // form is a FormData (title, content, images, document…)
+      create: (form) => request('/news', { method: 'POST', body: form }),
+      update: (id, form) => request(`/news/${id}`, { method: 'PUT', body: form }),
       remove: (id) => request(`/news/${id}`, { method: 'DELETE' }),
     },
 
