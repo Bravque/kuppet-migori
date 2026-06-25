@@ -1,8 +1,7 @@
 const multer = require('multer');
 const path = require('path');
 const crypto = require('crypto');
-
-const UPLOAD_ROOT = path.join(__dirname, '../../public/uploads');
+const { UPLOAD_ROOT } = require('../config/paths');
 
 function storage(subdir) {
   return multer.diskStorage({

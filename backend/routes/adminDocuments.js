@@ -3,8 +3,8 @@ const path = require('path');
 const fs = require('fs');
 const { authenticate, authorizeAdmin } = require('../middleware/auth');
 const db = require('../config/database');
+const { UPLOAD_ROOT } = require('../config/paths');
 
-const UPLOAD_ROOT = path.join(__dirname, '../../public/uploads');
 const SUBDIRS = ['members', 'bbf', 'scholarships'];
 
 // Serve sensitive member/claim/scholarship documents to authenticated admins.

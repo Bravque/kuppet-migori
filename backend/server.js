@@ -31,10 +31,10 @@ if (isProd && !process.env.FRONTEND_URL) {
   throw new Error('FRONTEND_URL must be set in production (CORS origin)');
 }
 
-// Bootstrap upload directories at startup
-const UPLOAD_DIRS = ['photos', 'documents', 'bbf', 'scholarships', 'members', 'news'];
-const UPLOAD_ROOT = path.join(__dirname, '../public/uploads');
-for (const dir of UPLOAD_DIRS) {
+// Bootstrap upload directories at startup. UPLOAD_ROOT may live outside the
+// deployed tree (set UPLOAD_DIR) so uploads survive git-based redeploys.
+const { UPLOAD_ROOT, UPLOAD_SUBDIRS } = require('./config/paths');
+for (const dir of UPLOAD_SUBDIRS) {
   fs.mkdirSync(path.join(UPLOAD_ROOT, dir), { recursive: true });
 }
 
@@ -138,7 +138,14 @@ app.use(['/uploads/members', '/uploads/bbf', '/uploads/scholarships'], (req, res
   res.status(404).json({ success: false, message: 'Not found' });
 });
 
-// Static files (public/uploads/photos + /documents remain public; sensitive dirs blocked above)
+// Serve uploaded files from the (possibly external) persistent UPLOAD_ROOT.
+// photos/ documents/ news/ are public; members/ bbf/ scholarships/ were 404'd above.
+// A missing file returns a real 404 (not the SPA index.html), so broken <img>s
+// fail fast and can show their onerror fallback instead of rendering HTML.
+app.use('/uploads', express.static(UPLOAD_ROOT, { maxAge: isProd ? '1d' : 0 }));
+app.use('/uploads', (req, res) => res.status(404).json({ success: false, message: 'File not found' }));
+
+// Static files (CSS/JS/images). Sensitive upload dirs blocked above; /uploads served above.
 app.use(express.static(path.join(__dirname, '../public'), {
   maxAge: isProd ? '1d' : 0,
 }));

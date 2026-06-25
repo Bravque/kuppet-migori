@@ -3,8 +3,7 @@ const path = require('path');
 const fs = require('fs');
 const { authenticateMember } = require('../middleware/auth');
 const db = require('../config/database');
-
-const UPLOAD_ROOT = path.join(__dirname, '../../public/uploads');
+const { UPLOAD_ROOT } = require('../config/paths');
 
 // Serve sensitive member documents only to the owning member
 router.get('/:filename', authenticateMember, async (req, res) => {

@@ -691,7 +691,7 @@ function renderLeaderCard(leader) {
     <div class="leader-card">
       <div class="leader-photo">
         ${leader.photo_url
-          ? `<img src="${leader.photo_url}" alt="${escHtml(leader.name)}" loading="lazy">`
+          ? `<img src="${leader.photo_url}" alt="${escHtml(leader.name)}" loading="lazy" onerror="this.parentElement.innerHTML='<i class=\\'fas fa-user-tie\\'></i>'">`
           : `<i class="fas fa-user-tie"></i>`}
       </div>
       <div class="leader-body">

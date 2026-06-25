@@ -333,13 +333,16 @@ The new-claim form (`member/bbf-claims.html`) shows the member's identity in a r
 Member numbers (`MBR-YYYY-NNNNNN`), BBF claim numbers (`BBF-YYYY-NNNNNN`), and scholarship application numbers (`SAPP-YYYY-NNNNNN`) use atomic MySQL counters stored in the `settings` table (`member_seq`, `bbf_seq`, `schapp_seq`). Never use `COUNT(*)+1`.
 
 ### File uploads
-Files stored in `public/uploads/{category}/` with UUID filenames (multer **2.x**). The sensitive subdirs — `members/`, `bbf/`, `scholarships/` — are **404-blocked from static serving** in `server.js` (before `express.static`); only `photos/` and `documents/` are public. Sensitive files are streamed only through ownership/role-checked endpoints:
+Files are stored under the upload root with UUID filenames (multer **2.x**), in subdirs `photos/`, `documents/`, `bbf/`, `scholarships/`, `members/`, `news/`. The sensitive subdirs — `members/`, `bbf/`, `scholarships/` — are **404-blocked from static serving** in `server.js` (before the `/uploads` static); only `photos/`, `documents/`, `news/` are public. Sensitive files are streamed only through ownership/role-checked endpoints:
 - **Members:** `GET /api/member/documents/:filename` — verifies the file belongs to the logged-in member.
 - **Admins:** `GET /api/admin/documents/:filename` (`backend/routes/adminDocuments.js`) — `authenticate` + `authorizeAdmin`; admin detail pages fetch these as a blob via `viewDoc()` in `admin-portal.js` (a plain link can't send the Bearer token).
 
-Upload subdirectories: `photos/`, `documents/`, `bbf/`, `scholarships/`, `members/`
+DB stores URL paths (`/uploads/<sub>/<file>`); these are served from the filesystem **upload root** at request time. A missing `/uploads/*` file now returns a real **404 JSON** (not the SPA `index.html`), so broken `<img>`s fail fast and hit their `onerror` fallback.
 
-**⚠ Production note:** `public/uploads/` is ephemeral on Render/Railway free tier. Swap `multer` disk storage for `multer-s3` before deploying.
+**⚠ Uploads must live OUTSIDE the git-deployed tree (persistent dir).** `public/uploads/` is git-ignored, and Hostinger's GitHub auto-deploy **restores the working tree on every deploy → all runtime uploads are wiped** (this is what blanked the admin-uploaded leader photos on 25 June). The upload root is centralised in `backend/config/paths.js` and configurable via the **`UPLOAD_DIR`** env var:
+- Local dev: leave `UPLOAD_DIR` unset → falls back to `./public/uploads`.
+- **Live (Hostinger): set `UPLOAD_DIR` to an absolute path above `public_html`** (e.g. `/home/u735599564/uploads`), create that dir once via SSH (`mkdir -p`), and the app reads/writes/serves there so files survive redeploys. Set it in hPanel → Environment variables.
+- Lost files (uploaded before the persistent dir was configured) are only recoverable from a Hostinger backup snapshot taken **before** the wiping deploy; otherwise re-upload.
 
 ### Rate limiting
 | Endpoint | Limit |
