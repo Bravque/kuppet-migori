@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { body } = require('express-validator');
-const { submit, adminGetAll, adminUpdateStatus } = require('../controllers/contactController');
+const { submit, reply, adminGetAll, adminUpdateStatus } = require('../controllers/contactController');
 const { authenticate, authorizeAdmin, auditLog } = require('../middleware/auth');
 
 router.post('/', [
@@ -16,5 +16,8 @@ router.post('/', [
 // Admin
 router.get('/', authenticate, authorizeAdmin, adminGetAll);
 router.put('/:id/status', authenticate, authorizeAdmin, auditLog('contact.status'), adminUpdateStatus);
+router.post('/:id/reply', authenticate, authorizeAdmin, [
+  body('message').trim().notEmpty().withMessage('Reply message is required').isLength({ max: 5000 }),
+], auditLog('contact.reply'), reply);
 
 module.exports = router;

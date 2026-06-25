@@ -525,12 +525,14 @@ async function initAdminContacts() {
   });
 }
 
+let contactsCache = [];
 async function loadContactsTable(params = {}) {
   const tbody = document.getElementById('contacts-tbody');
   if (!tbody) return;
   tbody.innerHTML = `<tr><td colspan="6">${renderLoading()}</td></tr>`;
   try {
     const res = await adminApi.contacts.getAll({ limit: 30, ...params });
+    contactsCache = res.data;
     if (!res.data.length) { tbody.innerHTML = `<tr><td colspan="6">${renderEmpty()}</td></tr>`; return; }
     tbody.innerHTML = res.data.map(c => `
       <tr>
@@ -540,12 +542,15 @@ async function loadContactsTable(params = {}) {
         <td title="${escHtml(c.message)}">${escHtml(c.message.substring(0, 60))}…</td>
         <td>${statusBadge(c.status)}</td>
         <td>
-          <select class="form-control" style="padding:0.3rem;font-size:0.75rem" onchange="updateContactStatus(${c.id},this.value)">
-            <option value="new" ${c.status==='new'?'selected':''}>New</option>
-            <option value="read" ${c.status==='read'?'selected':''}>Read</option>
-            <option value="replied" ${c.status==='replied'?'selected':''}>Replied</option>
-            <option value="closed" ${c.status==='closed'?'selected':''}>Closed</option>
-          </select>
+          <div style="display:flex;gap:0.4rem;align-items:center">
+            <button class="btn btn-gold btn-xs" onclick="openReplyModal(${c.id})" title="Email a reply"><i class="fas fa-reply"></i> Reply</button>
+            <select class="form-control" style="padding:0.3rem;font-size:0.75rem" onchange="updateContactStatus(${c.id},this.value)">
+              <option value="new" ${c.status==='new'?'selected':''}>New</option>
+              <option value="read" ${c.status==='read'?'selected':''}>Read</option>
+              <option value="replied" ${c.status==='replied'?'selected':''}>Replied</option>
+              <option value="closed" ${c.status==='closed'?'selected':''}>Closed</option>
+            </select>
+          </div>
         </td>
       </tr>`).join('');
   } catch (err) { tbody.innerHTML = `<tr><td colspan="6">${escHtml(err.message)}</td></tr>`; }
@@ -553,6 +558,52 @@ async function loadContactsTable(params = {}) {
 
 async function updateContactStatus(id, status) {
   try { await adminApi.contacts.updateStatus(id, status); } catch (err) { alert(err.message); }
+}
+
+let replyingContactId = null;
+function openReplyModal(id) {
+  const c = contactsCache.find(x => x.id === id);
+  if (!c) return;
+  replyingContactId = id;
+  const fmt = c.created_at ? new Date(c.created_at).toLocaleString('en-KE') : '';
+  document.getElementById('reply-context').innerHTML = `
+    <div><strong>${escHtml(c.name)}</strong> &lt;${escHtml(c.email)}&gt;${c.phone ? ' · ' + escHtml(c.phone) : ''}</div>
+    <div style="color:var(--text-muted);margin:0.25rem 0"><span class="badge">${escHtml(c.category)}</span>${c.subject ? ' · ' + escHtml(c.subject) : ''}${fmt ? ' · ' + escHtml(fmt) : ''}</div>
+    <div style="margin-top:0.4rem;white-space:pre-wrap">${escHtml(c.message)}</div>`;
+  const alertEl = document.getElementById('reply-alert');
+  alertEl.className = 'hidden';
+  const form = document.getElementById('reply-form');
+  form.reset();
+  // Pre-fill replies that were already sent so they can be reviewed/edited
+  if (c.admin_reply) form.querySelector('[name=reply]').value = c.admin_reply;
+  document.getElementById('reply-modal').classList.add('open');
+}
+
+async function sendReply() {
+  const alertEl = document.getElementById('reply-alert');
+  const btn = document.getElementById('reply-send-btn');
+  const message = document.getElementById('reply-form').querySelector('[name=reply]').value.trim();
+  alertEl.className = 'hidden';
+  if (!message) {
+    alertEl.className = 'alert alert-danger';
+    alertEl.textContent = 'Please type a reply before sending.';
+    return;
+  }
+  btn.disabled = true;
+  const original = btn.innerHTML;
+  btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sending…';
+  try {
+    const res = await adminApi.contacts.reply(replyingContactId, message);
+    document.getElementById('reply-modal').classList.remove('open');
+    loadContactsTable();
+    if (typeof showToast === 'function') showToast(res.message);
+  } catch (err) {
+    alertEl.className = 'alert alert-danger';
+    alertEl.textContent = err.message;
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = original;
+  }
 }
 
 // ── Settings page ─────────────────────────────────────────────────────────────

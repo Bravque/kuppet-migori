@@ -118,6 +118,7 @@ const adminApi = (() => {
     contacts: {
       getAll: (p = {}) => request('/contact?' + new URLSearchParams(p)),
       updateStatus: (id, status) => request(`/contact/${id}/status`, { method: 'PUT', body: JSON.stringify({ status }) }),
+      reply: (id, message) => request(`/contact/${id}/reply`, { method: 'POST', body: JSON.stringify({ message }) }),
     },
 
     settings: {

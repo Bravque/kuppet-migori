@@ -175,6 +175,7 @@ A full security audit was run against the codebase and **all findings fixed** (c
 2. `backend/config/update-leadership.sql` — clears placeholder leaders and inserts the 14 real officials. Until run, the About page shows the old placeholder names.
 3. `backend/config/migration-news-media.sql` — adds the `sport_entertainment` category to `news.category` and three media columns (`image_2`, `document_url`, `document_name`). Until run, creating/saving Notice Board articles fails on production.
 4. `backend/config/migration-resources-category.sql` — adds `sport_entertainment` to the `resources.category` ENUM. Until run, saving a resource under the new Sports & Entertainment category fails on production.
+5. `backend/config/migration-contact-reply.sql` — adds `contacts.admin_reply` + `contacts.replied_at`. Until run, the admin Contact Inbox **Reply** action fails (the email still sends, but recording the reply errors).
 
 Fresh installs already include all of this via `init.sql` / `init-hostinger.sql`.
 

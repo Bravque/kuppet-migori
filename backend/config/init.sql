@@ -143,6 +143,8 @@ CREATE TABLE IF NOT EXISTS contacts (
   message TEXT NOT NULL,
   category ENUM('general','membership','bbf','advocacy','resources','complaint','other') DEFAULT 'general',
   status ENUM('new','read','replied','closed') DEFAULT 'new',
+  admin_reply TEXT,
+  replied_at TIMESTAMP NULL,
   ip_address VARCHAR(45),
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP

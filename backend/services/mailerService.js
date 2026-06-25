@@ -17,7 +17,7 @@ function getTransporter() {
   return transporter;
 }
 
-async function sendMail({ to, subject, html, text }) {
+async function sendMail({ to, subject, html, text, replyTo }) {
   if (!process.env.SMTP_HOST || !process.env.SMTP_USER || !process.env.SMTP_PASS) {
     console.warn('[mailer] SMTP not configured — skipping email to', to);
     return { skipped: true };
@@ -26,6 +26,7 @@ async function sendMail({ to, subject, html, text }) {
     const info = await getTransporter().sendMail({
       from: `"KUPPET Migori" <${process.env.SMTP_USER}>`,
       to,
+      replyTo,
       subject,
       html,
       text: text || html.replace(/<[^>]+>/g, ''),
@@ -36,6 +37,15 @@ async function sendMail({ to, subject, html, text }) {
     return { success: false };
   }
 }
+
+// Escape user-supplied values before injecting them into email HTML.
+function esc(s) {
+  return String(s == null ? '' : s)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+// Preserve line breaks from a plain-text body inside HTML.
+const nl2br = (s) => esc(s).replace(/\r?\n/g, '<br>');
 
 // Pre-built templates
 const templates = {
@@ -76,10 +86,37 @@ const templates = {
   }),
 
   contactAutoReply: (name, category) => ({
-    subject: `KUPPET Migori — We received your ${category} enquiry`,
-    html: `<p>Dear ${name},</p>
+    subject: `KUPPET Migori — We received your ${esc(category)} enquiry`,
+    html: `<p>Dear ${esc(name)},</p>
 <p>Thank you for contacting KUPPET Migori. We have received your enquiry and will respond within 2 working days.</p>
 <p>For urgent matters, call +254 721 808 993.</p>
+<p>Regards,<br>KUPPET Migori Branch Secretariat</p>`,
+  }),
+
+  // Sent to the branch inbox whenever a new enquiry is submitted. replyTo is set
+  // to the enquirer's address so staff can reply straight from their mail client.
+  contactStaffAlert: (c) => ({
+    subject: `New ${esc(c.category || 'general')} enquiry from ${esc(c.name)}`,
+    html: `<p>A new contact enquiry was submitted on kuppetmigori.co.ke:</p>
+<table cellpadding="4" style="font-size:0.95rem">
+  <tr><td><strong>Name</strong></td><td>${esc(c.name)}</td></tr>
+  <tr><td><strong>Email</strong></td><td><a href="mailto:${esc(c.email)}">${esc(c.email)}</a></td></tr>
+  <tr><td><strong>Phone</strong></td><td>${esc(c.phone) || '—'}</td></tr>
+  <tr><td><strong>Category</strong></td><td>${esc(c.category || 'general')}</td></tr>
+  <tr><td><strong>Subject</strong></td><td>${esc(c.subject) || '—'}</td></tr>
+</table>
+<p><strong>Message:</strong></p>
+<p>${nl2br(c.message)}</p>
+<p style="color:#718096;font-size:0.85rem">Reply from the admin Contact Inbox, or just reply to this email to reach ${esc(c.name)} directly.</p>`,
+  }),
+
+  // Sent to the enquirer when an admin replies from the Contact Inbox.
+  contactReply: (name, originalSubject, originalMessage, replyBody) => ({
+    subject: `KUPPET Migori — Re: ${esc(originalSubject || 'Your enquiry')}`,
+    html: `<p>Dear ${esc(name)},</p>
+<p>${nl2br(replyBody)}</p>
+<hr style="border:none;border-top:1px solid #e2e8f0;margin:1.25rem 0">
+<p style="color:#718096;font-size:0.85rem">In reply to your message:<br><em>${nl2br(originalMessage)}</em></p>
 <p>Regards,<br>KUPPET Migori Branch Secretariat</p>`,
   }),
 };
