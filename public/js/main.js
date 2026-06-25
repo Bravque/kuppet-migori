@@ -185,7 +185,7 @@ async function loadFeaturedNews() {
   try {
     const { data } = await api.news.getFeatured();
     if (!data.length) { container.innerHTML = renderEmptyState('No featured articles at this time.'); return; }
-    container.innerHTML = data.map(renderNewsCard).join('');
+    container.innerHTML = `<div class="news-grid h-scroll">${data.map(renderNewsCard).join('')}</div>`;
     initScrollAnimations();
   } catch {
     container.innerHTML = renderEmptyState('Failed to load news. Please try again later.');
@@ -231,7 +231,7 @@ async function initNewsPage() {
         offset: (currentPage - 1) * perPage,
       });
       if (!data.length) { container.innerHTML = renderEmptyState('No articles found.'); return; }
-      container.innerHTML = `<div class="news-grid">${data.map(renderNewsCard).join('')}</div>`;
+      container.innerHTML = `<div class="news-grid h-scroll">${data.map(renderNewsCard).join('')}</div>`;
       renderPagination('news-pagination', total, perPage, currentPage, (p) => {
         currentPage = p;
         loadNews();
@@ -349,7 +349,7 @@ async function initLeadershipPage() {
     if (!container) return;
     const leaders = groups[key];
     if (!leaders.length) { container.innerHTML = '<p class="text-muted">No leaders listed.</p>'; return; }
-    container.innerHTML = `<div class="leaders-grid">${leaders.map(renderLeaderCard).join('')}</div>`;
+    container.innerHTML = `<div class="leaders-grid h-scroll">${leaders.map(renderLeaderCard).join('')}</div>`;
   });
 
   initScrollAnimations();
@@ -368,7 +368,7 @@ async function initScholarshipsPage() {
   try {
     const { data } = await api.scholarships.getAll();
     if (!data.length) { container.innerHTML = renderEmptyState('No scholarships currently available.'); return; }
-    container.innerHTML = `<div class="scholarship-cards">${data.map(renderScholarshipCard).join('')}</div>`;
+    container.innerHTML = `<div class="scholarship-cards h-scroll">${data.map(renderScholarshipCard).join('')}</div>`;
     initScrollAnimations();
   } catch {
     container.innerHTML = renderEmptyState('Failed to load scholarships.');
@@ -435,7 +435,7 @@ async function initAdvocacyPage() {
   try {
     const { data } = await api.advocacy.getAll();
     if (!data.length) { container.innerHTML = renderEmptyState('No advocacy content available.'); return; }
-    container.innerHTML = `<div class="advocacy-cards">${data.map(renderAdvocacyCard).join('')}</div>`;
+    container.innerHTML = `<div class="advocacy-cards h-scroll">${data.map(renderAdvocacyCard).join('')}</div>`;
     initScrollAnimations();
   } catch {
     container.innerHTML = renderEmptyState('Failed to load content.');

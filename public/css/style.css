@@ -1684,6 +1684,42 @@ select.form-control { cursor: pointer; }
   .footer-bottom-links { flex-wrap: wrap; justify-content: center; }
 }
 
+/* ============================================================
+   Mobile (≤640px): turn stacked card grids into horizontal
+   scroll-snap rows, so long card lists swipe sideways instead of
+   forcing a long vertical scroll. Add `h-scroll` to a grid
+   container (and `h-scroll--sm` for compact cards). !important
+   overrides the per-page inline grid media queries.
+   ============================================================ */
+@media (max-width: 640px) {
+  .h-scroll {
+    display: flex !important;
+    grid-template-columns: none !important;
+    flex-wrap: nowrap !important;
+    max-width: 100%;
+    min-width: 0;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+    gap: 1rem;
+    padding-bottom: 0.85rem;            /* room for the scrollbar */
+    margin-bottom: 1.25rem;
+    scrollbar-width: thin;
+    scrollbar-color: var(--gold) transparent;
+  }
+  .h-scroll > * {
+    flex: 0 0 clamp(220px, 82%, 300px) !important;  /* peek of the next card */
+    width: auto !important;
+    max-width: none !important;
+    scroll-snap-align: start;
+  }
+  .h-scroll--sm > * { flex-basis: clamp(140px, 44%, 170px) !important; }
+  .h-scroll::-webkit-scrollbar { height: 6px; }
+  .h-scroll::-webkit-scrollbar-thumb { background: var(--gold); border-radius: 999px; }
+  .h-scroll::-webkit-scrollbar-track { background: transparent; }
+}
+
 /* ============================================
    PRINT STYLES
    ============================================ */
