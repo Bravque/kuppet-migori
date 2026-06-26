@@ -1189,6 +1189,15 @@ h1,h2,h3,h4,h5,h6 { line-height: 1.25; font-weight: 700; }
 }
 .footer-bottom p { font-size: 0.8125rem; color: rgba(255,255,255,0.45); }
 .footer-bottom-links { display: flex; gap: 1.5rem; }
+/* "Developed by" credit — forced onto its own centered line below the row */
+.footer-credit {
+  order: 1; flex-basis: 100%;
+  text-align: center;
+  padding-top: 1rem; margin-top: 0.25rem;
+  border-top: 1px solid rgba(255,255,255,0.08);
+}
+.footer-credit a { color: var(--gold-light); font-weight: 600; }
+.footer-credit a:hover { text-decoration: underline; }
 .footer-bottom-links a { font-size: 0.8125rem; color: rgba(255,255,255,0.45); transition: color var(--transition); }
 .footer-bottom-links a:hover { color: var(--gold-light); }
 
