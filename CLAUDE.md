@@ -22,7 +22,7 @@ There are no tests or linting scripts configured yet.
 
 ---
 
-## Project Status (as of 21 June 2026)
+## Project Status (as of 26 June 2026)
 
 **GitHub repo:** https://github.com/Bravque/kuppet-migori  
 **Owner:** Bravque (bravinowino008@gmail.com)  
@@ -33,8 +33,9 @@ There are no tests or linting scripts configured yet.
 - **Deployment:** GitHub auto-deploy (push to `main` → Hostinger rebuilds automatically)
 - **Database:** MySQL on Hostinger — `u735599564_KuppetMigori44`, user `u735599564_Admin44Kuppet`
 - **Schema:** imported via `backend/config/init-hostinger.sql` (no `CREATE DATABASE` line)
-- **Env vars:** set in hPanel → Environment variables (imported from `env-kuppet.txt` on Desktop)
-- **SSH:** `ssh -p 65002 u735599564@92.113.28.102` — password set in hPanel → SSH Access (separate from hPanel login password)
+- **Env vars:** set in hPanel → Environment variables (imported from `env-kuppet.txt` on Desktop). **Must include `UPLOAD_DIR=/home/u735599564/uploads`** (see persistent-uploads note) and `CONTACT_EMAIL` (contact-form notifications).
+- **SSH:** `ssh -p 65002 u735599564@92.113.28.102` — password set in hPanel → SSH Access (separate from hPanel login password). Interactive shell may be disabled (`/sbin/nologin`); if so use **SFTP** or **hPanel File Manager** instead. App lives in `~/nodejs/`, web root in `~/public_html/`; uploads in `~/uploads/` (outside both).
+- **Persistent uploads:** runtime uploads live in `~/uploads/` (set via `UPLOAD_DIR`), **outside** the git-deployed `~/nodejs/` tree, so they survive redeploys. See the File uploads section.
 
 ### What is built and committed ✓
 
@@ -112,6 +113,25 @@ WHERE email = 'admin@kuppetmigori.co.ke';
 > Account lockout triggers after repeated failed attempts — `locked_until` and `failed_login_attempts` columns on the `users` table. The app uses `bcryptjs` (not `bcrypt`).
 
 ---
+
+### Done in the 26 June 2026 session
+
+**Notice Board (news) — Sport & Entertainment + media**
+- New `sport_entertainment` category on `news.category` (public filter tabs + sidebar, admin create/edit form, gold badge). Articles now support a **2nd image** + a **downloadable document** — new columns `image_2`, `document_url`, `document_name`; admin modal gained image1/image2/document uploads (new public `news/` upload subdir + `newsMedia` multer instance with `.fields()`); the article page renders the gallery image + a download card. Admin news edit modal now **loads existing data** (was a stub) via new `GET /api/news/admin/:id`; create/update switched to FormData. → run `migration-news-media.sql` on live.
+
+**Resources — clickable categories + Sport & Entertainment**
+- **Fixed a dead feature:** the category cards never filtered — `initResourcesPage()` only wired non-existent `.filter-tab`s and the inline script dispatched a no-op event. Cards/tabs now share one handler, reload on click, and honour `?category=` deep links (with a guard for unknown categories). Added a **Sports & Entertainment** resource category (card, `resources.category` ENUM, admin form). → run `migration-resources-category.sql` on live.
+
+**Persistent uploads (fixes vanishing leader photos)**
+- Admin-uploaded files were wiped on every deploy (git-ignored `public/uploads/`, restored from git on redeploy). Centralised the upload root in **`backend/config/paths.js`**, configurable via **`UPLOAD_DIR`** (absolute path outside the deployed tree; falls back to `./public/uploads` locally). `server.js` serves `/uploads` from it and returns a real **404 JSON** for missing files (was silently serving `index.html`, breaking `<img>`s); `renderLeaderCard` gained an `onerror` icon fallback. **Live setup:** created `~/uploads/{photos,documents,news,members,bbf,scholarships}` and set `UPLOAD_DIR=/home/u735599564/uploads` in hPanel. (Photos uploaded before this are unrecoverable unless a pre-deploy Hostinger backup exists.)
+
+**Contact form — staff notification + admin reply**
+- On submit, emails the branch inbox (`CONTACT_EMAIL` → falls back to `SMTP_USER`, reply-to = enquirer) + auto-acknowledges the enquirer. New **`POST /api/contact/:id/reply`** (admin, validated, audit-logged) emails the enquirer, stores `admin_reply` + `replied_at`, marks `replied`; Contact Inbox gained a **Reply** button + modal. `mailerService.sendMail` gained `replyTo`; new `contactStaffAlert`/`contactReply` templates; contact email values HTML-escaped. → run `migration-contact-reply.sql` on live.
+
+**Mobile — card grids scroll horizontally**
+- New reusable **`.h-scroll`** utility (style.css): at ≤640px, card grids become horizontal scroll-snap rows (cards `clamp(220px,82%,300px)` so the next peeks) instead of long vertical stacks. Applied to news/featured-news/leadership/scholarships/advocacy/resource-categories/home-services/about-values+group-photos. Homepage featured-news wrapped in `.news-grid` (also fixes its desktop 3-up). Fixed news-page overflow this exposed: `.news-layout` tracks → `minmax(0,1fr)`. Verified in headless Chrome at 390px: all rows scroll, zero page overflow.
+
+**Cache token** — `20260622b → 20260626c` across all 42 public HTML (bumped per style.css/main.js edits). Portal JS (`admin/js/*`, `member/js/*`) still unversioned — hard-refresh after portal-JS edits (contact Reply button, admin news/resources changes live there).
 
 ### Done in the 22 June 2026 session (security audit + hardening, branding, deps)
 
@@ -260,7 +280,7 @@ Every `<body>` tag carries a class that gates the matching `init*` function in `
 Admin and member portal pages use `admin-*-page` / `member-*-page` classes gating functions in their respective portal JS files.
 
 ### Asset cache-busting (IMPORTANT)
-Hostinger serves CSS/JS with **no `cache-control`/`etag`**, so browsers hold stale assets after a deploy. Public CSS/JS links carry a version query, e.g. `href="/css/style.css?v=20260622b"`. **When you edit `style.css`, `portal.css`, `main.js`, or `api.js`, bump the `?v=` string on every page** (sed across `public/**/*.html`) or returning visitors won't see the change. HTML files themselves aren't versioned (they revalidate). Current token: `20260622b`.
+Hostinger serves CSS/JS with **no `cache-control`/`etag`**, so browsers hold stale assets after a deploy. Public CSS/JS links carry a version query, e.g. `href="/css/style.css?v=20260622b"`. **When you edit `style.css`, `portal.css`, `main.js`, or `api.js`, bump the `?v=` string on every page** (sed across `public/**/*.html`) or returning visitors won't see the change. HTML files themselves aren't versioned (they revalidate). Current token: `20260626c`.
 > ⚠ Caveat: portal JS (`member/js/member-portal.js`, `member/js/member-api.js`, `admin/js/admin-portal.js`, `admin/js/admin-api.js`) is loaded **without** a `?v=` query, so the convention above does not cover it. Editing those files relies on browser revalidation — hard-refresh after deploying portal-JS changes (e.g. member TSC login + admin export fixes live there); if stale-cache issues appear, add a `?v=` to those `<script>` tags.
 
 ### Responsive header (public pages)
@@ -270,13 +290,18 @@ All public pages share an identical topbar + header (only the active nav link di
 - `≤960px` — inline nav collapses into the slide-in **hamburger drawer** (`.main-nav`); CTAs move into `.nav-cta` inside the drawer; `main.js` hamburger/dropdown breakpoints also use `960`
 The "Get Help" (→ contact) + "Member Login" (→ member login) buttons live in `.header-cta` (desktop) and are duplicated in `.nav-cta` (drawer).
 
+### Mobile card rows — `.h-scroll` (26 June 2026)
+Add the **`.h-scroll`** class to a card-grid container so that at **≤640px** it becomes a horizontal scroll-snap row (instead of stacking into a long vertical scroll); add `.h-scroll--sm` for compact cards. Defined once in `style.css` with `!important` so it overrides per-page inline grid media queries. Cards size `clamp(220px,82%,300px)` so the next peeks. Applied to: `.news-grid` (incl. homepage featured news), `.leaders-grid`, `.scholarship-cards`, `.advocacy-cards`, `.category-cards`, `.services-grid`, `.values-grid-4`, `.group-photos-grid` (the JS-rendered ones get the class in `main.js`). **Gotcha:** if an `.h-scroll` sits inside a CSS-grid parent (e.g. `.news-layout`), give that parent `minmax(0,1fr)` tracks or the wide row blows the track out to min-content and forces page-wide horizontal overflow.
+
 ### Admin roles
 | Role | Access |
 |------|--------|
 | `super_admin` | Full access to everything |
 | `branch_officer` | Can review/recommend; cannot delete admins, change system settings, or access audit logs |
 
-Middleware: `authorizeAdmin` allows both roles. `authorizeSuperAdmin` allows only `super_admin`.
+Middleware: `authorizeAdmin` allows both roles. `authorizeSuperAdmin` allows only `super_admin`. `branch_officer` is blocked from every `authorizeSuperAdmin` route: approving BBF claims / marking paid, approving scholarship apps, suspending/deleting members, admin-user management, settings, audit logs, exports, bulk/group SMS, 2FA disable.
+
+> ⚠ The `users.role` ENUM also has `editor` and `viewer`, but **no route grants them access** — `authorizeAdmin` rejects anything that isn't `super_admin`/`branch_officer`, so an editor/viewer gets 403 everywhere. They're dead roles; the user-create form still offers them (assigning one creates a useless account). Drop them from the dropdown/ENUM or wire real permissions before using them.
 
 ### JWT setup
 Two separate secrets are **required** and must differ:
@@ -295,7 +320,9 @@ Server throws at startup if they are equal.
 - **Admins** log in with **email + password** (+ optional TOTP 2FA).
 
 ### Email (SMTP) — required for password reset & notification emails
-`backend/services/mailerService.js` sends via nodemailer when `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS` are set (else it logs & skips). `APP_URL` (e.g. `https://kuppetmigori.co.ke`) is used to build links in emails (password reset). Live uses the Hostinger mailbox for `info@kuppetmigori.co.ke` (`smtp.hostinger.com:465`). Test with `node backend/scripts/test-email.js you@example.com`.
+`backend/services/mailerService.js` sends via nodemailer when `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS` are set (else it logs & skips). `sendMail()` supports an optional `replyTo`. `APP_URL` (e.g. `https://kuppetmigori.co.ke`) is used to build links in emails (password reset). Live uses the Hostinger mailbox for `info@kuppetmigori.co.ke` (`smtp.hostinger.com:465`). Test with `node backend/scripts/test-email.js you@example.com`.
+
+**Contact form (26 June 2026):** on submit the controller emails the branch inbox (`CONTACT_EMAIL`, falls back to `SMTP_USER`; reply-to = enquirer) and auto-acknowledges the enquirer. Admins reply from the Contact Inbox via `POST /api/contact/:id/reply` (emails the enquirer, stores `admin_reply`/`replied_at`, marks `replied`). All fail gracefully if SMTP is unconfigured.
 
 ### Database schema (21 tables)
 **Core (public site):** `users`, `leadership`, `news`, `events`, `resources`, `scholarships`, `advocacy`, `contacts`, `settings`
@@ -316,9 +343,10 @@ Key ENUM values:
 - `bbf_claims.school_category`: `senior_school | junior_school`
 - `scholarships.scholarship_type`: `kcse | kjsea | dte` (was `undergraduate/postgraduate/vocational/research/international` before 21 June 2026; DTE = Diploma in Technical Education)
 - `scholarship_applications.status`: `applied | under_review | approved | rejected`
-- `news.category`: `news | announcement | circular | press_release | event`
-- `resources.category`: `curriculum | circular | moe_document | tsc_resource | professional_dev | teaching_material | legal | policy`
-- `contacts.category`: `general | membership | bbf | advocacy | resources | complaint | other`
+- `news.category`: `news | announcement | circular | press_release | event | sport_entertainment` (sport_entertainment added 26 June 2026; news rows also carry `image_2`, `document_url`, `document_name`)
+- `resources.category`: `curriculum | circular | moe_document | tsc_resource | professional_dev | teaching_material | legal | policy | sport_entertainment` (sport_entertainment added 26 June 2026)
+- `contacts.category`: `general | membership | bbf | advocacy | resources | complaint | other` (contacts also carry `admin_reply` + `replied_at`, added 26 June 2026)
+- `contacts.status`: `new | read | replied | closed`
 
 ### BBF claims data model (restructured 21 June 2026)
 Two claim types only: **`death`** and **`retirement`**. A claim stores a snapshot of claim particulars: `deceased_name`, `tsc_no`, `sub_county`, `school`, `school_category`, `relationship`, `date_of_death` (plus the existing `amount_requested`/`amount_approved`, set by admins during review).

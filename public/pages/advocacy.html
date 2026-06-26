@@ -436,17 +436,33 @@
         return;
       }
 
+      // Capture the chosen issue type: its option value is the contacts category
+      // ('advocacy' or 'complaint'); its label is kept as the subject so the
+      // specific issue is no longer dropped.
+      const issueSelect = form.querySelector('[name="category"]');
+      const issueValue = issueSelect?.value;
+      const issueLabel = issueSelect?.options[issueSelect.selectedIndex]?.text.trim();
+      if (!issueValue) {
+        feedback.className = 'alert alert-warning';
+        feedback.textContent = 'Please select the issue type.';
+        return;
+      }
+
       submitBtn.disabled = true;
       submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Submitting...';
       if (feedback) feedback.className = 'hidden';
 
+      // The school/institution field (name="subject") is folded into the message
+      // so the subject can carry the issue type instead.
+      const school = form.querySelector('[name="subject"]')?.value.trim();
+      const details = form.querySelector('[name="message"]')?.value.trim();
       const data = {
         name: form.querySelector('[name="name"]')?.value.trim(),
         email: form.querySelector('[name="email"]')?.value.trim(),
         phone: form.querySelector('[name="phone"]')?.value.trim(),
-        subject: form.querySelector('[name="subject"]')?.value.trim() || 'Advocacy Report',
-        message: form.querySelector('[name="message"]')?.value.trim(),
-        category: 'advocacy',
+        subject: issueLabel || 'Advocacy Report',
+        message: (school ? `School / Institution: ${school}\n\n` : '') + details,
+        category: issueValue,
       };
 
       try {
