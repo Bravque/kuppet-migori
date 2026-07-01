@@ -22,7 +22,7 @@ There are no tests or linting scripts configured yet.
 
 ---
 
-## Project Status (as of 26 June 2026)
+## Project Status (as of 1 July 2026)
 
 **GitHub repo:** https://github.com/Bravque/kuppet-migori  
 **Owner:** Bravque (bravinowino008@gmail.com)  
@@ -137,8 +137,11 @@ WHERE email = 'admin@kuppetmigori.co.ke';
 
 **Input validation + endpoint hardening**
 - New reusable **`backend/middleware/validate.js`** (`handleValidation` → 400 `{errors:[{field,message}]}`). Added `express-validator` chains to **every previously-unvalidated mutation route**: news, events, resources, leadership, scholarships, advocacy (content CRUD — length caps + enum `isIn` for category/type/event_type/position_category + `isURL`/`isISO8601`/`isEmail` where relevant); adminUsers (role enum, password complexity), adminSms (send/bulk/group/template — message ≤1600, group enum, conditional sub_county), adminBbf/adminMembers/adminScholarshipApps (`param('id').isInt()` + amount/notes/reason caps); member bbf + scholarships + notifications (`isInt` id params + body caps). **Validators run after multer** on multipart routes (news/leadership/resources/member uploads) so `req.body` is populated. Fields are `optional()` on updates; controllers still enforce required-on-create. Verified: bad enum/type/date/id → clean 400.
-- **Endpoint security gaps closed:** (1) **SMS delivery webhook** (`POST /api/sms/webhook`) was fully open — added a shared-secret gate (`SMS_WEBHOOK_SECRET`; if set, require `?token=` or `x-webhook-secret`, else 401; unset = open for back-comgat). Register the webhook URL with `?token=` in the TalkSasa dashboard. (2) **`PUT /api/settings/:key`** now validates `:key` against an **allowlist** (was arbitrary — INSERT…ON DUP KEY could create junk rows) + caps value ≤5000 chars + type-checks it. `GET /settings/stats` confirmed safe (hardcoded public-counter whitelist).
+- **Endpoint security gaps closed:** (1) **SMS delivery webhook** (`POST /api/sms/webhook`) was fully open — added a shared-secret gate (`SMS_WEBHOOK_SECRET`; if set, require `?token=` or `x-webhook-secret`, else 401; unset = open for back-compat). Register the webhook URL with `?token=` in the TalkSasa dashboard. (2) **`PUT /api/settings/:key`** now validates `:key` against an **allowlist** (was arbitrary — INSERT…ON DUP KEY could create junk rows) + caps value ≤5000 chars + type-checks it. `GET /settings/stats` confirmed safe (hardcoded public-counter whitelist).
 - Auth/authorization audit: **every admin mutation already had `authenticate + authorize*`, every member route `authenticateMember`** — no missing guards found. Backend-only, no cache bump, no migration. Added `SMS_WEBHOOK_SECRET` to `.env.example`.
+- **Frontend-vs-validator cross-check (pre-merge):** traced every mutation route controller-field → frontend payload → validator; **no mismatches**. All form enum values ⊆ the `isIn` lists; format validators (`isURL`/`isEmail`/`isISO8601`/`isInt`) use `checkFalsy` so an empty `""` optional field is skipped (added `checkFalsy` to events `event_date`/`end_date` for completeness). Booleans arrive as real JSON booleans (not `"on"`). **One intentional behavior change:** admin-user create now enforces password complexity (≥8 + letter + number) — the frontend previously only checked non-empty, so a weak password now returns a clean 400.
+
+**⚠ This session's work lives on branch `hardening/security-error-handling-jul2026` (3 commits: `0a5517e` XSS/error-handling/logging, `f7cdb1b` validation/endpoint-security, `8bdc5e1` checkFalsy) — pushed to origin but NOT yet merged to `main` (so NOT yet auto-deployed to live).** Open the PR at `https://github.com/Bravque/kuppet-migori/pull/new/hardening/security-error-handling-jul2026` (the `gh` fine-grained token lacks Pull-requests:write, so CLI `gh pr create` fails until that scope is granted). **On merge/deploy:** Hostinger runs `npm install` (picks up `sanitize-html`); optionally set `ALERT_EMAIL` (error alerts) + `SMS_WEBHOOK_SECRET` (webhook lock-down) in hPanel; then smoke-test one news edit + one BBF approval on the live admin panel.
 
 ### Done in the 26 June 2026 session
 
