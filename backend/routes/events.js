@@ -9,8 +9,8 @@ const EVENT_TYPES = ['meeting', 'workshop', 'seminar', 'agm', 'strike', 'other']
 const eventRules = [
   body('title').optional().trim().isLength({ min: 1, max: 300 }).withMessage('Title must be 1–300 characters'),
   body('description').optional({ nullable: true }).trim().isLength({ max: 20000 }),
-  body('event_date').optional({ nullable: true }).isISO8601().withMessage('event_date must be a valid date'),
-  body('end_date').optional({ nullable: true }).isISO8601().withMessage('end_date must be a valid date'),
+  body('event_date').optional({ nullable: true, checkFalsy: true }).isISO8601().withMessage('event_date must be a valid date'),
+  body('end_date').optional({ nullable: true, checkFalsy: true }).isISO8601().withMessage('end_date must be a valid date'),
   body('event_type').optional().isIn(EVENT_TYPES).withMessage('Invalid event type'),
   body('venue').optional({ nullable: true }).trim().isLength({ max: 300 }),
   body('venue_address').optional({ nullable: true }).trim().isLength({ max: 500 }),
