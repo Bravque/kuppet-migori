@@ -8,6 +8,8 @@ const path = require('path');
 const fs = require('fs');
 require('dotenv').config();
 require('express-async-errors'); // forwards rejected async-handler promises to the error handler
+const db = require('./config/database');
+const { sendErrorAlert } = require('./services/alertService');
 const { csrfProtection, issueCsrfCookie } = require('./middleware/csrf');
 
 const isProd = process.env.NODE_ENV === 'production';
@@ -200,9 +202,14 @@ app.use('/api/admin/analytics',        require('./routes/adminAnalytics'));
 app.use('/api/admin/audit',            require('./routes/adminAudit'));
 app.use('/api/sms/webhook',            require('./routes/smsWebhook'));
 
-// Health check
-app.get('/api/health', (req, res) => {
-  res.json({ success: true, service: 'KUPPET Migori API', timestamp: new Date().toISOString() });
+// Health check — pings the DB so uptime monitors detect a DB outage (503, not a false 200).
+app.get('/api/health', async (req, res) => {
+  try {
+    await db.query('SELECT 1');
+    res.json({ success: true, service: 'KUPPET Migori API', db: 'up', timestamp: new Date().toISOString() });
+  } catch (err) {
+    res.status(503).json({ success: false, service: 'KUPPET Migori API', db: 'down', timestamp: new Date().toISOString() });
+  }
 });
 
 const PUBLIC_ROOT = path.join(__dirname, '../public');
@@ -213,6 +220,12 @@ function safePublicPath(reqPath) {
   const resolved = path.join(PUBLIC_ROOT, rel);
   return resolved === PUBLIC_ROOT || resolved.startsWith(PUBLIC_ROOT + path.sep) ? resolved : null;
 }
+
+// Unknown API routes must return JSON 404 — otherwise they fall through to the SPA
+// fallback below and return index.html (HTML), which breaks JSON clients.
+app.use('/api', (req, res) => {
+  res.status(404).json({ success: false, message: 'API route not found' });
+});
 
 // Portal page handlers — must be above the wildcard to prevent index.html fallback
 app.get('/member/*', (req, res) => {
@@ -249,7 +262,23 @@ app.use((err, req, res, next) => {
     return res.status(400).json({ success: false, message: err.message });
   }
   console.error(err.stack);
+  sendErrorAlert('500 Internal Server Error', `${req.method} ${req.originalUrl}\n\n${err.stack || err}`);
   res.status(500).json({ success: false, message: 'Internal server error' });
+});
+
+// Process-level backstop: log out-of-band failures (e.g. a stray rejection in a
+// fire-and-forget sendMail/sendSms) instead of crashing silently. We log rather than
+// force-exit to avoid a restart loop on shared hosting; request-scoped errors are
+// already handled by express-async-errors + the global handler above.
+process.on('unhandledRejection', (reason) => {
+  const detail = reason instanceof Error ? reason.stack : String(reason);
+  console.error('UNHANDLED REJECTION:', detail);
+  sendErrorAlert('Unhandled Promise Rejection', detail);
+});
+process.on('uncaughtException', (err) => {
+  const detail = err.stack || String(err);
+  console.error('UNCAUGHT EXCEPTION:', detail);
+  sendErrorAlert('Uncaught Exception', detail);
 });
 
 app.listen(PORT, () => {

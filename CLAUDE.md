@@ -114,6 +114,27 @@ WHERE email = 'admin@kuppetmigori.co.ke';
 
 ---
 
+### Done in the 1 July 2026 session
+
+**Password reset link expiry 1h → 30 min**
+- `memberAuthController.forgotPassword` reset JWT `expiresIn` `'1h' → '30m'`; email copy in `mailerService` updated to match ("expires in 30 minutes"). Still single-use (signed with `JWT_MEMBER_SECRET + member.password`). Backend-only, no DB/cache change.
+
+**Stored-XSS fix — rich-text content sanitized on write**
+- News + advocacy article **bodies are rendered raw as HTML** on the public site (`main.js` `.article-content` at ~L487/577) to preserve admin formatting — previously unsanitized, so a `<script>`/`<img onerror>` saved by an admin/branch_officer would execute for every visitor (CSP still allows `script-src 'unsafe-inline'`). Added **`sanitize-html`** dep + **`backend/utils/sanitizeHtml.js`** (`sanitizeRichText()`, allowlist: formatting/list/table/img/a tags, `http|https|mailto|tel` schemes only, safe inline styles, forces `rel="noopener noreferrer"`; strips `<script>/<iframe>`, all `on*` handlers, `javascript:` URLs). Applied on **create + update** in `newsController` + `advocacyController` (the two `content` fields rendered raw). Verified against 7 payloads.
+  - **Note:** sanitization is **on write**, so pre-existing article rows aren't retroactively cleaned (none are known-malicious — admin-authored). If ever needed, re-save each article or run a one-time backfill through `sanitizeRichText`.
+  - **Not touched (deferred, per scope):** app-layer validation on the other admin content routes (they rely on the DB schema → bad input yields a 500 not a clean 400, and text fields have no length cap), and dropping CSP `unsafe-inline`.
+
+**Error-handling robustness — 3 edge-case fixes**
+- **Unknown `/api/*` routes now return JSON 404.** Added `app.use('/api', …)` in `server.js` *before* the portal/SPA wildcards — previously an unknown API path fell through to the `app.get('*')` SPA fallback and returned `index.html` (HTML 200) for GET, or Express's default HTML 404 for POST/PUT/DELETE, breaking JSON clients. Verified: unknown GET/POST `/api/*` → `{success:false,message:'API route not found'}` 404; unknown page still serves the SPA HTML.
+- **Public `api.js` guards the JSON parse** — `await res.json().catch(() => ({}))` (was unguarded, so a non-JSON body like a proxy 502/HTML page threw "Unexpected token <" and masked the real status). The admin/member portal wrappers already did this. → **api.js edited → cache token bumped `20260626d → 20260701a` across all 42 public HTML.**
+- **Process-level backstop** — added `process.on('unhandledRejection')` + `'uncaughtException')` loggers in `server.js` (log-only, no force-exit, to avoid a restart loop on shared hosting) so a stray fire-and-forget rejection (e.g. `sendMail`/`sendSms`) is logged instead of crashing silently.
+
+**Logging / monitoring / alerting — 3 additions (backend-only, no cache bump)**
+- **Deep health check** — `/api/health` now runs `SELECT 1` and returns **503 `db:down`** on DB failure (was a false 200). Point an uptime monitor (UptimeRobot etc.) at it. Required adding `const db = require('./config/database')` to `server.js`.
+- **Failed/forbidden attempts are now audited.** Refactored `middleware/auth.js`: new shared `recordAudit()` (never throws, uses the existing `audit_logs.new_value` JSON column — **no migration**). `auditLog` now records failures too (action gets a `.failed` suffix + `{status}` in new_value), and **`authorizeAdmin`/`authorizeSuperAdmin` log every 403** as `authz.denied` with `{required, role, method, path}` — surfaces privilege-escalation probing (a `branch_officer` hitting super-admin routes). Successful actions unchanged.
+- **Email alerts on serious errors** — new `backend/services/alertService.js` (`sendErrorAlert`, **throttled to 1 email / 10 min**, fire-and-forget, never throws). Wired into the global 500 handler + both process handlers. Recipient: **`ALERT_EMAIL` → `CONTACT_EMAIL` → `SMTP_USER`** (added `ALERT_EMAIL` to `.env.example`; set it in hPanel to receive alerts). No-ops if SMTP/recipient unset.
+  - **Deferred (per scope):** structured file logging (pino/winston + rotation + request IDs) — still raw `console.*` → Passenger stdout.
+
 ### Done in the 26 June 2026 session
 
 **Notice Board (news) — Sport & Entertainment + media**
@@ -280,7 +301,7 @@ Every `<body>` tag carries a class that gates the matching `init*` function in `
 Admin and member portal pages use `admin-*-page` / `member-*-page` classes gating functions in their respective portal JS files.
 
 ### Asset cache-busting (IMPORTANT)
-Hostinger serves CSS/JS with **no `cache-control`/`etag`**, so browsers hold stale assets after a deploy. Public CSS/JS links carry a version query, e.g. `href="/css/style.css?v=20260622b"`. **When you edit `style.css`, `portal.css`, `main.js`, or `api.js`, bump the `?v=` string on every page** (sed across `public/**/*.html`) or returning visitors won't see the change. HTML files themselves aren't versioned (they revalidate). Current token: `20260626c`.
+Hostinger serves CSS/JS with **no `cache-control`/`etag`**, so browsers hold stale assets after a deploy. Public CSS/JS links carry a version query, e.g. `href="/css/style.css?v=20260622b"`. **When you edit `style.css`, `portal.css`, `main.js`, or `api.js`, bump the `?v=` string on every page** (sed across `public/**/*.html`) or returning visitors won't see the change. HTML files themselves aren't versioned (they revalidate). Current token: `20260701a`.
 > ⚠ Caveat: portal JS (`member/js/member-portal.js`, `member/js/member-api.js`, `admin/js/admin-portal.js`, `admin/js/admin-api.js`) is loaded **without** a `?v=` query, so the convention above does not cover it. Editing those files relies on browser revalidation — hard-refresh after deploying portal-JS changes (e.g. member TSC login + admin export fixes live there); if stale-cache issues appear, add a `?v=` to those `<script>` tags.
 
 ### Responsive header (public pages)

@@ -1,4 +1,5 @@
 const db = require('../config/database');
+const { sanitizeRichText } = require('../utils/sanitizeHtml');
 
 const getAll = async (req, res) => {
   try {
@@ -59,8 +60,9 @@ const fileUrl = (f) => (f ? `/uploads/news/${f.filename}` : null);
 
 const adminCreate = async (req, res) => {
   try {
-    const { title, excerpt, content, category, featured_image, author, is_featured, is_published, tags } = req.body;
-    if (!title || !content) return res.status(400).json({ success: false, message: 'Title and content required' });
+    const { title, excerpt, category, featured_image, author, is_featured, is_published, tags } = req.body;
+    if (!title || !req.body.content) return res.status(400).json({ success: false, message: 'Title and content required' });
+    const content = sanitizeRichText(req.body.content); // rendered raw on the public site — strip XSS
 
     const files = req.files || {};
     const image1 = fileUrl(files.image1?.[0]) || featured_image || null;
@@ -98,7 +100,7 @@ const adminUpdate = async (req, res) => {
     const fields = [], params = [];
     if (title !== undefined)          { fields.push('title = ?'); params.push(title); }
     if (excerpt !== undefined)        { fields.push('excerpt = ?'); params.push(excerpt); }
-    if (content !== undefined)        { fields.push('content = ?'); params.push(content); }
+    if (content !== undefined)        { fields.push('content = ?'); params.push(sanitizeRichText(content)); }
     if (category !== undefined)       { fields.push('category = ?'); params.push(category); }
     if (author !== undefined)         { fields.push('author = ?'); params.push(author); }
     if (is_featured !== undefined)    { fields.push('is_featured = ?'); params.push(truthy(is_featured) ? 1 : 0); }
