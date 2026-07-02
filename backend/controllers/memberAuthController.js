@@ -206,7 +206,7 @@ async function forgotPassword(req, res) {
     );
     if (!member || !member.email || member.status === 'rejected') return res.json(generic);
 
-    const token = jwt.sign({ id: member.id, type: 'pwreset' }, resetSecret(member.password), { expiresIn: '1h' });
+    const token = jwt.sign({ id: member.id, type: 'pwreset' }, resetSecret(member.password), { expiresIn: '30m' });
     const link = `${baseUrl(req)}/member/reset-password.html?token=${encodeURIComponent(token)}`;
     const tpl = mailerService.templates.passwordReset(member.full_name, link);
     await mailerService.sendMail({ to: member.email, subject: tpl.subject, html: tpl.html });

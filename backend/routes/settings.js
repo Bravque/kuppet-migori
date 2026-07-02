@@ -25,14 +25,30 @@ router.get('/all', authenticate, authorizeAdmin, async (req, res) => {
   }
 });
 
+// Keys the settings editor is allowed to write. Prevents junk/typo keys being created
+// via INSERT ... ON DUPLICATE KEY UPDATE (which would silently make arbitrary rows).
+const ALLOWED_SETTING_KEYS = new Set([
+  'total_members', 'schools_covered', 'years_serving', 'resources_count',
+  'chairman_message', 'chairman_name', 'chairman_title',
+  'office_phone', 'office_email', 'office_address', 'whatsapp_channel',
+]);
+
 // Admin: update a setting
 router.put('/:key', authenticate, authorizeSuperAdmin, auditLog('settings.update'), async (req, res) => {
   try {
     const { value } = req.body;
-    if (value === undefined) return res.status(400).json({ success: false, message: 'Value required' });
+    if (value === undefined || value === null) return res.status(400).json({ success: false, message: 'Value required' });
+    if (typeof value !== 'string' && typeof value !== 'number') {
+      return res.status(400).json({ success: false, message: 'Value must be a string or number' });
+    }
+    const strValue = String(value);
+    if (strValue.length > 5000) return res.status(400).json({ success: false, message: 'Value too long (max 5000 characters)' });
+    if (!ALLOWED_SETTING_KEYS.has(req.params.key)) {
+      return res.status(400).json({ success: false, message: 'Unknown setting key' });
+    }
     await db.query(
       'INSERT INTO settings (setting_key, setting_value) VALUES (?, ?) ON DUPLICATE KEY UPDATE setting_value = ?',
-      [req.params.key, value, value]
+      [req.params.key, strValue, strValue]
     );
     res.json({ success: true, message: 'Setting updated' });
   } catch (err) {

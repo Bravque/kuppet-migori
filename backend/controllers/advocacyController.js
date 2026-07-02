@@ -1,4 +1,5 @@
 const db = require('../config/database');
+const { sanitizeRichText } = require('../utils/sanitizeHtml');
 
 const getAll = async (req, res) => {
   try {
@@ -33,8 +34,9 @@ function slugify(str) {
 
 const adminCreate = async (req, res) => {
   try {
-    const { title, content, category, document_url, is_featured, is_published } = req.body;
-    if (!title || !content) return res.status(400).json({ success: false, message: 'Title and content required' });
+    const { title, category, document_url, is_featured, is_published } = req.body;
+    if (!title || !req.body.content) return res.status(400).json({ success: false, message: 'Title and content required' });
+    const content = sanitizeRichText(req.body.content); // rendered raw on the public site — strip XSS
     let slug = slugify(title);
     const [[{ count }]] = await db.query('SELECT COUNT(*) as count FROM advocacy WHERE slug LIKE ?', [`${slug}%`]);
     if (count > 0) slug = `${slug}-${Date.now()}`;
@@ -56,7 +58,10 @@ const adminUpdate = async (req, res) => {
     const allowed = ['title','content','category','document_url','is_featured','is_published'];
     const fields = [], params = [];
     for (const key of allowed) {
-      if (req.body[key] !== undefined) { fields.push(`${key} = ?`); params.push(req.body[key]); }
+      if (req.body[key] !== undefined) {
+        fields.push(`${key} = ?`);
+        params.push(key === 'content' ? sanitizeRichText(req.body[key]) : req.body[key]);
+      }
     }
     if (!fields.length) return res.status(400).json({ success: false, message: 'No fields to update' });
     params.push(req.params.id);

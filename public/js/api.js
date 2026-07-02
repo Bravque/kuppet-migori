@@ -7,9 +7,11 @@ const api = {
       headers: { 'Content-Type': 'application/json', ...options.headers },
       ...options,
     });
-    const data = await res.json();
+    // Guard the parse: a non-JSON body (proxy 502/504, HTML error page) must not throw
+    // an "Unexpected token <" that masks the real status.
+    const data = await res.json().catch(() => ({}));
     if (!res.ok) {
-      const err = new Error(data.message || 'Request failed');
+      const err = new Error(data.message || `Request failed (${res.status})`);
       err.status = res.status;
       throw err;
     }
