@@ -512,21 +512,38 @@ async function deleteEvent(id) {
 }
 
 // ── Contacts inbox ────────────────────────────────────────────────────────────
+const contactsFilter = { status: '', category: '' };
 async function initAdminContacts() {
   if (!document.querySelector('.admin-contacts-page')) return;
   const user = requireAdminAuth(); if (!user) return; initSidebar(user);
   loadContactsTable();
-  document.querySelectorAll('.filter-tab').forEach(tab => {
+  // Status and category are two independent filter rows; each keeps one active
+  // tab within its own row and both dimensions are combined in the query.
+  document.querySelectorAll('#status-filters .filter-tab').forEach(tab => {
     tab.addEventListener('click', () => {
-      document.querySelectorAll('.filter-tab').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('#status-filters .filter-tab').forEach(t => t.classList.remove('active'));
       tab.classList.add('active');
-      loadContactsTable({ status: tab.dataset.status });
+      contactsFilter.status = tab.dataset.status || '';
+      loadContactsTable();
+    });
+  });
+  document.querySelectorAll('#category-filters .filter-tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+      document.querySelectorAll('#category-filters .filter-tab').forEach(t => t.classList.remove('active'));
+      tab.classList.add('active');
+      contactsFilter.category = tab.dataset.category || '';
+      loadContactsTable();
     });
   });
 }
 
 let contactsCache = [];
 async function loadContactsTable(params = {}) {
+  params = {
+    ...(contactsFilter.status ? { status: contactsFilter.status } : {}),
+    ...(contactsFilter.category ? { category: contactsFilter.category } : {}),
+    ...params,
+  };
   const tbody = document.getElementById('contacts-tbody');
   if (!tbody) return;
   tbody.innerHTML = `<tr><td colspan="6">${renderLoading()}</td></tr>`;

@@ -3,20 +3,18 @@ const db = require('../config/database');
 const getAll = async (req, res) => {
   try {
     const { category, search, limit = 20, offset = 0 } = req.query;
-    let query = 'SELECT id, title, description, category, subject, grade_level, file_url, file_type, file_size, external_url, download_count, is_featured, uploaded_by, created_at FROM resources WHERE is_published = 1';
-    const params = [];
+    let where = 'WHERE is_published = 1';
+    const filterParams = [];
 
-    if (category) { query += ' AND category = ?'; params.push(category); }
-    if (search) { query += ' AND (title LIKE ? OR description LIKE ? OR subject LIKE ?)'; params.push(`%${search}%`, `%${search}%`, `%${search}%`); }
+    if (category) { where += ' AND category = ?'; filterParams.push(category); }
+    if (search) { where += ' AND (title LIKE ? OR description LIKE ? OR subject LIKE ?)'; filterParams.push(`%${search}%`, `%${search}%`, `%${search}%`); }
 
-    query += ' ORDER BY is_featured DESC, created_at DESC LIMIT ? OFFSET ?';
-    params.push(parseInt(limit), parseInt(offset));
-
-    const [rows] = await db.query(query, params);
-    const [[{ total }]] = await db.query(
-      'SELECT COUNT(*) as total FROM resources WHERE is_published = 1' + (category ? ' AND category = ?' : ''),
-      category ? [category] : []
+    const [rows] = await db.query(
+      `SELECT id, title, description, category, subject, grade_level, file_url, file_type, file_size, external_url, download_count, is_featured, uploaded_by, created_at
+       FROM resources ${where} ORDER BY is_featured DESC, created_at DESC LIMIT ? OFFSET ?`,
+      [...filterParams, parseInt(limit), parseInt(offset)]
     );
+    const [[{ total }]] = await db.query(`SELECT COUNT(*) as total FROM resources ${where}`, filterParams);
 
     res.json({ success: true, data: rows, total });
   } catch (err) {

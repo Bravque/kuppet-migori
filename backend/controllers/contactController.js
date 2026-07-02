@@ -21,7 +21,11 @@ const submit = async (req, res) => {
     // Fire-and-forget notifications (mailer never throws — fails gracefully if SMTP is off):
     //  1. alert the branch inbox (reply-to the enquirer so staff can answer directly)
     //  2. auto-acknowledge the enquirer
-    const inbox = process.env.CONTACT_EMAIL || process.env.SMTP_USER;
+    // Advocacy issue reports (from the Advocacy Desk form) route to the advocacy
+    // team's inbox; everything else goes to the general branch inbox.
+    const inbox = (cat === 'advocacy')
+      ? (process.env.ADVOCACY_EMAIL || 'advocacy@kuppetmigori.co.ke')
+      : (process.env.CONTACT_EMAIL || process.env.SMTP_USER);
     if (inbox) {
       const alert = templates.contactStaffAlert({ name, email, phone, subject, message, category: cat });
       sendMail({ to: inbox, subject: alert.subject, html: alert.html, replyTo: email });

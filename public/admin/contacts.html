@@ -9,7 +9,7 @@
   <title>Contact Inbox — KUPPET Migori Admin</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
-  <link rel="stylesheet" href="/css/style.css?v=20260701a"><link rel="stylesheet" href="/css/portal.css?v=20260701a">
+  <link rel="stylesheet" href="/css/style.css?v=20260702a"><link rel="stylesheet" href="/css/portal.css?v=20260702a">
 </head>
 <body class="portal-body admin-contacts-page">
 <div class="portal-layout">
@@ -18,14 +18,23 @@
     <div id="topbar-placeholder"></div>
     <div class="portal-content">
       <div class="page-heading">
-        <div class="page-heading-text"><h1>Contact Inbox</h1><p>Review and manage member enquiries.</p></div>
+        <div class="page-heading-text"><h1>Contact Inbox</h1><p>Review and manage member enquiries and advocacy issue reports.</p></div>
       </div>
-      <div class="filter-tabs">
+      <div class="filter-tabs" id="status-filters">
         <button class="filter-tab active" data-status="">All</button>
         <button class="filter-tab" data-status="new">New</button>
         <button class="filter-tab" data-status="read">Read</button>
         <button class="filter-tab" data-status="replied">Replied</button>
         <button class="filter-tab" data-status="closed">Closed</button>
+      </div>
+      <div class="filter-tabs" id="category-filters" style="margin-top:0.5rem">
+        <button class="filter-tab active" data-category="">All Categories</button>
+        <button class="filter-tab" data-category="advocacy"><i class="fas fa-gavel"></i> Advocacy Reports</button>
+        <button class="filter-tab" data-category="membership">Membership</button>
+        <button class="filter-tab" data-category="bbf">BBF</button>
+        <button class="filter-tab" data-category="general">General</button>
+        <button class="filter-tab" data-category="resources">Resources</button>
+        <button class="filter-tab" data-category="other">Other</button>
       </div>
       <div class="data-card">
         <div class="data-table-wrap">

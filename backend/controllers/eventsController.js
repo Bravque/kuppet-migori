@@ -3,18 +3,17 @@ const db = require('../config/database');
 const getAll = async (req, res) => {
   try {
     const { upcoming, limit = 10, offset = 0 } = req.query;
-    let query = 'SELECT * FROM events WHERE is_published = 1';
-    const params = [];
-
+    let where = 'WHERE is_published = 1';
     if (upcoming === 'true') {
-      query += ' AND event_date >= CURDATE()';
+      where += ' AND event_date >= CURDATE()';
     }
 
-    query += ' ORDER BY event_date ASC LIMIT ? OFFSET ?';
-    params.push(parseInt(limit), parseInt(offset));
-
-    const [rows] = await db.query(query, params);
-    res.json({ success: true, data: rows });
+    const [rows] = await db.query(
+      `SELECT * FROM events ${where} ORDER BY event_date DESC LIMIT ? OFFSET ?`,
+      [parseInt(limit), parseInt(offset)]
+    );
+    const [[{ total }]] = await db.query(`SELECT COUNT(*) as total FROM events ${where}`);
+    res.json({ success: true, data: rows, total, limit: parseInt(limit), offset: parseInt(offset) });
   } catch (err) {
     res.status(500).json({ success: false, message: 'Failed to fetch events' });
   }

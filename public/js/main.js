@@ -223,15 +223,21 @@ async function initNewsPage() {
   async function loadNews() {
     if (!container) return;
     container.innerHTML = renderLoading();
+    // The "event" category isn't a news row — events live in their own table/API.
+    const isEvents = currentCategory === 'event';
     try {
-      const { data, total } = await api.news.getAll({
-        category: currentCategory,
-        search: currentSearch,
-        limit: perPage,
-        offset: (currentPage - 1) * perPage,
-      });
-      if (!data.length) { container.innerHTML = renderEmptyState('No articles found.'); return; }
-      container.innerHTML = `<div class="news-grid h-scroll">${data.map(renderNewsCard).join('')}</div>`;
+      const offset = (currentPage - 1) * perPage;
+      const { data, total } = isEvents
+        ? await api.events.getAll({ limit: perPage, offset })
+        : await api.news.getAll({ category: currentCategory, search: currentSearch, limit: perPage, offset });
+      if (!data.length) {
+        container.innerHTML = renderEmptyState(isEvents ? 'No events scheduled.' : 'No articles found.');
+        renderPagination('news-pagination', 0, perPage, currentPage, () => {});
+        return;
+      }
+      container.innerHTML = isEvents
+        ? `<div class="events-list">${data.map(renderEventCard).join('')}</div>`
+        : `<div class="news-grid h-scroll">${data.map(renderNewsCard).join('')}</div>`;
       renderPagination('news-pagination', total, perPage, currentPage, (p) => {
         currentPage = p;
         loadNews();
@@ -239,7 +245,7 @@ async function initNewsPage() {
       });
       initScrollAnimations();
     } catch {
-      container.innerHTML = renderEmptyState('Failed to load articles.');
+      container.innerHTML = renderEmptyState(isEvents ? 'Failed to load events.' : 'Failed to load articles.');
     }
   }
 
@@ -269,6 +275,8 @@ async function initResourcesPage() {
 
   let currentCategory = '';
   let currentSearch = '';
+  let currentPage = 1;
+  const perPage = 12;
   const container = document.getElementById('resources-container');
   const searchInput = document.getElementById('resources-search');
   const searchBtn = document.getElementById('resources-search-btn');
@@ -277,9 +285,23 @@ async function initResourcesPage() {
     if (!container) return;
     container.innerHTML = renderLoading();
     try {
-      const { data } = await api.resources.getAll({ category: currentCategory, search: currentSearch, limit: 30 });
-      if (!data.length) { container.innerHTML = renderEmptyState('No resources found.'); return; }
+      const { data, total } = await api.resources.getAll({
+        category: currentCategory,
+        search: currentSearch,
+        limit: perPage,
+        offset: (currentPage - 1) * perPage,
+      });
+      if (!data.length) {
+        container.innerHTML = renderEmptyState('No resources found.');
+        renderPagination('resources-pagination', 0, perPage, currentPage, () => {});
+        return;
+      }
       container.innerHTML = `<div class="resources-list-grid">${data.map(renderResourceListItem).join('')}</div>`;
+      renderPagination('resources-pagination', total, perPage, currentPage, (p) => {
+        currentPage = p;
+        loadResources();
+        container.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      });
       attachDownloadHandlers();
     } catch {
       container.innerHTML = renderEmptyState('Failed to load resources.');
@@ -289,6 +311,7 @@ async function initResourcesPage() {
   // Set the active category, sync the UI (category cards + filter tabs) and reload.
   function setCategory(cat) {
     currentCategory = cat || '';
+    currentPage = 1;
     document.querySelectorAll('.category-card[data-category]').forEach(c =>
       c.classList.toggle('active', (c.dataset.category || '') === currentCategory));
     document.querySelectorAll('.filter-tab[data-category]').forEach(t =>
@@ -301,7 +324,7 @@ async function initResourcesPage() {
     el.addEventListener('click', () => setCategory(el.dataset.category || ''));
   });
 
-  if (searchBtn) searchBtn.addEventListener('click', () => { currentSearch = searchInput?.value.trim() || ''; loadResources(); });
+  if (searchBtn) searchBtn.addEventListener('click', () => { currentSearch = searchInput?.value.trim() || ''; currentPage = 1; loadResources(); });
   if (searchInput) searchInput.addEventListener('keypress', e => { if (e.key === 'Enter') searchBtn?.click(); });
 
   function attachDownloadHandlers() {

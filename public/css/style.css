@@ -548,8 +548,11 @@ h1,h2,h3,h4,h5,h6 { line-height: 1.25; font-weight: 700; }
   padding: 2rem 0;
 }
 .mission-inner {
-  display: flex; align-items: center; gap: 2rem;
-  flex-wrap: wrap;
+  display: flex; align-items: stretch; gap: 2rem;
+}
+.mission-item {
+  flex: 1 1 0; min-width: 0;
+  display: flex; align-items: flex-start; gap: 1rem;
 }
 .mission-icon {
   width: 56px; height: 56px; flex-shrink: 0;
@@ -561,7 +564,7 @@ h1,h2,h3,h4,h5,h6 { line-height: 1.25; font-weight: 700; }
 .mission-text h3 { color: #fff; font-size: 1rem; font-weight: 700; margin-bottom: 0.25rem; }
 .mission-text p { color: rgba(255,255,255,0.75); font-size: 0.9rem; line-height: 1.5; }
 .mission-divider {
-  width: 1px; height: 56px;
+  width: 1px; align-self: center; height: 56px;
   background: rgba(255,255,255,0.15);
   flex-shrink: 0;
 }
@@ -1670,6 +1673,7 @@ select.form-control { cursor: pointer; }
   .section { padding: 3.5rem 0; }
   .section-lg { padding: 4rem 0; }
   .mission-inner { flex-direction: column; align-items: flex-start; }
+  .mission-item { flex: 1 1 auto; width: 100%; }
   .mission-divider { display: none; }
   .page-header { padding: 2.5rem 0 2rem; }
 }
