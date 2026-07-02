@@ -22,7 +22,7 @@ There are no tests or linting scripts configured yet.
 
 ---
 
-## Project Status (as of 1 July 2026)
+## Project Status (as of 2 July 2026)
 
 **GitHub repo:** https://github.com/Bravque/kuppet-migori  
 **Owner:** Bravque (bravinowino008@gmail.com)  
@@ -114,6 +114,31 @@ WHERE email = 'admin@kuppetmigori.co.ke';
 
 ---
 
+### Done in the 2 July 2026 session
+
+**Hardening branch merged & deployed**
+- The `hardening/security-error-handling-jul2026` branch (the whole 1 July session — XSS sanitization, input validation, endpoint hardening, error handling, logging/monitoring/alerts) was **merged to `main` and pushed** (PR #1, merge commit on `main`), so it is now **auto-deployed live**. Branch deleted locally + on origin. On the live host: optionally set `ALERT_EMAIL` + `SMS_WEBHOOK_SECRET` in hPanel; Hostinger's `npm install` picks up `sanitize-html`.
+
+**About page — real branch history**
+- Replaced the placeholder/fictional "established 1994" Branch History (narrative + timeline) on `public/pages/about.html` with the **real founding account**: idea first pronounced by Rashid Kawewa (1998); Oct 2001 Gilly Hotel founding meeting (interim office — E.S. Akelo M.T. Misori, Chairman Ogutu Ode P.C., Vice Chair Odunga Nyamusi, Treasurer Tobias Onyango; Charles Ooko replaced the late Mr. Yogo); Kadika Plaza office (rotational rent, Kshs 3,000/mo, no TSC remittances, "Kupe"/"puppet" resistance); Kuria branch (E.S. Murimi, Chairman Majina); **2011 Migori+Kuria merger** into the County branch (Chairman Kennedy Makasembo, E.S. John Kennedy Obonyo, Treasurer Omukereri, + Hilda Ghati/Paul Migwambo/Angela Odero). Removed invented stats (4,500 members, 320 institutions, fictional CBA/BBF dates). Corrected sitewide footer **"since 1994" → "since 2001"** (9 public pages) + about-page meta description.
+
+**Homepage Mission/Vision/Commitment layout fix**
+- The `.mission-strip` (`index.html`) rendered raggedly — `.mission-inner` was a `flex-wrap` row whose text blocks had no width basis, so the long Mission paragraph took the whole first row and the Commitment icon ended up orphaned beside "Our Vision". Grouped each icon+text into a `.mission-item` (`flex:1 1 0`) → three equal columns, dividers `align-self:center`; stacks full-width on mobile.
+
+**Notice Board (news) fixes**
+- **Sidebar categories were unclickable** — the inline `onclick` had double-escaped quotes (`\\'` instead of `\'`), producing malformed JS that threw. Fixed all 6 in `news.html`; they delegate a `.click()` to the matching `.filter-tab` (wired in `main.js`).
+- **"Events" tab loaded nothing** — `data-category="event"` queried the **news** table, but events live in the separate `events` table. `loadNews()` now branches: when the Events tab is active it fetches `api.events.getAll` and renders `renderEventCard` in an `.events-list`, **with pagination**. `eventsController.getAll` now returns `total` (for pagination) and orders `event_date DESC` (was ASC; admin/homepage consumers read `data`, unaffected).
+
+**Resources page — pagination**
+- `initResourcesPage()` now pages results (12/page) via the shared `renderPagination('resources-pagination', …)`; added the `#resources-pagination` container to `resources.html`; page resets to 1 on category/search change. Fixed `resourcesController.getAll` so the `total` count **respects the search filter** too (was category-only → phantom pages when searching).
+
+**Advocacy issue reports → dedicated inbox + admin listing**
+- The Advocacy Desk "Report a Workplace Issue" form (`advocacy.html`, submits via `api.contact.submit`) now routes its staff-notification email to **`advocacy@kuppetmigori.co.ke`** (new `ADVOCACY_EMAIL` env, defaults to that address; falls back only for `category==='advocacy'` — general enquiries still go to `CONTACT_EMAIL`). Changed the form's "Other workplace issue" option from `complaint` → `advocacy` so **every** advocacy-form report is category `advocacy` (specific issue kept in the subject). Reports still persist to the `contacts` table regardless of SMTP.
+- **Admin Contact Inbox** (`admin/contacts.html` + `admin-portal.js`) gained a **Category filter row** (All / **Advocacy Reports** / Membership / BBF / General / Resources / Other), independent of the status tabs and combined in the query (`adminGetAll` already accepted `category`). Subtitle now mentions advocacy reports.
+- **⚠ Live setup:** create the `advocacy@kuppetmigori.co.ke` mailbox in hPanel (or set `ADVOCACY_EMAIL` to a real one) or the notifications bounce; added `ADVOCACY_EMAIL` to `.env.example`. Hard-refresh the admin Contact Inbox (portal JS is unversioned) to pick up the category filter.
+
+**Cache token** — `20260701a → 20260702a` across all 42 public HTML (bumped for `style.css` + `main.js` edits). All 2 July work committed to **`main`** and pushed (auto-deployed).
+
 ### Done in the 1 July 2026 session
 
 **Password reset link expiry 1h → 30 min**
@@ -141,7 +166,7 @@ WHERE email = 'admin@kuppetmigori.co.ke';
 - Auth/authorization audit: **every admin mutation already had `authenticate + authorize*`, every member route `authenticateMember`** — no missing guards found. Backend-only, no cache bump, no migration. Added `SMS_WEBHOOK_SECRET` to `.env.example`.
 - **Frontend-vs-validator cross-check (pre-merge):** traced every mutation route controller-field → frontend payload → validator; **no mismatches**. All form enum values ⊆ the `isIn` lists; format validators (`isURL`/`isEmail`/`isISO8601`/`isInt`) use `checkFalsy` so an empty `""` optional field is skipped (added `checkFalsy` to events `event_date`/`end_date` for completeness). Booleans arrive as real JSON booleans (not `"on"`). **One intentional behavior change:** admin-user create now enforces password complexity (≥8 + letter + number) — the frontend previously only checked non-empty, so a weak password now returns a clean 400.
 
-**⚠ This session's work lives on branch `hardening/security-error-handling-jul2026` (3 commits: `0a5517e` XSS/error-handling/logging, `f7cdb1b` validation/endpoint-security, `8bdc5e1` checkFalsy) — pushed to origin but NOT yet merged to `main` (so NOT yet auto-deployed to live).** Open the PR at `https://github.com/Bravque/kuppet-migori/pull/new/hardening/security-error-handling-jul2026` (the `gh` fine-grained token lacks Pull-requests:write, so CLI `gh pr create` fails until that scope is granted). **On merge/deploy:** Hostinger runs `npm install` (picks up `sanitize-html`); optionally set `ALERT_EMAIL` (error alerts) + `SMS_WEBHOOK_SECRET` (webhook lock-down) in hPanel; then smoke-test one news edit + one BBF approval on the live admin panel.
+**✓ MERGED (2 July 2026):** this session's work (branch `hardening/security-error-handling-jul2026`, 3 commits: `0a5517e` XSS/error-handling/logging, `f7cdb1b` validation/endpoint-security, `8bdc5e1` checkFalsy) was **merged to `main` via PR #1 and auto-deployed live**; the branch has been deleted. **On the live host:** Hostinger ran `npm install` (picks up `sanitize-html`); optionally set `ALERT_EMAIL` (error alerts) + `SMS_WEBHOOK_SECRET` (webhook lock-down) in hPanel; smoke-test one news edit + one BBF approval on the live admin panel. (The `gh` fine-grained token lacks Pull-requests:write, so `gh pr create`/`gh pr merge` fail — PR #1 was merged by pushing the merge commit to `main` directly.)
 
 ### Done in the 26 June 2026 session
 
@@ -309,7 +334,7 @@ Every `<body>` tag carries a class that gates the matching `init*` function in `
 Admin and member portal pages use `admin-*-page` / `member-*-page` classes gating functions in their respective portal JS files.
 
 ### Asset cache-busting (IMPORTANT)
-Hostinger serves CSS/JS with **no `cache-control`/`etag`**, so browsers hold stale assets after a deploy. Public CSS/JS links carry a version query, e.g. `href="/css/style.css?v=20260622b"`. **When you edit `style.css`, `portal.css`, `main.js`, or `api.js`, bump the `?v=` string on every page** (sed across `public/**/*.html`) or returning visitors won't see the change. HTML files themselves aren't versioned (they revalidate). Current token: `20260701a`.
+Hostinger serves CSS/JS with **no `cache-control`/`etag`**, so browsers hold stale assets after a deploy. Public CSS/JS links carry a version query, e.g. `href="/css/style.css?v=20260622b"`. **When you edit `style.css`, `portal.css`, `main.js`, or `api.js`, bump the `?v=` string on every page** (sed across `public/**/*.html`) or returning visitors won't see the change. HTML files themselves aren't versioned (they revalidate). Current token: `20260702a`.
 > ⚠ Caveat: portal JS (`member/js/member-portal.js`, `member/js/member-api.js`, `admin/js/admin-portal.js`, `admin/js/admin-api.js`) is loaded **without** a `?v=` query, so the convention above does not cover it. Editing those files relies on browser revalidation — hard-refresh after deploying portal-JS changes (e.g. member TSC login + admin export fixes live there); if stale-cache issues appear, add a `?v=` to those `<script>` tags.
 
 ### Responsive header (public pages)
