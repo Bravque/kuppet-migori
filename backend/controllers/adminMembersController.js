@@ -5,24 +5,24 @@ const mailerService = require('../services/mailerService');
 
 async function getAll(req, res) {
   try {
-    const { status, sub_county, search, limit = 25, offset = 0 } = req.query;
-    let query = `SELECT id, member_number, full_name, tsc_number, phone, email, gender,
-                        school_name, sub_county, status, created_at, approved_at
-                 FROM members WHERE 1=1`;
-    const params = [];
-    if (status) { query += ' AND status = ?'; params.push(status); }
-    if (sub_county) { query += ' AND sub_county = ?'; params.push(sub_county); }
-    if (search) { query += ' AND (full_name LIKE ? OR tsc_number LIKE ? OR email LIKE ?)'; params.push(`%${search}%`, `%${search}%`, `%${search}%`); }
-    query += ' ORDER BY created_at DESC LIMIT ? OFFSET ?';
-    params.push(parseInt(limit), parseInt(offset));
+    const { status, sub_county, gender, search, limit = 25, offset = 0 } = req.query;
 
-    const [rows] = await db.query(query, params);
-    const [[{ total }]] = await db.query(
-      'SELECT COUNT(*) as total FROM members WHERE 1=1' +
-      (status ? ' AND status = ?' : '') +
-      (search ? ' AND (full_name LIKE ? OR tsc_number LIKE ?)' : ''),
-      [...(status ? [status] : []), ...(search ? [`%${search}%`, `%${search}%`] : [])]
+    // Build the filter once so status, sub_county, gender and search can be combined
+    // and the count stays in sync with the rows.
+    let where = 'WHERE 1=1';
+    const filterParams = [];
+    if (status) { where += ' AND status = ?'; filterParams.push(status); }
+    if (sub_county) { where += ' AND sub_county = ?'; filterParams.push(sub_county); }
+    if (gender) { where += ' AND gender = ?'; filterParams.push(gender); }
+    if (search) { where += ' AND (full_name LIKE ? OR tsc_number LIKE ? OR email LIKE ?)'; filterParams.push(`%${search}%`, `%${search}%`, `%${search}%`); }
+
+    const [rows] = await db.query(
+      `SELECT id, member_number, full_name, tsc_number, phone, email, gender,
+              school_name, sub_county, status, created_at, approved_at
+       FROM members ${where} ORDER BY created_at DESC LIMIT ? OFFSET ?`,
+      [...filterParams, parseInt(limit), parseInt(offset)]
     );
+    const [[{ total }]] = await db.query(`SELECT COUNT(*) as total FROM members ${where}`, filterParams);
     res.json({ success: true, data: rows, total });
   } catch (err) {
     res.status(500).json({ success: false, message: 'Failed to fetch members' });
