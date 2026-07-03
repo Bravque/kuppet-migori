@@ -330,12 +330,20 @@ async function initAdminNews() {
   document.getElementById('btn-new-news')?.addEventListener('click', () => openNewsModal(null));
 }
 
+const newsFilter = { category: '', search: '' };
 async function loadNewsTable(params = {}) {
+  // Each inline handler passes only its own field; accumulate into persistent
+  // state so category + search combine (and refreshes after save/delete keep it).
+  if ('category' in params) newsFilter.category = params.category;
+  if ('search' in params) newsFilter.search = params.search;
   const tbody = document.getElementById('news-tbody');
   if (!tbody) return;
   tbody.innerHTML = `<tr><td colspan="6">${renderLoading()}</td></tr>`;
   try {
-    const res = await adminApi.news.getAll({ limit: 20, ...params });
+    const query = { limit: 20 };
+    if (newsFilter.category) query.category = newsFilter.category;
+    if (newsFilter.search) query.search = newsFilter.search;
+    const res = await adminApi.news.getAll(query);
     if (!res.data.length) { tbody.innerHTML = `<tr><td colspan="6">${renderEmpty()}</td></tr>`; return; }
     tbody.innerHTML = res.data.map(n => `
       <tr>
