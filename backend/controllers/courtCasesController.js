@@ -82,7 +82,13 @@ async function getOne(req, res) {
        WHERE up.case_id = ? ORDER BY up.update_date DESC, up.id DESC`,
       [c.id]
     );
-    res.json({ success: true, data: { ...c, updates } });
+    const [documents] = await db.query(
+      `SELECT d.*, u.name AS uploaded_by_name
+       FROM court_case_documents d LEFT JOIN users u ON d.uploaded_by = u.id
+       WHERE d.case_id = ? ORDER BY d.created_at DESC`,
+      [c.id]
+    );
+    res.json({ success: true, data: { ...c, updates, documents } });
   } catch (err) {
     res.status(500).json({ success: false, message: 'Failed to fetch court case' });
   }
@@ -185,4 +191,40 @@ async function addUpdate(req, res) {
   }
 }
 
-module.exports = { getAll, getStats, getOne, create, update, remove, addUpdate };
+// Attach one or more documents to a case. Files land in the access-controlled
+// court/ upload dir; served only via GET /api/admin/documents/:filename.
+async function uploadDocuments(req, res) {
+  try {
+    const [[c]] = await db.query('SELECT id FROM court_cases WHERE id = ?', [req.params.id]);
+    if (!c) return res.status(404).json({ success: false, message: 'Court case not found' });
+    if (!req.files || !req.files.length) return res.status(400).json({ success: false, message: 'No files uploaded' });
+
+    const label = (req.body.label || '').trim() || null;
+    for (const file of req.files) {
+      await db.query(
+        'INSERT INTO court_case_documents (case_id, label, file_url, file_name, file_size, uploaded_by) VALUES (?, ?, ?, ?, ?, ?)',
+        [c.id, label, `/uploads/court/${file.filename}`, file.originalname, file.size, req.user.id]
+      );
+    }
+    await db.query('UPDATE court_cases SET updated_at = NOW() WHERE id = ?', [c.id]);
+    res.status(201).json({ success: true, message: `${req.files.length} document(s) uploaded` });
+  } catch (err) {
+    res.status(500).json({ success: false, message: 'Upload failed' });
+  }
+}
+
+async function removeDocument(req, res) {
+  try {
+    const [[doc]] = await db.query(
+      'SELECT id FROM court_case_documents WHERE id = ? AND case_id = ?',
+      [req.params.docId, req.params.id]
+    );
+    if (!doc) return res.status(404).json({ success: false, message: 'Document not found' });
+    await db.query('DELETE FROM court_case_documents WHERE id = ?', [doc.id]);
+    res.json({ success: true, message: 'Document removed' });
+  } catch (err) {
+    res.status(500).json({ success: false, message: 'Failed to remove document' });
+  }
+}
+
+module.exports = { getAll, getStats, getOne, create, update, remove, addUpdate, uploadDocuments, removeDocument };

@@ -187,6 +187,8 @@ const adminApi = (() => {
       update: (id, d) => request(`/admin/court-cases/${id}`, { method: 'PUT', body: JSON.stringify(d) }),
       remove: (id) => request(`/admin/court-cases/${id}`, { method: 'DELETE' }),
       addUpdate: (id, d) => request(`/admin/court-cases/${id}/updates`, { method: 'POST', body: JSON.stringify(d) }),
+      uploadDocs: (id, form) => request(`/admin/court-cases/${id}/documents`, { method: 'POST', body: form }),
+      removeDoc: (id, docId) => request(`/admin/court-cases/${id}/documents/${docId}`, { method: 'DELETE' }),
     },
   };
 })();

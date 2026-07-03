@@ -15,6 +15,6 @@ const UPLOAD_ROOT = process.env.UPLOAD_DIR
   : path.join(__dirname, '../../public/uploads');
 
 // Subdirectories created at startup and used by the multer instances.
-const UPLOAD_SUBDIRS = ['photos', 'documents', 'bbf', 'scholarships', 'members', 'news'];
+const UPLOAD_SUBDIRS = ['photos', 'documents', 'bbf', 'scholarships', 'members', 'news', 'court'];
 
 module.exports = { UPLOAD_ROOT, UPLOAD_SUBDIRS };

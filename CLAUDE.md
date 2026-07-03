@@ -8,7 +8,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 # First-time setup
 cp .env.example .env          # Fill in DB credentials + set JWT secrets
 npm install                   # Install all dependencies
-npm run init-db               # Create MySQL schema (23 tables) and seed data
+npm run init-db               # Create MySQL schema (24 tables) and seed data
 
 # Development
 npm run dev                   # Start with nodemon auto-reload (port 3000)
@@ -42,7 +42,7 @@ There are no tests or linting scripts configured yet.
 | Layer | Status |
 |-------|--------|
 | Express server + all REST API routes | ✓ Complete |
-| MySQL schema (23 tables) + seed data | ✓ Complete |
+| MySQL schema (24 tables) + seed data | ✓ Complete |
 | Homepage (`index.html`) | ✓ Complete |
 | About Us page | ✓ Complete |
 | Teachers Notice Board (news.html) | ✓ Complete |
@@ -131,6 +131,7 @@ Dated development logs (2 July back to 17 June 2026) live in **`docs/SESSION-NOT
 5. `backend/config/migration-contact-reply.sql` — adds `contacts.admin_reply` + `contacts.replied_at`. Until run, the admin Contact Inbox **Reply** action fails (the email still sends, but recording the reply errors).
 6. `backend/config/migration-scholarship-doc-types.sql` — adds `letter_of_application` + `tsc_slip` to `scholarship_application_documents.doc_type`. Until run, submitting a scholarship application fails on production (the two required uploads can't be stored).
 7. `backend/config/migration-court-cases.sql` — creates `court_cases` + `court_case_updates`. Until run, the admin Court Cases page + dashboard summary error on production.
+8. `backend/config/migration-court-case-documents.sql` — creates `court_case_documents` (case file attachments). Run after #7. Until run, uploading/viewing case documents errors.
 
 Fresh installs already include all of this via `init.sql` / `init-hostinger.sql`.
 
@@ -175,7 +176,7 @@ Code is done and correct (verified 21–22 June 2026):
 ### Backend layout
 - **`backend/server.js`** — Express entry; mounts all middleware, registers all routes, bootstraps upload directories at startup
 - **`backend/config/database.js`** — exports a single `mysql2/promise` connection pool
-- **`backend/config/init.sql`** — authoritative schema (23 tables) + seed data; re-runnable
+- **`backend/config/init.sql`** — authoritative schema (24 tables) + seed data; re-runnable
 - **`backend/controllers/*.js`** — async functions; parameterised queries; `{ success, data, message }` responses
 - **`backend/routes/*.js`** — thin routers with `express-validator` on mutation routes
 - **`backend/middleware/auth.js`** — `authenticate` (admin JWT), `authenticateMember` (member JWT), `authorizeAdmin`, `authorizeSuperAdmin`, `auditLog(action)` factory
@@ -259,7 +260,7 @@ Server throws at startup if they are equal.
 
 **Contact form (26 June 2026):** on submit the controller emails the branch inbox (`CONTACT_EMAIL`, falls back to `SMTP_USER`; reply-to = enquirer) and auto-acknowledges the enquirer. Admins reply from the Contact Inbox via `POST /api/contact/:id/reply` (emails the enquirer, stores `admin_reply`/`replied_at`, marks `replied`). All fail gracefully if SMTP is unconfigured.
 
-### Database schema (23 tables)
+### Database schema (24 tables)
 **Core (public site):** `users`, `leadership`, `news`, `events`, `resources`, `scholarships`, `advocacy`, `contacts`, `settings`
 
 **Membership:** `members`, `bbf_claims`, `bbf_claim_documents`, `bbf_claim_timeline`, `scholarship_applications`, `scholarship_application_documents`, `notifications`
@@ -268,7 +269,7 @@ Server throws at startup if they are equal.
 
 **Security & audit:** `audit_logs`, `login_history`, `admin_2fa`
 
-**Legal:** `court_cases`, `court_case_updates` (court-case tracker for branch officers; shared branch-wide, each case has a responsible `officer_id` + a dated updates/hearings log. Admin API at `/api/admin/court-cases`; pages `court-cases.html` + `court-case-detail.html`; dashboard summary via `getStats`. Both admin roles.)
+**Legal:** `court_cases`, `court_case_updates`, `court_case_documents` (court-case tracker for branch officers; shared branch-wide, each case has a responsible `officer_id`, a dated updates/hearings log, and file attachments. Attachments live in the access-controlled `court/` upload dir, 404-blocked from static and served only via `GET /api/admin/documents/:filename` — its ownership UNION includes `court_case_documents`. Admin API at `/api/admin/court-cases`; pages `court-cases.html` + `court-case-detail.html`; dashboard summary via `getStats`. Both admin roles.)
 
 Key ENUM values:
 - `users.role`: `super_admin | branch_officer | editor | viewer`
@@ -302,7 +303,7 @@ The new-claim form (`member/bbf-claims.html`) shows the member's identity in a r
 Member numbers (`MBR-YYYY-NNNNNN`), BBF claim numbers (`BBF-YYYY-NNNNNN`), and scholarship application numbers (`SAPP-YYYY-NNNNNN`) use atomic MySQL counters stored in the `settings` table (`member_seq`, `bbf_seq`, `schapp_seq`). Never use `COUNT(*)+1`.
 
 ### File uploads
-Files are stored under the upload root with UUID filenames (multer **2.x**), in subdirs `photos/`, `documents/`, `bbf/`, `scholarships/`, `members/`, `news/`. The sensitive subdirs — `members/`, `bbf/`, `scholarships/` — are **404-blocked from static serving** in `server.js` (before the `/uploads` static); only `photos/`, `documents/`, `news/` are public. Sensitive files are streamed only through ownership/role-checked endpoints:
+Files are stored under the upload root with UUID filenames (multer **2.x**), in subdirs `photos/`, `documents/`, `bbf/`, `scholarships/`, `members/`, `news/`, `court/`. The sensitive subdirs — `members/`, `bbf/`, `scholarships/`, `court/` — are **404-blocked from static serving** in `server.js` (before the `/uploads` static); only `photos/`, `documents/`, `news/` are public. Sensitive files are streamed only through ownership/role-checked endpoints:
 - **Members:** `GET /api/member/documents/:filename` — verifies the file belongs to the logged-in member.
 - **Admins:** `GET /api/admin/documents/:filename` (`backend/routes/adminDocuments.js`) — `authenticate` + `authorizeAdmin`; admin detail pages fetch these as a blob via `viewDoc()` in `admin-portal.js` (a plain link can't send the Bearer token).
 

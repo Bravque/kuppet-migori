@@ -2,6 +2,7 @@ const router = require('express').Router();
 const { param, body } = require('express-validator');
 const { authenticate, authorizeAdmin, auditLog } = require('../middleware/auth');
 const { handleValidation } = require('../middleware/validate');
+const upload = require('../middleware/upload');
 const ctrl = require('../controllers/courtCasesController');
 
 const CASE_TYPES = ['employment', 'disciplinary', 'criminal', 'civil', 'constitutional', 'appeal', 'other'];
@@ -36,5 +37,13 @@ router.post('/', authenticate, authorizeAdmin, caseRules, handleValidation, audi
 router.put('/:id', authenticate, authorizeAdmin, idParam, caseRules, handleValidation, auditLog('court_case.update'), ctrl.update);
 router.delete('/:id', authenticate, authorizeAdmin, idParam, handleValidation, auditLog('court_case.delete'), ctrl.remove);
 router.post('/:id/updates', authenticate, authorizeAdmin, idParam, updateNoteRules, handleValidation, auditLog('court_case.update_added'), ctrl.addUpdate);
+
+// Document attachments (validators run after multer so req.body.label is populated)
+router.post('/:id/documents', authenticate, authorizeAdmin, upload.courtDocs.array('files', 10),
+  idParam, body('label').optional({ nullable: true }).trim().isLength({ max: 200 }), handleValidation,
+  auditLog('court_case.doc_upload'), ctrl.uploadDocuments);
+router.delete('/:id/documents/:docId', authenticate, authorizeAdmin,
+  idParam, param('docId').isInt({ min: 1 }).withMessage('Invalid doc id'), handleValidation,
+  auditLog('court_case.doc_delete'), ctrl.removeDocument);
 
 module.exports = router;

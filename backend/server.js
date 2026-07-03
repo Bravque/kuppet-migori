@@ -132,11 +132,12 @@ app.use('/api/member/auth/register', regLimiter);
 app.use('/api/member/auth/forgot-password', forgotPwLimiter);
 
 // Block direct static access to sensitive document directories — these contain
-// member PII (National IDs, passport photos) and claim/scholarship attachments.
-// They are served ONLY through ownership/role-checked endpoints:
+// member PII (National IDs, passport photos), claim/scholarship attachments, and
+// court-case documents (legal filings). They are served ONLY through
+// ownership/role-checked endpoints:
 //   members:   GET /api/member/documents/:filename   (owning member)
 //   admin:     GET /api/admin/documents/:filename     (authenticated admin)
-app.use(['/uploads/members', '/uploads/bbf', '/uploads/scholarships'], (req, res) => {
+app.use(['/uploads/members', '/uploads/bbf', '/uploads/scholarships', '/uploads/court'], (req, res) => {
   res.status(404).json({ success: false, message: 'Not found' });
 });
 
