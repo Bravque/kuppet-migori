@@ -8,7 +8,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 # First-time setup
 cp .env.example .env          # Fill in DB credentials + set JWT secrets
 npm install                   # Install all dependencies
-npm run init-db               # Create MySQL schema (21 tables) and seed data
+npm run init-db               # Create MySQL schema (23 tables) and seed data
 
 # Development
 npm run dev                   # Start with nodemon auto-reload (port 3000)
@@ -42,7 +42,7 @@ There are no tests or linting scripts configured yet.
 | Layer | Status |
 |-------|--------|
 | Express server + all REST API routes | ✓ Complete |
-| MySQL schema (21 tables) + seed data | ✓ Complete |
+| MySQL schema (23 tables) + seed data | ✓ Complete |
 | Homepage (`index.html`) | ✓ Complete |
 | About Us page | ✓ Complete |
 | Teachers Notice Board (news.html) | ✓ Complete |
@@ -59,7 +59,8 @@ There are no tests or linting scripts configured yet.
 | **Member login (by TSC number) + JWT auth + account lockout + forgot/reset password** | ✓ Complete |
 | **Member portal — dashboard, profile, BBF claims, scholarships, notifications, history** | ✓ Complete |
 | **Admin login with optional TOTP 2FA** | ✓ Complete |
-| **Admin portal — 21 pages (all CRUD/actions wired)** | ✓ Complete |
+| **Admin portal — 23 pages (all CRUD/actions wired)** | ✓ Complete |
+| **Court cases tracker (branch officers) — list, detail, updates log, dashboard summary** | ✓ Complete |
 | **Admin member management — approve / reject / suspend** | ✓ Complete |
 | **BBF claims workflow (draft→submitted→under_review→approved→rejected→paid)** | ✓ Complete |
 | **Scholarship applications workflow (applied→under_review→approved→rejected)** | ✓ Complete |
@@ -129,6 +130,7 @@ Dated development logs (2 July back to 17 June 2026) live in **`docs/SESSION-NOT
 4. `backend/config/migration-resources-category.sql` — adds `sport_entertainment` to the `resources.category` ENUM. Until run, saving a resource under the new Sports & Entertainment category fails on production.
 5. `backend/config/migration-contact-reply.sql` — adds `contacts.admin_reply` + `contacts.replied_at`. Until run, the admin Contact Inbox **Reply** action fails (the email still sends, but recording the reply errors).
 6. `backend/config/migration-scholarship-doc-types.sql` — adds `letter_of_application` + `tsc_slip` to `scholarship_application_documents.doc_type`. Until run, submitting a scholarship application fails on production (the two required uploads can't be stored).
+7. `backend/config/migration-court-cases.sql` — creates `court_cases` + `court_case_updates`. Until run, the admin Court Cases page + dashboard summary error on production.
 
 Fresh installs already include all of this via `init.sql` / `init-hostinger.sql`.
 
@@ -173,7 +175,7 @@ Code is done and correct (verified 21–22 June 2026):
 ### Backend layout
 - **`backend/server.js`** — Express entry; mounts all middleware, registers all routes, bootstraps upload directories at startup
 - **`backend/config/database.js`** — exports a single `mysql2/promise` connection pool
-- **`backend/config/init.sql`** — authoritative schema (21 tables) + seed data; re-runnable
+- **`backend/config/init.sql`** — authoritative schema (23 tables) + seed data; re-runnable
 - **`backend/controllers/*.js`** — async functions; parameterised queries; `{ success, data, message }` responses
 - **`backend/routes/*.js`** — thin routers with `express-validator` on mutation routes
 - **`backend/middleware/auth.js`** — `authenticate` (admin JWT), `authenticateMember` (member JWT), `authorizeAdmin`, `authorizeSuperAdmin`, `auditLog(action)` factory
@@ -192,7 +194,7 @@ Code is done and correct (verified 21–22 June 2026):
 **Admin portal (`/public/admin/`):**
 - **`admin/js/admin-api.js`** — `window.adminApi`; injects `adminToken` from localStorage; 401 → redirect to login
 - **`admin/js/admin-portal.js`** — auth guard, sidebar init, page `init*()` functions, Chart.js integration, and the shared **`renderAdminPager(elId, {total, offset, limit, onPage})`** helper (a "N–M of T" + Prev/Next pager; each list page has a `<div id="…-pager">` and calls it after rendering rows, resetting `offset` to 0 when a filter changes). List controllers return `total` for this. SMS Logs uses its own inline pager.
-- 21 HTML pages — each uses `getSidebarHtml()` + `getTopbarHtml()` injected at runtime
+- 23 HTML pages — each uses `getSidebarHtml()` + `getTopbarHtml()` injected at runtime
 
 **Member portal (`/public/member/`):**
 - **`member/js/member-api.js`** — `window.memberApi`; injects `memberToken`; 401 → redirect to login
@@ -257,7 +259,7 @@ Server throws at startup if they are equal.
 
 **Contact form (26 June 2026):** on submit the controller emails the branch inbox (`CONTACT_EMAIL`, falls back to `SMTP_USER`; reply-to = enquirer) and auto-acknowledges the enquirer. Admins reply from the Contact Inbox via `POST /api/contact/:id/reply` (emails the enquirer, stores `admin_reply`/`replied_at`, marks `replied`). All fail gracefully if SMTP is unconfigured.
 
-### Database schema (21 tables)
+### Database schema (23 tables)
 **Core (public site):** `users`, `leadership`, `news`, `events`, `resources`, `scholarships`, `advocacy`, `contacts`, `settings`
 
 **Membership:** `members`, `bbf_claims`, `bbf_claim_documents`, `bbf_claim_timeline`, `scholarship_applications`, `scholarship_application_documents`, `notifications`
@@ -265,6 +267,8 @@ Server throws at startup if they are equal.
 **SMS & comms:** `sms_logs`, `sms_templates`
 
 **Security & audit:** `audit_logs`, `login_history`, `admin_2fa`
+
+**Legal:** `court_cases`, `court_case_updates` (court-case tracker for branch officers; shared branch-wide, each case has a responsible `officer_id` + a dated updates/hearings log. Admin API at `/api/admin/court-cases`; pages `court-cases.html` + `court-case-detail.html`; dashboard summary via `getStats`. Both admin roles.)
 
 Key ENUM values:
 - `users.role`: `super_admin | branch_officer | editor | viewer`
@@ -277,6 +281,8 @@ Key ENUM values:
 - `scholarships.scholarship_type`: `kcse | kjsea | dte` (was `undergraduate/postgraduate/vocational/research/international` before 21 June 2026; DTE = Diploma in Technical Education)
 - `scholarship_applications.status`: `applied | under_review | approved | rejected`
 - `scholarship_application_documents.doc_type`: `letter_of_application | tsc_slip | kcse_cert | admission_letter | fee_structure | recommendation | other` (the first two are the mandatory member uploads added 3 July 2026)
+- `court_cases.case_type`: `employment | disciplinary | criminal | civil | constitutional | appeal | other`
+- `court_cases.status`: `open | ongoing | on_hold | closed` · `court_cases.outcome`: `pending | won | lost | settled | withdrawn | dismissed` (added 3 July 2026)
 - `news.category`: `news | announcement | circular | press_release | event | sport_entertainment` (sport_entertainment added 26 June 2026; news rows also carry `image_2`, `document_url`, `document_name`)
 - `resources.category`: `curriculum | circular | moe_document | tsc_resource | professional_dev | teaching_material | legal | policy | sport_entertainment` (sport_entertainment added 26 June 2026)
 - `contacts.category`: `general | membership | bbf | advocacy | resources | complaint | other` (contacts also carry `admin_reply` + `replied_at`, added 26 June 2026)

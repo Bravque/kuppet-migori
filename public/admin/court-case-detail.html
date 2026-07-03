@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <link rel="icon" href="/favicon.ico" sizes="any">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16.png">
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Court Case — KUPPET Migori Admin</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <link rel="stylesheet" href="/css/style.css?v=20260702a"><link rel="stylesheet" href="/css/portal.css?v=20260702a">
+</head>
+<body class="portal-body admin-court-case-detail-page">
+<div class="portal-layout">
+  <div id="sidebar-placeholder"></div>
+  <main class="portal-main">
+    <div id="topbar-placeholder"></div>
+    <div class="portal-content">
+      <div class="page-heading">
+        <div class="page-heading-text">
+          <h1 id="case-title" style="margin-bottom:0.25rem">Court Case</h1>
+          <p><a href="/admin/court-cases.html"><i class="fas fa-arrow-left"></i> Back to Court Cases</a></p>
+        </div>
+        <span id="case-status"></span>
+      </div>
+      <div id="alert" class="hidden" style="margin-bottom:1rem"></div>
+
+      <div class="grid-2" style="gap:1rem;align-items:start">
+        <div class="data-card" style="padding:1.25rem">
+          <div id="case-details"><div class="portal-loading"><i class="fas fa-spinner fa-spin"></i> Loading…</div></div>
+        </div>
+
+        <div class="data-card" style="padding:1.25rem">
+          <div class="data-card-title" style="margin-bottom:0.75rem">Updates &amp; Hearings</div>
+          <form id="update-form" style="margin-bottom:1rem">
+            <div id="update-alert" class="hidden"></div>
+            <div class="form-row">
+              <div class="form-group" style="max-width:170px"><label>Date</label><input type="date" name="update_date" class="form-control"></div>
+            </div>
+            <div class="form-group"><label>Note <span class="required">*</span></label><textarea name="note" class="form-control" rows="3" placeholder="e.g. Mention on 12 Aug; matter adjourned to…"></textarea></div>
+            <button type="button" class="btn btn-gold btn-sm" onclick="addUpdate()"><i class="fas fa-plus"></i> Add Update</button>
+          </form>
+          <div id="updates-list"></div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script src="/admin/js/admin-api.js"></script><script src="/admin/js/admin-portal.js"></script>
+<script>
+  document.getElementById('sidebar-placeholder').outerHTML = getSidebarHtml();
+  document.getElementById('topbar-placeholder').outerHTML = getTopbarHtml('Court Case');
+  const user = requireAdminAuth(); if(user) initSidebar(user);
+
+  const id = new URLSearchParams(window.location.search).get('id');
+  if(!id){ window.location.href = '/admin/court-cases.html'; }
+  const CASE_TYPE_LABELS = {employment:'Employment',disciplinary:'Disciplinary',criminal:'Criminal',civil:'Civil',constitutional:'Constitutional',appeal:'Appeal',other:'Other'};
+
+  const section = (title, rows) => `
+    <div style="margin-bottom:1.25rem">
+      <div style="font-size:0.72rem;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;color:var(--text-muted);border-bottom:2px solid var(--gold);display:inline-block;padding-bottom:0.25rem;margin-bottom:0.75rem">${title}</div>
+      <table style="width:100%;font-size:0.85rem;border-collapse:collapse">
+        ${rows.map(([k,v])=>`<tr><td style="padding:0.4rem 0;color:var(--text-muted);width:42%">${k}</td><td>${v||'—'}</td></tr>`).join('')}
+      </table>
+    </div>`;
+
+  async function load(){
+    try{
+      const res=await adminApi.courtCases.getOne(id);
+      const c=res.data;
+      document.getElementById('case-title').textContent=c.title;
+      document.getElementById('case-status').innerHTML=statusBadge(c.status);
+
+      const caseRows=[
+        ['Court Case No', escHtml(c.case_number||'—')],
+        ['Court / Station', escHtml(c.court||'—')],
+        ['Type', escHtml(CASE_TYPE_LABELS[c.case_type]||c.case_type||'—')],
+        ['Status', statusBadge(c.status)],
+        ['Outcome', escHtml((c.outcome||'pending'))],
+      ];
+      const partyRows=[
+        ['Claimant / Petitioner', escHtml(c.plaintiff||'—')],
+        ['Respondent', escHtml(c.defendant||'—')],
+        ['Filing Date', c.filing_date?formatDate(c.filing_date):'—'],
+        ['Next Hearing', c.next_hearing_date?formatDate(c.next_hearing_date):'—'],
+        ['Responsible Officer', escHtml(c.officer_name||'—')],
+        ['Created By', escHtml(c.created_by_name||'—')],
+      ];
+      document.getElementById('case-details').innerHTML =
+        section('Case', caseRows) + section('Parties &amp; Dates', partyRows) +
+        (c.description ? section('Summary', [['', escHtml(c.description).replace(/\n/g,'<br>')]]) : '');
+
+      renderUpdates(c.updates||[]);
+    }catch(err){ showAlert('alert', err.message); }
+  }
+
+  function renderUpdates(updates){
+    const el=document.getElementById('updates-list');
+    if(!updates.length){ el.innerHTML=`<p style="color:var(--text-muted);font-size:0.85rem">No updates yet. Add the first hearing or milestone above.</p>`; return; }
+    el.innerHTML = updates.map(u=>`
+      <div style="border-left:3px solid var(--gold);padding:0.4rem 0 0.6rem 0.85rem;margin-bottom:0.6rem">
+        <div style="font-size:0.75rem;color:var(--text-muted);font-weight:600">${formatDate(u.update_date)}${u.author_name?` · ${escHtml(u.author_name)}`:''}</div>
+        <div style="font-size:0.85rem;white-space:pre-wrap">${escHtml(u.note)}</div>
+      </div>`).join('');
+  }
+
+  async function addUpdate(){
+    const form=document.getElementById('update-form');
+    const note=form.querySelector('[name=note]').value.trim();
+    const update_date=form.querySelector('[name=update_date]').value||null;
+    if(!note){ showAlert('update-alert','Please enter an update note'); return; }
+    try{
+      await adminApi.courtCases.addUpdate(id,{note,update_date});
+      form.reset();
+      document.getElementById('update-alert').className='hidden';
+      load();
+    }catch(err){ showAlert('update-alert', err.message); }
+  }
+
+  load();
+</script>
+</body>
+</html>

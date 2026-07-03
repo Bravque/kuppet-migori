@@ -363,6 +363,38 @@ CREATE TABLE IF NOT EXISTS admin_2fa (
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
 
+-- Court cases tracker (branch officers) + dated per-case updates log.
+CREATE TABLE IF NOT EXISTS court_cases (
+  id INT PRIMARY KEY AUTO_INCREMENT,
+  case_number VARCHAR(100),
+  title VARCHAR(300) NOT NULL,
+  court VARCHAR(200),
+  case_type ENUM('employment','disciplinary','criminal','civil','constitutional','appeal','other') DEFAULT 'employment',
+  plaintiff VARCHAR(300),
+  defendant VARCHAR(300),
+  status ENUM('open','ongoing','on_hold','closed') DEFAULT 'open',
+  outcome ENUM('pending','won','lost','settled','withdrawn','dismissed') DEFAULT 'pending',
+  filing_date DATE NULL,
+  next_hearing_date DATE NULL,
+  description TEXT,
+  officer_id INT NULL,
+  created_by INT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  INDEX idx_court_cases_status (status),
+  INDEX idx_court_cases_hearing (next_hearing_date)
+);
+
+CREATE TABLE IF NOT EXISTS court_case_updates (
+  id INT PRIMARY KEY AUTO_INCREMENT,
+  case_id INT NOT NULL,
+  update_date DATE NOT NULL,
+  note TEXT NOT NULL,
+  created_by INT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  INDEX idx_case_updates_case (case_id)
+);
+
 -- ============================================
 -- MIGRATION (idempotent for existing installs, MySQL 8.0+)
 -- ============================================
