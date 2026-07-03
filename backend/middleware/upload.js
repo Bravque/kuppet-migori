@@ -57,6 +57,14 @@ module.exports = {
     fileFilter: fileFilter(PDF_IMG),
   }),
 
+  // Court-case documents (pleadings, rulings, correspondence). Access-controlled
+  // like the sensitive dirs; served only via /api/admin/documents/:filename.
+  courtDocs: multer({
+    storage: storage('court'),
+    limits: { fileSize: 10 * MB },
+    fileFilter: fileFilter(DOC_MIMES),
+  }),
+
   memberDocs: multer({
     storage: storage('members'),
     limits: { fileSize: 5 * MB },

@@ -395,6 +395,18 @@ CREATE TABLE IF NOT EXISTS court_case_updates (
   INDEX idx_case_updates_case (case_id)
 );
 
+CREATE TABLE IF NOT EXISTS court_case_documents (
+  id INT PRIMARY KEY AUTO_INCREMENT,
+  case_id INT NOT NULL,
+  label VARCHAR(200),
+  file_url VARCHAR(500) NOT NULL,
+  file_name VARCHAR(255),
+  file_size INT,
+  uploaded_by INT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  INDEX idx_case_docs_case (case_id)
+);
+
 -- ============================================
 -- MIGRATION (idempotent for existing installs, MySQL 8.0+)
 -- ============================================
