@@ -4,15 +4,17 @@ const { sanitizeRichText } = require('../utils/sanitizeHtml');
 const getAll = async (req, res) => {
   try {
     const { category, limit = 20, offset = 0 } = req.query;
-    let query = 'SELECT id, title, slug, category, is_featured, created_at FROM advocacy WHERE is_published = 1';
-    const params = [];
+    let where = 'WHERE is_published = 1';
+    const filterParams = [];
+    if (category) { where += ' AND category = ?'; filterParams.push(category); }
 
-    if (category) { query += ' AND category = ?'; params.push(category); }
-    query += ' ORDER BY is_featured DESC, created_at DESC LIMIT ? OFFSET ?';
-    params.push(parseInt(limit), parseInt(offset));
-
-    const [rows] = await db.query(query, params);
-    res.json({ success: true, data: rows });
+    const [rows] = await db.query(
+      `SELECT id, title, slug, category, is_featured, created_at FROM advocacy ${where}
+       ORDER BY is_featured DESC, created_at DESC LIMIT ? OFFSET ?`,
+      [...filterParams, parseInt(limit), parseInt(offset)]
+    );
+    const [[{ total }]] = await db.query(`SELECT COUNT(*) as total FROM advocacy ${where}`, filterParams);
+    res.json({ success: true, data: rows, total });
   } catch (err) {
     res.status(500).json({ success: false, message: 'Failed to fetch advocacy content' });
   }

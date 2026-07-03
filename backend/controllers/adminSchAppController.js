@@ -4,17 +4,21 @@ const notificationService = require('../services/notificationService');
 async function getAll(req, res) {
   try {
     const { status, scholarship_id, limit = 25, offset = 0 } = req.query;
-    let query = `SELECT sa.*, m.full_name, m.member_number, s.title as scholarship_title
-                 FROM scholarship_applications sa
-                 JOIN members m ON sa.member_id = m.id
-                 JOIN scholarships s ON sa.scholarship_id = s.id WHERE 1=1`;
-    const params = [];
-    if (status) { query += ' AND sa.status = ?'; params.push(status); }
-    if (scholarship_id) { query += ' AND sa.scholarship_id = ?'; params.push(scholarship_id); }
-    query += ' ORDER BY sa.created_at DESC LIMIT ? OFFSET ?';
-    params.push(parseInt(limit), parseInt(offset));
-    const [rows] = await db.query(query, params);
-    res.json({ success: true, data: rows });
+    const base = `FROM scholarship_applications sa
+                  JOIN members m ON sa.member_id = m.id
+                  JOIN scholarships s ON sa.scholarship_id = s.id`;
+    let where = 'WHERE 1=1';
+    const filterParams = [];
+    if (status) { where += ' AND sa.status = ?'; filterParams.push(status); }
+    if (scholarship_id) { where += ' AND sa.scholarship_id = ?'; filterParams.push(scholarship_id); }
+
+    const [rows] = await db.query(
+      `SELECT sa.*, m.full_name, m.member_number, s.title as scholarship_title ${base} ${where}
+       ORDER BY sa.created_at DESC LIMIT ? OFFSET ?`,
+      [...filterParams, parseInt(limit), parseInt(offset)]
+    );
+    const [[{ total }]] = await db.query(`SELECT COUNT(*) as total ${base} ${where}`, filterParams);
+    res.json({ success: true, data: rows, total });
   } catch (err) {
     res.status(500).json({ success: false, message: 'Failed to fetch applications' });
   }

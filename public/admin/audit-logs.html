@@ -30,7 +30,7 @@
         </select>
         <input type="date" id="from-date" class="form-control">
         <input type="date" id="to-date" class="form-control">
-        <button class="btn btn-outline btn-sm" onclick="loadLogs()"><i class="fas fa-search"></i></button>
+        <button class="btn btn-outline btn-sm" onclick="applyLogs()"><i class="fas fa-search"></i></button>
       </div>
       <div class="data-card">
         <div class="data-table-wrap">
@@ -39,6 +39,7 @@
             <tbody id="audit-tbody"></tbody>
           </table>
         </div>
+        <div id="audit-pager"></div>
       </div>
     </div>
   </main>
@@ -48,12 +49,14 @@
   document.getElementById('sidebar-placeholder').outerHTML = getSidebarHtml();
   document.getElementById('topbar-placeholder').outerHTML = getTopbarHtml('Audit Logs');
   const user = requireAdminAuth(); if(user) initSidebar(user);
+  let auditOffset=0; const AUDIT_LIMIT=50;
   async function loadLogs(){
     const tbody=document.getElementById('audit-tbody');
     tbody.innerHTML='<tr><td colspan="6">'+renderLoading()+'</td></tr>';
     try{
-      const res=await adminApi.audit.getAll({action:document.getElementById('action-filter').value,actor_type:document.getElementById('type-filter').value,from:document.getElementById('from-date').value,to:document.getElementById('to-date').value,limit:50});
-      if(!res.data.length){tbody.innerHTML='<tr><td colspan="6">'+renderEmpty()+'</td></tr>';return;}
+      const res=await adminApi.audit.getAll({action:document.getElementById('action-filter').value,actor_type:document.getElementById('type-filter').value,from:document.getElementById('from-date').value,to:document.getElementById('to-date').value,limit:AUDIT_LIMIT,offset:auditOffset});
+      const pager=()=>renderAdminPager('audit-pager',{total:res.total||0,offset:auditOffset,limit:AUDIT_LIMIT,onPage:o=>{auditOffset=o;loadLogs();}});
+      if(!res.data.length){tbody.innerHTML='<tr><td colspan="6">'+renderEmpty()+'</td></tr>';pager();return;}
       tbody.innerHTML=res.data.map(r=>`<tr>
         <td style="white-space:nowrap;font-size:0.75rem">${formatDateTime(r.created_at)}</td>
         <td>${escHtml(r.actor_name||'Unknown')}</td>
@@ -62,8 +65,11 @@
         <td>${escHtml(r.resource||'—')} ${r.resource_id?'#'+r.resource_id:''}</td>
         <td style="font-size:0.75rem">${escHtml(r.ip_address||'—')}</td>
       </tr>`).join('');
+      pager();
     }catch(err){tbody.innerHTML='<tr><td colspan="6">'+escHtml(err.message)+'</td></tr>';}
   }
+  // Reset to first page whenever the filter/search is applied
+  function applyLogs(){ auditOffset=0; loadLogs(); }
   loadLogs();
 </script>
 </body>

@@ -29,6 +29,7 @@
             <tbody id="tbody"><tr><td colspan="6" class="portal-loading"><i class="fas fa-spinner fa-spin"></i> Loading…</td></tr></tbody>
           </table>
         </div>
+        <div id="sch-pager"></div>
       </div>
     </div>
   </main>
@@ -83,12 +84,14 @@
   let editingId = null;
   const f = sel => document.getElementById('form').querySelector(`[name=${sel}]`);
 
+  let schOffset=0; const SCH_LIMIT=20;
   async function load(){
     const tb=document.getElementById('tbody');
     tb.innerHTML='<tr><td colspan="6">'+renderLoading()+'</td></tr>';
     try{
-      const res=await adminApi.scholarships.getAll();
-      if(!res.data.length){tb.innerHTML='<tr><td colspan="6">'+renderEmpty()+'</td></tr>';return;}
+      const res=await adminApi.scholarships.getAll({limit:SCH_LIMIT,offset:schOffset});
+      const pager=()=>renderAdminPager('sch-pager',{total:res.total||0,offset:schOffset,limit:SCH_LIMIT,onPage:o=>{schOffset=o;load();}});
+      if(!res.data.length){tb.innerHTML='<tr><td colspan="6">'+renderEmpty()+'</td></tr>';pager();return;}
       tb.innerHTML=res.data.map(s=>`<tr>
         <td><strong>${escHtml(s.title)}</strong></td>
         <td>${escHtml(s.provider)}</td>
@@ -100,6 +103,7 @@
           <button class="btn btn-xs" style="background:#FEE2E2;color:#991B1B" onclick="del(${s.id})"><i class="fas fa-trash"></i></button>
         </td>
       </tr>`).join('');
+      pager();
     }catch(err){showAlert('alert',err.message);}
   }
 

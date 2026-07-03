@@ -32,6 +32,7 @@
             <tbody id="sch-tbody"></tbody>
           </table>
         </div>
+        <div id="sch-pager"></div>
       </div>
     </div>
   </main>
@@ -41,13 +42,14 @@
   document.getElementById('sidebar-placeholder').outerHTML = getSidebarHtml();
   document.getElementById('topbar-placeholder').outerHTML = getTopbarHtml('Scholarship Applications');
   const user = requireAdminAuth(); if(user) initSidebar(user);
-  let currentStatus='';
+  let currentStatus='', schOffset=0; const SCH_LIMIT=30;
   async function loadApps(){
     const tbody=document.getElementById('sch-tbody');
     tbody.innerHTML='<tr><td colspan="7">'+renderLoading()+'</td></tr>';
     try{
-      const res=await adminApi.schApps.getAll({status:currentStatus,limit:30});
-      if(!res.data.length){tbody.innerHTML='<tr><td colspan="7">'+renderEmpty()+'</td></tr>';return;}
+      const res=await adminApi.schApps.getAll({status:currentStatus,limit:SCH_LIMIT,offset:schOffset});
+      const pager=()=>renderAdminPager('sch-pager',{total:res.total||0,offset:schOffset,limit:SCH_LIMIT,onPage:o=>{schOffset=o;loadApps();}});
+      if(!res.data.length){tbody.innerHTML='<tr><td colspan="7">'+renderEmpty()+'</td></tr>';pager();return;}
       tbody.innerHTML=res.data.map(a=>`<tr>
         <td>${escHtml(a.application_number)}</td>
         <td>${escHtml(a.full_name)}<br><small>${escHtml(a.member_number)}</small></td>
@@ -57,10 +59,11 @@
         <td>${formatDate(a.created_at)}</td>
         <td><a href="/admin/scholarship-app-detail.html?id=${a.id}" class="btn btn-outline btn-xs"><i class="fas fa-eye"></i> Review</a></td>
       </tr>`).join('');
+      pager();
     }catch(err){tbody.innerHTML='<tr><td colspan="7">'+escHtml(err.message)+'</td></tr>';}
   }
   document.querySelectorAll('#sch-tabs .filter-tab').forEach(t=>t.addEventListener('click',()=>{
-    document.querySelectorAll('#sch-tabs .filter-tab').forEach(x=>x.classList.remove('active'));t.classList.add('active');currentStatus=t.dataset.status;loadApps();
+    document.querySelectorAll('#sch-tabs .filter-tab').forEach(x=>x.classList.remove('active'));t.classList.add('active');currentStatus=t.dataset.status;schOffset=0;loadApps();
   }));
   loadApps();
 </script>

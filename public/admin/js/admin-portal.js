@@ -62,6 +62,23 @@ function renderEmpty(msg = 'No records found') {
   return `<div class="portal-empty"><i class="fas fa-inbox"></i><h3>${escHtml(msg)}</h3></div>`;
 }
 
+// Reusable "N–M of T" + Prev/Next pager. Renders into #elId; calls onPage(newOffset)
+// on click. Styles the container inline so pages only need an empty <div id=...>.
+function renderAdminPager(elId, { total = 0, offset = 0, limit = 25, onPage }) {
+  const el = document.getElementById(elId);
+  if (!el) return;
+  if (!total || total <= limit) { el.innerHTML = ''; el.style.cssText = ''; return; }
+  el.style.cssText = 'display:flex;justify-content:space-between;align-items:center;gap:0.5rem;padding:0.75rem 1rem;font-size:0.82rem;color:var(--text-muted)';
+  const from = offset + 1, to = Math.min(offset + limit, total);
+  el.innerHTML = `<span>${from}–${to} of ${total}</span>
+    <span style="display:flex;gap:0.35rem">
+      <button class="btn btn-outline btn-xs" ${offset === 0 ? 'disabled' : ''} data-pg="prev"><i class="fas fa-chevron-left"></i> Prev</button>
+      <button class="btn btn-outline btn-xs" ${to >= total ? 'disabled' : ''} data-pg="next">Next <i class="fas fa-chevron-right"></i></button>
+    </span>`;
+  el.querySelector('[data-pg="prev"]').onclick = () => { if (offset > 0) onPage(Math.max(0, offset - limit)); };
+  el.querySelector('[data-pg="next"]').onclick = () => { if (to < total) onPage(offset + limit); };
+}
+
 function showAlert(elId, msg, type = 'danger') {
   const el = document.getElementById(elId);
   if (!el) return;
@@ -330,21 +347,26 @@ async function initAdminNews() {
   document.getElementById('btn-new-news')?.addEventListener('click', () => openNewsModal(null));
 }
 
+const NEWS_LIMIT = 20;
 const newsFilter = { category: '', search: '' };
+let newsOffset = 0;
 async function loadNewsTable(params = {}) {
   // Each inline handler passes only its own field; accumulate into persistent
   // state so category + search combine (and refreshes after save/delete keep it).
-  if ('category' in params) newsFilter.category = params.category;
-  if ('search' in params) newsFilter.search = params.search;
+  // Changing a filter resets to the first page; page clicks pass an explicit offset.
+  if ('category' in params) { newsFilter.category = params.category; newsOffset = 0; }
+  if ('search' in params) { newsFilter.search = params.search; newsOffset = 0; }
+  if ('offset' in params) newsOffset = params.offset;
   const tbody = document.getElementById('news-tbody');
   if (!tbody) return;
   tbody.innerHTML = `<tr><td colspan="6">${renderLoading()}</td></tr>`;
   try {
-    const query = { limit: 20 };
+    const query = { limit: NEWS_LIMIT, offset: newsOffset };
     if (newsFilter.category) query.category = newsFilter.category;
     if (newsFilter.search) query.search = newsFilter.search;
     const res = await adminApi.news.getAll(query);
-    if (!res.data.length) { tbody.innerHTML = `<tr><td colspan="6">${renderEmpty()}</td></tr>`; return; }
+    const pager = () => renderAdminPager('news-pager', { total: res.total || 0, offset: newsOffset, limit: NEWS_LIMIT, onPage: o => loadNewsTable({ offset: o }) });
+    if (!res.data.length) { tbody.innerHTML = `<tr><td colspan="6">${renderEmpty()}</td></tr>`; pager(); return; }
     tbody.innerHTML = res.data.map(n => `
       <tr>
         <td><strong>${escHtml(n.title)}</strong><br><small class="text-muted">${escHtml(n.slug)}</small></td>
@@ -357,6 +379,7 @@ async function loadNewsTable(params = {}) {
           <button class="btn btn-xs" style="background:#FEE2E2;color:#991B1B" onclick="deleteNews(${n.id})"><i class="fas fa-trash"></i></button>
         </td>
       </tr>`).join('');
+    pager();
   } catch (err) {
     tbody.innerHTML = `<tr><td colspan="6"><div class="alert alert-danger">${escHtml(err.message)}</div></td></tr>`;
   }
@@ -464,13 +487,17 @@ async function initAdminEvents() {
   document.getElementById('btn-new-event')?.addEventListener('click', () => openEventModal(null));
 }
 
+const EVENTS_LIMIT = 30;
+let eventsOffset = 0;
 async function loadEventsTable(params = {}) {
+  if ('offset' in params) eventsOffset = params.offset;
   const tbody = document.getElementById('events-tbody');
   if (!tbody) return;
   tbody.innerHTML = `<tr><td colspan="6">${renderLoading()}</td></tr>`;
   try {
-    const res = await adminApi.events.getAll({ limit: 30, ...params });
-    if (!res.data.length) { tbody.innerHTML = `<tr><td colspan="6">${renderEmpty()}</td></tr>`; return; }
+    const res = await adminApi.events.getAll({ limit: EVENTS_LIMIT, offset: eventsOffset });
+    const pager = () => renderAdminPager('events-pager', { total: res.total || 0, offset: eventsOffset, limit: EVENTS_LIMIT, onPage: o => loadEventsTable({ offset: o }) });
+    if (!res.data.length) { tbody.innerHTML = `<tr><td colspan="6">${renderEmpty()}</td></tr>`; pager(); return; }
     tbody.innerHTML = res.data.map(e => `
       <tr>
         <td><strong>${escHtml(e.title)}</strong></td>
@@ -483,6 +510,7 @@ async function loadEventsTable(params = {}) {
           <button class="btn btn-xs" style="background:#FEE2E2;color:#991B1B" onclick="deleteEvent(${e.id})"><i class="fas fa-trash"></i></button>
         </td>
       </tr>`).join('');
+    pager();
   } catch (err) { tbody.innerHTML = `<tr><td colspan="6">${escHtml(err.message)}</td></tr>`; }
 }
 
@@ -532,6 +560,7 @@ async function initAdminContacts() {
       document.querySelectorAll('#status-filters .filter-tab').forEach(t => t.classList.remove('active'));
       tab.classList.add('active');
       contactsFilter.status = tab.dataset.status || '';
+      contactsOffset = 0;
       loadContactsTable();
     });
   });
@@ -540,25 +569,27 @@ async function initAdminContacts() {
       document.querySelectorAll('#category-filters .filter-tab').forEach(t => t.classList.remove('active'));
       tab.classList.add('active');
       contactsFilter.category = tab.dataset.category || '';
+      contactsOffset = 0;
       loadContactsTable();
     });
   });
 }
 
 let contactsCache = [];
-async function loadContactsTable(params = {}) {
-  params = {
-    ...(contactsFilter.status ? { status: contactsFilter.status } : {}),
-    ...(contactsFilter.category ? { category: contactsFilter.category } : {}),
-    ...params,
-  };
+const CONTACTS_LIMIT = 30;
+let contactsOffset = 0;
+async function loadContactsTable() {
   const tbody = document.getElementById('contacts-tbody');
   if (!tbody) return;
   tbody.innerHTML = `<tr><td colspan="6">${renderLoading()}</td></tr>`;
   try {
-    const res = await adminApi.contacts.getAll({ limit: 30, ...params });
+    const query = { limit: CONTACTS_LIMIT, offset: contactsOffset };
+    if (contactsFilter.status) query.status = contactsFilter.status;
+    if (contactsFilter.category) query.category = contactsFilter.category;
+    const res = await adminApi.contacts.getAll(query);
     contactsCache = res.data;
-    if (!res.data.length) { tbody.innerHTML = `<tr><td colspan="6">${renderEmpty()}</td></tr>`; return; }
+    const pager = () => renderAdminPager('contacts-pager', { total: res.total || 0, offset: contactsOffset, limit: CONTACTS_LIMIT, onPage: o => { contactsOffset = o; loadContactsTable(); } });
+    if (!res.data.length) { tbody.innerHTML = `<tr><td colspan="6">${renderEmpty()}</td></tr>`; pager(); return; }
     tbody.innerHTML = res.data.map(c => `
       <tr>
         <td><strong>${escHtml(c.name)}</strong><br><small>${escHtml(c.email)}</small></td>
@@ -578,6 +609,7 @@ async function loadContactsTable(params = {}) {
           </div>
         </td>
       </tr>`).join('');
+    pager();
   } catch (err) { tbody.innerHTML = `<tr><td colspan="6">${escHtml(err.message)}</td></tr>`; }
 }
 

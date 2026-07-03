@@ -50,6 +50,7 @@
             <tbody id="members-tbody"><tr><td colspan="7" class="portal-loading"><i class="fas fa-spinner fa-spin"></i> Loading...</td></tr></tbody>
           </table>
         </div>
+        <div id="members-pager"></div>
       </div>
     </div>
   </main>
@@ -72,13 +73,14 @@
   document.getElementById('sidebar-placeholder').outerHTML = getSidebarHtml();
   document.getElementById('topbar-placeholder').outerHTML = getTopbarHtml('Members');
   const user = requireAdminAuth(); if(user) initSidebar(user);
-  let currentStatus='', currentSearch='', currentSubCounty='', currentGender='', rejectingId=null;
+  let currentStatus='', currentSearch='', currentSubCounty='', currentGender='', memberOffset=0, rejectingId=null;
+  const MEMBER_LIMIT=25;
   async function loadMembers() {
     const tbody = document.getElementById('members-tbody');
     tbody.innerHTML = '<tr><td colspan="7">'+renderLoading()+'</td></tr>';
     try {
-      const res = await adminApi.members.getAll({status:currentStatus,search:currentSearch,sub_county:currentSubCounty,gender:currentGender,limit:25});
-      if(!res.data.length){tbody.innerHTML='<tr><td colspan="7">'+renderEmpty()+'</td></tr>';return;}
+      const res = await adminApi.members.getAll({status:currentStatus,search:currentSearch,sub_county:currentSubCounty,gender:currentGender,limit:MEMBER_LIMIT,offset:memberOffset});
+      if(!res.data.length){tbody.innerHTML='<tr><td colspan="7">'+renderEmpty()+'</td></tr>';renderAdminPager('members-pager',{total:res.total||0,offset:memberOffset,limit:MEMBER_LIMIT,onPage:o=>{memberOffset=o;loadMembers();}});return;}
       tbody.innerHTML = res.data.map(m=>`<tr>
         <td><strong>${escHtml(m.full_name)}</strong><br><small>${escHtml(m.member_number)}</small></td>
         <td>${escHtml(m.tsc_number)}</td>
@@ -91,6 +93,7 @@
           ${m.status!=='approved'?`<button class="btn btn-xs" style="background:#DCFCE7;color:#166534" onclick="approveMember(${m.id})"><i class="fas fa-check"></i></button>`:''}
           ${m.status!=='rejected'?`<button class="btn btn-xs" style="background:#FEE2E2;color:#991B1B" onclick="openReject(${m.id})"><i class="fas fa-times"></i></button>`:''}
         </td></tr>`).join('');
+      renderAdminPager('members-pager',{total:res.total||0,offset:memberOffset,limit:MEMBER_LIMIT,onPage:o=>{memberOffset=o;loadMembers();}});
     } catch(err){tbody.innerHTML='<tr><td colspan="7">'+escHtml(err.message)+'</td></tr>';}
   }
   async function approveMember(id){if(!confirm('Approve?'))return;try{await adminApi.members.approve(id);loadMembers();}catch(e){alert(e.message);}}
@@ -100,11 +103,11 @@
   });
   document.querySelectorAll('#status-tabs .filter-tab').forEach(t=>t.addEventListener('click',()=>{
     document.querySelectorAll('#status-tabs .filter-tab').forEach(x=>x.classList.remove('active'));
-    t.classList.add('active');currentStatus=t.dataset.status;loadMembers();
+    t.classList.add('active');currentStatus=t.dataset.status;memberOffset=0;loadMembers();
   }));
-  let st;document.getElementById('member-search').addEventListener('input',function(){clearTimeout(st);st=setTimeout(()=>{currentSearch=this.value;loadMembers();},400);});
-  document.getElementById('subcounty-filter').addEventListener('change',function(){currentSubCounty=this.value;loadMembers();});
-  document.getElementById('gender-filter').addEventListener('change',function(){currentGender=this.value;loadMembers();});
+  let st;document.getElementById('member-search').addEventListener('input',function(){clearTimeout(st);st=setTimeout(()=>{currentSearch=this.value;memberOffset=0;loadMembers();},400);});
+  document.getElementById('subcounty-filter').addEventListener('change',function(){currentSubCounty=this.value;memberOffset=0;loadMembers();});
+  document.getElementById('gender-filter').addEventListener('change',function(){currentGender=this.value;memberOffset=0;loadMembers();});
   const urlTab=new URLSearchParams(window.location.search).get('tab');
   if(urlTab==='pending'){document.querySelector('[data-status="pending_approval"]').click();}else{loadMembers();}
 </script>
