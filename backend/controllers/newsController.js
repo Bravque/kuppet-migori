@@ -4,21 +4,22 @@ const { sanitizeRichText } = require('../utils/sanitizeHtml');
 const getAll = async (req, res) => {
   try {
     const { category, featured, limit = 10, offset = 0, search } = req.query;
-    let query = 'SELECT id, title, slug, excerpt, category, featured_image, author, is_featured, views, tags, published_at FROM news WHERE is_published = 1';
-    const params = [];
 
-    if (category) { query += ' AND category = ?'; params.push(category); }
-    if (featured === 'true') { query += ' AND is_featured = 1'; }
-    if (search) { query += ' AND (title LIKE ? OR excerpt LIKE ?)'; params.push(`%${search}%`, `%${search}%`); }
+    // Build the filter once so the row query and the count stay in sync
+    // (otherwise a search yields the right rows but an inflated total → phantom pages).
+    let where = 'WHERE is_published = 1';
+    const filterParams = [];
+    if (category) { where += ' AND category = ?'; filterParams.push(category); }
+    if (featured === 'true') { where += ' AND is_featured = 1'; }
+    if (search) { where += ' AND (title LIKE ? OR excerpt LIKE ?)'; filterParams.push(`%${search}%`, `%${search}%`); }
 
-    query += ' ORDER BY published_at DESC LIMIT ? OFFSET ?';
-    params.push(parseInt(limit), parseInt(offset));
-
-    const [rows] = await db.query(query, params);
-    const [[{ total }]] = await db.query(
-      'SELECT COUNT(*) as total FROM news WHERE is_published = 1' + (category ? ' AND category = ?' : ''),
-      category ? [category] : []
+    const rowParams = [...filterParams, parseInt(limit), parseInt(offset)];
+    const [rows] = await db.query(
+      `SELECT id, title, slug, excerpt, category, featured_image, author, is_featured, views, tags, published_at
+       FROM news ${where} ORDER BY published_at DESC LIMIT ? OFFSET ?`,
+      rowParams
     );
+    const [[{ total }]] = await db.query(`SELECT COUNT(*) as total FROM news ${where}`, filterParams);
 
     res.json({ success: true, data: rows, total, limit: parseInt(limit), offset: parseInt(offset) });
   } catch (err) {
@@ -156,14 +157,16 @@ const adminRemove = async (req, res) => {
 const adminGetAll = async (req, res) => {
   try {
     const { category, limit = 20, offset = 0, search } = req.query;
-    let query = 'SELECT id, title, slug, category, author, is_featured, is_published, views, published_at FROM news WHERE 1=1';
-    const params = [];
-    if (category) { query += ' AND category = ?'; params.push(category); }
-    if (search) { query += ' AND title LIKE ?'; params.push(`%${search}%`); }
-    query += ' ORDER BY created_at DESC LIMIT ? OFFSET ?';
-    params.push(parseInt(limit), parseInt(offset));
-    const [rows] = await db.query(query, params);
-    const [[{ total }]] = await db.query('SELECT COUNT(*) as total FROM news WHERE 1=1' + (category ? ' AND category = ?' : ''), category ? [category] : []);
+    let where = 'WHERE 1=1';
+    const filterParams = [];
+    if (category) { where += ' AND category = ?'; filterParams.push(category); }
+    if (search) { where += ' AND title LIKE ?'; filterParams.push(`%${search}%`); }
+    const [rows] = await db.query(
+      `SELECT id, title, slug, category, author, is_featured, is_published, views, published_at
+       FROM news ${where} ORDER BY created_at DESC LIMIT ? OFFSET ?`,
+      [...filterParams, parseInt(limit), parseInt(offset)]
+    );
+    const [[{ total }]] = await db.query(`SELECT COUNT(*) as total FROM news ${where}`, filterParams);
     res.json({ success: true, data: rows, total, limit: parseInt(limit), offset: parseInt(offset) });
   } catch (err) {
     res.status(500).json({ success: false, message: 'Failed to fetch news' });

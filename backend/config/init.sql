@@ -380,6 +380,10 @@ ALTER TABLE users MODIFY COLUMN role ENUM('super_admin','branch_officer','editor
 -- Update BBF claim document types to official required attachments
 ALTER TABLE bbf_claim_documents MODIFY COLUMN doc_type ENUM('tsc_slip','burial_permit','birth_notification','letter_from_principal','other') NOT NULL;
 
+-- Scholarship application documents: the two required member attachments
+-- (Letter of Application + TSC Slip); legacy types kept for existing rows.
+ALTER TABLE scholarship_application_documents MODIFY COLUMN doc_type ENUM('letter_of_application','tsc_slip','kcse_cert','admission_letter','fee_structure','recommendation','other') NOT NULL;
+
 -- ============================================
 -- SEED DATA
 -- ============================================

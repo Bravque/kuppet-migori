@@ -114,131 +114,9 @@ WHERE email = 'admin@kuppetmigori.co.ke';
 
 ---
 
-### Done in the 2 July 2026 session
+### Session history
 
-**Hardening branch merged & deployed**
-- The `hardening/security-error-handling-jul2026` branch (the whole 1 July session — XSS sanitization, input validation, endpoint hardening, error handling, logging/monitoring/alerts) was **merged to `main` and pushed** (PR #1, merge commit on `main`), so it is now **auto-deployed live**. Branch deleted locally + on origin. On the live host: optionally set `ALERT_EMAIL` + `SMS_WEBHOOK_SECRET` in hPanel; Hostinger's `npm install` picks up `sanitize-html`.
-
-**About page — real branch history**
-- Replaced the placeholder/fictional "established 1994" Branch History (narrative + timeline) on `public/pages/about.html` with the **real founding account**: idea first pronounced by Rashid Kawewa (1998); Oct 2001 Gilly Hotel founding meeting (interim office — E.S. Akelo M.T. Misori, Chairman Ogutu Ode P.C., Vice Chair Odunga Nyamusi, Treasurer Tobias Onyango; Charles Ooko replaced the late Mr. Yogo); Kadika Plaza office (rotational rent, Kshs 3,000/mo, no TSC remittances, "Kupe"/"puppet" resistance); Kuria branch (E.S. Murimi, Chairman Majina); **2011 Migori+Kuria merger** into the County branch (Chairman Kennedy Makasembo, E.S. John Kennedy Obonyo, Treasurer Omukereri, + Hilda Ghati/Paul Migwambo/Angela Odero). Removed invented stats (4,500 members, 320 institutions, fictional CBA/BBF dates). Corrected sitewide footer **"since 1994" → "since 2001"** (9 public pages) + about-page meta description.
-
-**Homepage Mission/Vision/Commitment layout fix**
-- The `.mission-strip` (`index.html`) rendered raggedly — `.mission-inner` was a `flex-wrap` row whose text blocks had no width basis, so the long Mission paragraph took the whole first row and the Commitment icon ended up orphaned beside "Our Vision". Grouped each icon+text into a `.mission-item` (`flex:1 1 0`) → three equal columns, dividers `align-self:center`; stacks full-width on mobile.
-
-**Notice Board (news) fixes**
-- **Sidebar categories were unclickable** — the inline `onclick` had double-escaped quotes (`\\'` instead of `\'`), producing malformed JS that threw. Fixed all 6 in `news.html`; they delegate a `.click()` to the matching `.filter-tab` (wired in `main.js`).
-- **"Events" tab loaded nothing** — `data-category="event"` queried the **news** table, but events live in the separate `events` table. `loadNews()` now branches: when the Events tab is active it fetches `api.events.getAll` and renders `renderEventCard` in an `.events-list`, **with pagination**. `eventsController.getAll` now returns `total` (for pagination) and orders `event_date DESC` (was ASC; admin/homepage consumers read `data`, unaffected).
-
-**Resources page — pagination**
-- `initResourcesPage()` now pages results (12/page) via the shared `renderPagination('resources-pagination', …)`; added the `#resources-pagination` container to `resources.html`; page resets to 1 on category/search change. Fixed `resourcesController.getAll` so the `total` count **respects the search filter** too (was category-only → phantom pages when searching).
-
-**Advocacy issue reports → dedicated inbox + admin listing**
-- The Advocacy Desk "Report a Workplace Issue" form (`advocacy.html`, submits via `api.contact.submit`) now routes its staff-notification email to **`advocacy@kuppetmigori.co.ke`** (new `ADVOCACY_EMAIL` env, defaults to that address; falls back only for `category==='advocacy'` — general enquiries still go to `CONTACT_EMAIL`). Changed the form's "Other workplace issue" option from `complaint` → `advocacy` so **every** advocacy-form report is category `advocacy` (specific issue kept in the subject). Reports still persist to the `contacts` table regardless of SMTP.
-- **Admin Contact Inbox** (`admin/contacts.html` + `admin-portal.js`) gained a **Category filter row** (All / **Advocacy Reports** / Membership / BBF / General / Resources / Other), independent of the status tabs and combined in the query (`adminGetAll` already accepted `category`). Subtitle now mentions advocacy reports.
-- **⚠ Live setup:** create the `advocacy@kuppetmigori.co.ke` mailbox in hPanel (or set `ADVOCACY_EMAIL` to a real one) or the notifications bounce; added `ADVOCACY_EMAIL` to `.env.example`. Hard-refresh the admin Contact Inbox (portal JS is unversioned) to pick up the category filter.
-
-**Cache token** — `20260701a → 20260702a` across all 42 public HTML (bumped for `style.css` + `main.js` edits). All 2 July work committed to **`main`** and pushed (auto-deployed).
-
-### Done in the 1 July 2026 session
-
-**Password reset link expiry 1h → 30 min**
-- `memberAuthController.forgotPassword` reset JWT `expiresIn` `'1h' → '30m'`; email copy in `mailerService` updated to match ("expires in 30 minutes"). Still single-use (signed with `JWT_MEMBER_SECRET + member.password`). Backend-only, no DB/cache change.
-
-**Stored-XSS fix — rich-text content sanitized on write**
-- News + advocacy article **bodies are rendered raw as HTML** on the public site (`main.js` `.article-content` at ~L487/577) to preserve admin formatting — previously unsanitized, so a `<script>`/`<img onerror>` saved by an admin/branch_officer would execute for every visitor (CSP still allows `script-src 'unsafe-inline'`). Added **`sanitize-html`** dep + **`backend/utils/sanitizeHtml.js`** (`sanitizeRichText()`, allowlist: formatting/list/table/img/a tags, `http|https|mailto|tel` schemes only, safe inline styles, forces `rel="noopener noreferrer"`; strips `<script>/<iframe>`, all `on*` handlers, `javascript:` URLs). Applied on **create + update** in `newsController` + `advocacyController` (the two `content` fields rendered raw). Verified against 7 payloads.
-  - **Note:** sanitization is **on write**, so pre-existing article rows aren't retroactively cleaned (none are known-malicious — admin-authored). If ever needed, re-save each article or run a one-time backfill through `sanitizeRichText`.
-  - **Not touched (deferred, per scope):** app-layer validation on the other admin content routes (they rely on the DB schema → bad input yields a 500 not a clean 400, and text fields have no length cap), and dropping CSP `unsafe-inline`.
-
-**Error-handling robustness — 3 edge-case fixes**
-- **Unknown `/api/*` routes now return JSON 404.** Added `app.use('/api', …)` in `server.js` *before* the portal/SPA wildcards — previously an unknown API path fell through to the `app.get('*')` SPA fallback and returned `index.html` (HTML 200) for GET, or Express's default HTML 404 for POST/PUT/DELETE, breaking JSON clients. Verified: unknown GET/POST `/api/*` → `{success:false,message:'API route not found'}` 404; unknown page still serves the SPA HTML.
-- **Public `api.js` guards the JSON parse** — `await res.json().catch(() => ({}))` (was unguarded, so a non-JSON body like a proxy 502/HTML page threw "Unexpected token <" and masked the real status). The admin/member portal wrappers already did this. → **api.js edited → cache token bumped `20260626d → 20260701a` across all 42 public HTML.**
-- **Process-level backstop** — added `process.on('unhandledRejection')` + `'uncaughtException')` loggers in `server.js` (log-only, no force-exit, to avoid a restart loop on shared hosting) so a stray fire-and-forget rejection (e.g. `sendMail`/`sendSms`) is logged instead of crashing silently.
-
-**Logging / monitoring / alerting — 3 additions (backend-only, no cache bump)**
-- **Deep health check** — `/api/health` now runs `SELECT 1` and returns **503 `db:down`** on DB failure (was a false 200). Point an uptime monitor (UptimeRobot etc.) at it. Required adding `const db = require('./config/database')` to `server.js`.
-- **Failed/forbidden attempts are now audited.** Refactored `middleware/auth.js`: new shared `recordAudit()` (never throws, uses the existing `audit_logs.new_value` JSON column — **no migration**). `auditLog` now records failures too (action gets a `.failed` suffix + `{status}` in new_value), and **`authorizeAdmin`/`authorizeSuperAdmin` log every 403** as `authz.denied` with `{required, role, method, path}` — surfaces privilege-escalation probing (a `branch_officer` hitting super-admin routes). Successful actions unchanged.
-- **Email alerts on serious errors** — new `backend/services/alertService.js` (`sendErrorAlert`, **throttled to 1 email / 10 min**, fire-and-forget, never throws). Wired into the global 500 handler + both process handlers. Recipient: **`ALERT_EMAIL` → `CONTACT_EMAIL` → `SMTP_USER`** (added `ALERT_EMAIL` to `.env.example`; set it in hPanel to receive alerts). No-ops if SMTP/recipient unset.
-  - **Deferred (per scope):** structured file logging (pino/winston + rotation + request IDs) — still raw `console.*` → Passenger stdout.
-
-**Input validation + endpoint hardening**
-- New reusable **`backend/middleware/validate.js`** (`handleValidation` → 400 `{errors:[{field,message}]}`). Added `express-validator` chains to **every previously-unvalidated mutation route**: news, events, resources, leadership, scholarships, advocacy (content CRUD — length caps + enum `isIn` for category/type/event_type/position_category + `isURL`/`isISO8601`/`isEmail` where relevant); adminUsers (role enum, password complexity), adminSms (send/bulk/group/template — message ≤1600, group enum, conditional sub_county), adminBbf/adminMembers/adminScholarshipApps (`param('id').isInt()` + amount/notes/reason caps); member bbf + scholarships + notifications (`isInt` id params + body caps). **Validators run after multer** on multipart routes (news/leadership/resources/member uploads) so `req.body` is populated. Fields are `optional()` on updates; controllers still enforce required-on-create. Verified: bad enum/type/date/id → clean 400.
-- **Endpoint security gaps closed:** (1) **SMS delivery webhook** (`POST /api/sms/webhook`) was fully open — added a shared-secret gate (`SMS_WEBHOOK_SECRET`; if set, require `?token=` or `x-webhook-secret`, else 401; unset = open for back-compat). Register the webhook URL with `?token=` in the TalkSasa dashboard. (2) **`PUT /api/settings/:key`** now validates `:key` against an **allowlist** (was arbitrary — INSERT…ON DUP KEY could create junk rows) + caps value ≤5000 chars + type-checks it. `GET /settings/stats` confirmed safe (hardcoded public-counter whitelist).
-- Auth/authorization audit: **every admin mutation already had `authenticate + authorize*`, every member route `authenticateMember`** — no missing guards found. Backend-only, no cache bump, no migration. Added `SMS_WEBHOOK_SECRET` to `.env.example`.
-- **Frontend-vs-validator cross-check (pre-merge):** traced every mutation route controller-field → frontend payload → validator; **no mismatches**. All form enum values ⊆ the `isIn` lists; format validators (`isURL`/`isEmail`/`isISO8601`/`isInt`) use `checkFalsy` so an empty `""` optional field is skipped (added `checkFalsy` to events `event_date`/`end_date` for completeness). Booleans arrive as real JSON booleans (not `"on"`). **One intentional behavior change:** admin-user create now enforces password complexity (≥8 + letter + number) — the frontend previously only checked non-empty, so a weak password now returns a clean 400.
-
-**✓ MERGED (2 July 2026):** this session's work (branch `hardening/security-error-handling-jul2026`, 3 commits: `0a5517e` XSS/error-handling/logging, `f7cdb1b` validation/endpoint-security, `8bdc5e1` checkFalsy) was **merged to `main` via PR #1 and auto-deployed live**; the branch has been deleted. **On the live host:** Hostinger ran `npm install` (picks up `sanitize-html`); optionally set `ALERT_EMAIL` (error alerts) + `SMS_WEBHOOK_SECRET` (webhook lock-down) in hPanel; smoke-test one news edit + one BBF approval on the live admin panel. (The `gh` fine-grained token lacks Pull-requests:write, so `gh pr create`/`gh pr merge` fail — PR #1 was merged by pushing the merge commit to `main` directly.)
-
-### Done in the 26 June 2026 session
-
-**Notice Board (news) — Sport & Entertainment + media**
-- New `sport_entertainment` category on `news.category` (public filter tabs + sidebar, admin create/edit form, gold badge). Articles now support a **2nd image** + a **downloadable document** — new columns `image_2`, `document_url`, `document_name`; admin modal gained image1/image2/document uploads (new public `news/` upload subdir + `newsMedia` multer instance with `.fields()`); the article page renders the gallery image + a download card. Admin news edit modal now **loads existing data** (was a stub) via new `GET /api/news/admin/:id`; create/update switched to FormData. → run `migration-news-media.sql` on live.
-
-**Resources — clickable categories + Sport & Entertainment**
-- **Fixed a dead feature:** the category cards never filtered — `initResourcesPage()` only wired non-existent `.filter-tab`s and the inline script dispatched a no-op event. Cards/tabs now share one handler, reload on click, and honour `?category=` deep links (with a guard for unknown categories). Added a **Sports & Entertainment** resource category (card, `resources.category` ENUM, admin form). → run `migration-resources-category.sql` on live.
-
-**Persistent uploads (fixes vanishing leader photos)**
-- Admin-uploaded files were wiped on every deploy (git-ignored `public/uploads/`, restored from git on redeploy). Centralised the upload root in **`backend/config/paths.js`**, configurable via **`UPLOAD_DIR`** (absolute path outside the deployed tree; falls back to `./public/uploads` locally). `server.js` serves `/uploads` from it and returns a real **404 JSON** for missing files (was silently serving `index.html`, breaking `<img>`s); `renderLeaderCard` gained an `onerror` icon fallback. **Live setup:** created `~/uploads/{photos,documents,news,members,bbf,scholarships}` and set `UPLOAD_DIR=/home/u735599564/uploads` in hPanel. (Photos uploaded before this are unrecoverable unless a pre-deploy Hostinger backup exists.)
-
-**Contact form — staff notification + admin reply**
-- On submit, emails the branch inbox (`CONTACT_EMAIL` → falls back to `SMTP_USER`, reply-to = enquirer) + auto-acknowledges the enquirer. New **`POST /api/contact/:id/reply`** (admin, validated, audit-logged) emails the enquirer, stores `admin_reply` + `replied_at`, marks `replied`; Contact Inbox gained a **Reply** button + modal. `mailerService.sendMail` gained `replyTo`; new `contactStaffAlert`/`contactReply` templates; contact email values HTML-escaped. → run `migration-contact-reply.sql` on live.
-
-**Mobile — card grids scroll horizontally**
-- New reusable **`.h-scroll`** utility (style.css): at ≤640px, card grids become horizontal scroll-snap rows (cards `clamp(220px,82%,300px)` so the next peeks) instead of long vertical stacks. Applied to news/featured-news/leadership/scholarships/advocacy/resource-categories/home-services/about-values+group-photos. Homepage featured-news wrapped in `.news-grid` (also fixes its desktop 3-up). Fixed news-page overflow this exposed: `.news-layout` tracks → `minmax(0,1fr)`. Verified in headless Chrome at 390px: all rows scroll, zero page overflow.
-
-**Cache token** — `20260622b → 20260626c` across all 42 public HTML (bumped per style.css/main.js edits). Portal JS (`admin/js/*`, `member/js/*`) still unversioned — hard-refresh after portal-JS edits (contact Reply button, admin news/resources changes live there).
-
-### Done in the 22 June 2026 session (security audit + hardening, branding, deps)
-
-A full security audit was run against the codebase and **all findings fixed** (committed to `main`, deployed). Highlights:
-
-**Critical**
-- **Sensitive uploads no longer publicly downloadable.** `server.js` now 404-blocks `/uploads/{members,bbf,scholarships}` *before* `express.static`, so National IDs / passport scans / claim docs can't be fetched directly. Members stream their own files via `GET /api/member/documents/:filename` (ownership-checked); admins use the **new** `GET /api/admin/documents/:filename` (`backend/routes/adminDocuments.js`, auth+admin). Admin detail pages (`bbf-detail`, `scholarship-app-detail`, `member-detail`) now open docs through a `viewDoc()` blob-fetch helper in `admin-portal.js` instead of direct `<a href>` links. (`photos/` + `documents/` stay public — leader photos, resource downloads.)
-- **No more default admin credential.** `init*.sql` now seeds the admin **inactive with an unusable hash (`'!'`)**; the published `Admin@123` was removed from this file. Set a real password + `is_active=1` per the reset procedure above.
-
-**High**
-- **TOTP key guard** — `server.js` refuses to boot unless `TOTP_ENCRYPTION_KEY` is 64 random hex (was an all-zero fallback). Removed the zero default from `.env.example`.
-- **Dependencies** — removed `xlsx` (high, no-fix) → exports migrated to **`exceljs`** via `backend/utils/excel.js`; **nodemailer → 9.x**; added **`express-async-errors`** (rejected async handlers now reach the error handler). Later (Hostinger CVE email): **multer → 2.x** (7 DoS CVEs) and a **`uuid` override → ^11.1.1** (exceljs transitive). `npm audit`: **0 vulnerabilities**.
-
-**Medium/Low**
-- **CSRF is now actually enforced** (it was previously dead code). `csrfProtection` is applied to `/api/member` + `/api/admin`; `issueCsrfCookie` moved to run **globally before static serving** so portal HTML always carries the `__csrf` cookie. Both API wrappers already send `X-CSRF-Token`.
-- Stripped internal `err.message` from all 500 responses (log server-side only); `.gitignore` now covers `.env*` (keep `.env.example`); `FRONTEND_URL` asserted in production; added `Permissions-Policy` + explicit 2-yr HSTS preload; `morgan('combined')` in prod; traversal-guard on the catch-all `sendFile`; password complexity (≥8 + letter + number) on member/admin password set.
-
-> **Deferred (breaking, not done):** moving JWTs from `localStorage` → `httpOnly` cookies, and dropping CSP `script-src 'unsafe-inline'` (would require refactoring inline handlers incl. the new `viewDoc` `onclick`s).
-
-**Branding / assets**
-- **Login pages** (`member/login.html`, `admin/login.html`) — background changed blue → **green** (the logo-green banner gradient); logo no longer crammed in a gold box — now a clean white badge (`88px`, `.login-logo-icon .logo-img` in `portal.css`). Fixed a stray `</i>` in admin login.
-- **Favicon** added across **all 42 pages** — `favicon.ico` (16/32/48), `favicon-16/32`, `apple-touch-icon` (180), generated from the **emblem crop** of the logo (full-logo text is illegible at 16–32px). Source: owner-supplied `kuppetfavicon.png`. Files at `public/favicon.ico`, `public/apple-touch-icon.png`, `public/images/favicon-*.png`.
-- **Image compression** — `kuppetlogo.png` 532KB→24KB (320px palette PNG); `leaders/henri-otunga.jpg` 642KB→28KB (600px mozjpeg). Done with `sharp` (installed `--no-save`, not a project dep).
-- **Cache token bumped `20260622a → 20260622b`** across all public HTML (portal.css changed).
-
-### Done in the 21 June 2026 session
-- **Article detail pages** — new `public/pages/article.html` (`article-page` body class) reads `?slug=` → `api.news.getOne` and `public/pages/advocacy-article.html` (`advocacy-article-page`) → `api.advocacy.getOne`. Added `initArticlePage()` + `initAdvocacyArticlePage()` to `main.js`; repointed both "Read More" links to these pages; `api.js` now attaches `err.status` for 404 handling. (Backend `GET /api/news/:slug` & `/api/advocacy/:slug` already existed.)
-- **Schema phone fix** — `index.html` schema.org `contactPoint.telephone` set to the real `+254-721-808-993`.
-- **About page** — added **Leadership in Pictures** section (`#group-photos`) with 3 group-photo cards (Branch Executive Committee, Branch Governing Council, Welfare Steering Committee); each `<img>` falls back to a "coming soon" placeholder via `onerror`. Photos go in `public/images/groups/` with exact filenames `branch-executive-committee.jpg`, `branch-governing-council.jpg`, `welfare-steering-committee.jpg` (see README there).
-- **Mission & Vision** — set sitewide (homepage mission strip + About cards). Mission: "To be a leading branch in effectively representing, protecting and advancing the professional, economic, and social interests of members through transparent governance, institutional strengthening, capacity development and innovative service delivery to secondary teachers in Migori." Vision: "To be a model branch of excellence in Advocacy, Leadership and offering Service with Distinction."
-- **Org structure rebuilt** (About page) — 5 levels: KUPPET National Executive Board → National Governing Council → Branch Executive Committee → Branch Governing Council → Sub-Counties (12).
-- **Sub-counties 7 → 12** — updated everywhere: About history/org chart, Contact page (12 sub-branch cards + "all 12" count), and the sub-county dropdowns in `member/register.html`, `member/profile.html`, `admin/members.html`, `admin/sms.html`.
-- **BBF claims restructured** (see Database schema + the BBF feature notes below) — two claim types only (`death`, `retirement`); claim-particular fields added; school category moved to the member profile (captured at registration). Run `backend/config/migration-bbf-claim-fields.sql` on the live DB.
-- **Scholarship types reduced to three** — `kcse | kjsea | dte` (DTE = Diploma in Technical Education), replacing the old undergraduate/postgraduate/etc. Updated schema + seed (both `init*.sql`), `scholarshipsController` (default `kcse` + validation), the public scholarships filter tabs + type badge (`scholarshipTypeLabel()` in `main.js`). The same migration file (step 4) remaps existing rows on the live DB. (The admin scholarship create/edit form is now built — see "Admin panel completed" below.)
-- **Scholarships reframed** — they sponsor **teacher members to further their own studies** (not children/dependants); copy updated on `scholarships.html` + homepage.
-- **Member login by TSC number** — members now sign in with **TSC number + password** (was email). `memberAuthController.login` looks up by `tsc_number` (accepts legacy `email` key as a cache shim); login form + `member-api` updated. Email is still collected at registration (kept unique) but is no longer the login identifier. Admin login still uses email.
-- **Forgot / reset password (members)** — `forgot-password.html` + `reset-password.html`; routes `POST /api/member/auth/forgot-password` (rate-limited 5/hr) & `/reset-password`. Reset token is a JWT signed with `JWT_MEMBER_SECRET + member.password` → single-use & self-expiring (1h), no DB column. Delivered by email → **requires SMTP env vars** (`SMTP_HOST/PORT/USER/PASS`); `APP_URL` builds the link. `backend/scripts/test-email.js you@x.com` checks SMTP. ✓ SMTP confirmed working on live.
-- **Leadership roster** — replaced placeholder leaders with the 14 real officials (`update-leadership.sql` for the live DB; seeded in `init*.sql`). About page: 3 **Principal Officials** (Chairman, Exec Sec, Treasurer) in their own row, then **Other Branch Officials**; Trustees section removed. Cards show photo + position + name + click-to-call phone + email icon (no bio). Phones E.164; placeholder email `info@kuppetmigori.co.ke` on all (owner to replace). Leader photo CSS → `object-fit:contain` (full image centered, not cropped).
-- **BBF claim detail split** — member + admin claim pages show **Claim / Applicant's Details / Deceased Person Details** as separate blocks (`memberBbfController.getOne` now returns `applicant_name`).
-- **Inner-page banner → logo-green gradient** — `.page-header` now `#00641C → #008B23 → #1FB24A` (the logo green) on **all** inner pages incl. Advocacy (homepage hero greened too — see below).
-- **Uploads** — profile photo uses a new image-only `memberPhoto` multer filter (JPEG/PNG/WebP, no PDF); `.jpg/.jpeg` extensions added to every `accept` for clearer file pickers.
-- **Admin panel completed** — built the 7 previously broken/stub pages: `scholarship-app-detail` (review/approve/reject), content CRUD for **leadership/resources/advocacy/scholarships** (modals; leadership photo + resource file uploads via FormData), `sms-templates` (create/edit/deactivate), `sms-logs` (filter + pagination). BBF + member approve/reject/etc. upgraded from `prompt()` to inline modals (also fixed BBF action buttons that were bound to an unreachable IIFE-scoped function). **Authenticated exports** — added a blob-download helper in `admin-api.js` (members/BBF/analytics/audit); `window.open()` exports were failing with "Access token required" because they couldn't send the Bearer header.
-- **Homepage hero → green gradient** too (matches the inner-page banners).
-- **SMS / TalkSasa** — fixed the integration to the **v3 API** (correct endpoint + `{recipient,sender_id,type,message}`); built the **delivery webhook** (`/api/sms/webhook`) and `test-sms.js`/`test-email.js` diagnostics. SMTP (Hostinger mailbox) confirmed working. SMS delivery is blocked on **TalkSasa sender-ID network registration** (see Task 5) — code is complete.
-- **Green/gold rebrand tried & reverted (22 June 2026)** — a full logo-colour rebrand (`eb23842`, `700b0a9`) was reverted (`891027a`) per owner preference. Final scheme: **green hero + inner-page banners, deep-blue everything else.**
-- **Cache token** — now `20260622b` across all public HTML (bumped several times for `style.css`/`main.js`/`api.js` edits). NOTE: portal JS (`member/js/*`, `admin/js/*`) is **unversioned** — after editing it, hard-refresh; consider adding `?v=` to those `<script>` tags if stale-cache issues appear.
-
-### Done in the 17 June 2026 session
-- **Responsive overhaul** — eliminated horizontal overflow on every public page across 320–1920px (Playwright-audited). Root-cause fixes only (no `overflow:hidden` masking): header compression `≤1780px`, icon-only CTA `≤1300px`, inline nav collapses to the hamburger **drawer at `≤960px`**, `.search-bar`/inputs `min-width:0`, `.btn { max-width:100% }`, advocacy form grid → `minmax(0,1fr)`.
-- **Header standardized** — all 6 public pages share the **exact** topbar + header markup (only the active nav item differs). Restored the **Get Help** button (header CTA on desktop; inside the mobile drawer via `.nav-cta`).
-- **Portal sidebar scroll fixed** — `.portal-sidebar { height:100vh; overflow:hidden }`, only `.sidebar-nav { flex:1; min-height:0; overflow-y:auto }` scrolls (admin + member).
-- **Theme** — reverted the brief green experiment back to the deep-blue palette (see Design tokens).
-- **Real content wired in** — official address (Cosade Building…, P.O. Box 842-40400), single email `info@kuppetmigori.co.ke` sitewide, WhatsApp channel as the only social link (with "follow for instant updates" copy), Google Maps `<iframe>` embed on contact page.
+Dated development logs (2 July back to 17 June 2026) live in **`docs/SESSION-NOTES.md`** to keep this always-loaded file lean. Consult it for the narrative of what changed and why in each session. The durable state those sessions produced is reflected in the sections below (What is built, Architecture, Database schema, Remaining tasks).
 
 ### Remaining tasks (pick up here next session)
 
@@ -250,6 +128,7 @@ A full security audit was run against the codebase and **all findings fixed** (c
 3. `backend/config/migration-news-media.sql` — adds the `sport_entertainment` category to `news.category` and three media columns (`image_2`, `document_url`, `document_name`). Until run, creating/saving Notice Board articles fails on production.
 4. `backend/config/migration-resources-category.sql` — adds `sport_entertainment` to the `resources.category` ENUM. Until run, saving a resource under the new Sports & Entertainment category fails on production.
 5. `backend/config/migration-contact-reply.sql` — adds `contacts.admin_reply` + `contacts.replied_at`. Until run, the admin Contact Inbox **Reply** action fails (the email still sends, but recording the reply errors).
+6. `backend/config/migration-scholarship-doc-types.sql` — adds `letter_of_application` + `tsc_slip` to `scholarship_application_documents.doc_type`. Until run, submitting a scholarship application fails on production (the two required uploads can't be stored).
 
 Fresh installs already include all of this via `init.sql` / `init-hostinger.sql`.
 
@@ -397,6 +276,7 @@ Key ENUM values:
 - `bbf_claims.school_category`: `senior_school | junior_school`
 - `scholarships.scholarship_type`: `kcse | kjsea | dte` (was `undergraduate/postgraduate/vocational/research/international` before 21 June 2026; DTE = Diploma in Technical Education)
 - `scholarship_applications.status`: `applied | under_review | approved | rejected`
+- `scholarship_application_documents.doc_type`: `letter_of_application | tsc_slip | kcse_cert | admission_letter | fee_structure | recommendation | other` (the first two are the mandatory member uploads added 3 July 2026)
 - `news.category`: `news | announcement | circular | press_release | event | sport_entertainment` (sport_entertainment added 26 June 2026; news rows also carry `image_2`, `document_url`, `document_name`)
 - `resources.category`: `curriculum | circular | moe_document | tsc_resource | professional_dev | teaching_material | legal | policy | sport_entertainment` (sport_entertainment added 26 June 2026)
 - `contacts.category`: `general | membership | bbf | advocacy | resources | complaint | other` (contacts also carry `admin_reply` + `replied_at`, added 26 June 2026)

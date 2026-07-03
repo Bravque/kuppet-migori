@@ -36,6 +36,12 @@
           <option>Suna West</option><option>Ntimaru</option><option>Kuria West</option><option>Kuria East</option>
           <option>Mabera</option><option>Nyatike South</option><option>Nyatike West</option><option>Nyatike North</option>
         </select>
+        <select class="form-control" id="gender-filter">
+          <option value="">All Genders</option>
+          <option value="male">Male</option>
+          <option value="female">Female</option>
+          <option value="other">Other</option>
+        </select>
       </div>
       <div class="data-card">
         <div class="data-table-wrap">
@@ -66,12 +72,12 @@
   document.getElementById('sidebar-placeholder').outerHTML = getSidebarHtml();
   document.getElementById('topbar-placeholder').outerHTML = getTopbarHtml('Members');
   const user = requireAdminAuth(); if(user) initSidebar(user);
-  let currentStatus='', currentSearch='', rejectingId=null;
+  let currentStatus='', currentSearch='', currentSubCounty='', currentGender='', rejectingId=null;
   async function loadMembers() {
     const tbody = document.getElementById('members-tbody');
     tbody.innerHTML = '<tr><td colspan="7">'+renderLoading()+'</td></tr>';
     try {
-      const res = await adminApi.members.getAll({status:currentStatus,search:currentSearch,limit:25});
+      const res = await adminApi.members.getAll({status:currentStatus,search:currentSearch,sub_county:currentSubCounty,gender:currentGender,limit:25});
       if(!res.data.length){tbody.innerHTML='<tr><td colspan="7">'+renderEmpty()+'</td></tr>';return;}
       tbody.innerHTML = res.data.map(m=>`<tr>
         <td><strong>${escHtml(m.full_name)}</strong><br><small>${escHtml(m.member_number)}</small></td>
@@ -97,6 +103,8 @@
     t.classList.add('active');currentStatus=t.dataset.status;loadMembers();
   }));
   let st;document.getElementById('member-search').addEventListener('input',function(){clearTimeout(st);st=setTimeout(()=>{currentSearch=this.value;loadMembers();},400);});
+  document.getElementById('subcounty-filter').addEventListener('change',function(){currentSubCounty=this.value;loadMembers();});
+  document.getElementById('gender-filter').addEventListener('change',function(){currentGender=this.value;loadMembers();});
   const urlTab=new URLSearchParams(window.location.search).get('tab');
   if(urlTab==='pending'){document.querySelector('[data-status="pending_approval"]').click();}else{loadMembers();}
 </script>

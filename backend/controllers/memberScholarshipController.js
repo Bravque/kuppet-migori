@@ -1,5 +1,6 @@
 const db = require('../config/database');
 const { nextSeq } = require('./memberAuthController');
+const notificationService = require('../services/notificationService');
 
 async function getAvailable(req, res) {
   try {
@@ -12,10 +13,16 @@ async function getAvailable(req, res) {
   }
 }
 
+// Required document slots. The member uploads exactly these two (both mandatory);
+// req.files is keyed by these field names (multer .fields()).
+const REQUIRED_DOCS = [
+  { field: 'letter_of_application', label: 'Letter of Application' },
+  { field: 'tsc_slip',             label: 'TSC Slip' },
+];
+
 async function apply(req, res) {
   try {
-    const { scholarship_id } = req.params.id ? { scholarship_id: req.params.id } : req.body;
-    const id = req.params.id || scholarship_id;
+    const id = req.params.id;
 
     const [[scholarship]] = await db.query('SELECT * FROM scholarships WHERE id = ? AND is_active = 1', [id]);
     if (!scholarship) return res.status(404).json({ success: false, message: 'Scholarship not found' });
@@ -26,29 +33,45 @@ async function apply(req, res) {
     );
     if (existing) return res.status(409).json({ success: false, message: 'You have already applied for this scholarship' });
 
-    const appNumber = await nextSeq('schapp_seq', 'SAPP');
-    const { applicant_name, institution, course, year_of_study, academic_year, essay } = req.body;
+    // The applicant is the logged-in member (scholarships fund members' own studies) —
+    // identity comes from their account, never re-entered on the form.
+    const [[member]] = await db.query('SELECT full_name FROM members WHERE id = ?', [req.member.id]);
+    if (!member) return res.status(404).json({ success: false, message: 'Member profile not found' });
 
-    if (!applicant_name) return res.status(400).json({ success: false, message: 'Applicant name required' });
+    // Both required documents must be present.
+    const files = req.files || {};
+    const missing = REQUIRED_DOCS.filter(d => !files[d.field]?.[0]);
+    if (missing.length) {
+      return res.status(400).json({ success: false, message: `Missing required documents: ${missing.map(d => d.label).join(', ')}` });
+    }
+
+    const { institution, course, year_of_study, academic_year, essay } = req.body;
+    const appNumber = await nextSeq('schapp_seq', 'SAPP');
 
     const [result] = await db.query(
       `INSERT INTO scholarship_applications
          (application_number, member_id, scholarship_id, applicant_name, institution, course, year_of_study, academic_year, essay)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [appNumber, req.member.id, id, applicant_name, institution || null, course || null,
+      [appNumber, req.member.id, id, member.full_name, institution || null, course || null,
        year_of_study || null, academic_year || null, essay || null]
     );
 
-    // Handle document uploads
-    if (req.files && req.files.length) {
-      const docType = req.body.doc_type || 'other';
-      for (const file of req.files) {
-        await db.query(
-          'INSERT INTO scholarship_application_documents (application_id, doc_type, file_url, file_name, file_size) VALUES (?, ?, ?, ?, ?)',
-          [result.insertId, docType, `/uploads/scholarships/${file.filename}`, file.originalname, file.size]
-        );
-      }
+    for (const { field } of REQUIRED_DOCS) {
+      const file = files[field][0];
+      await db.query(
+        'INSERT INTO scholarship_application_documents (application_id, doc_type, file_url, file_name, file_size) VALUES (?, ?, ?, ?, ?)',
+        [result.insertId, field, `/uploads/scholarships/${file.filename}`, file.originalname, file.size]
+      );
     }
+
+    await notificationService.createNotification({
+      memberId: req.member.id,
+      type: 'scholarship',
+      title: 'Scholarship Application Submitted',
+      body: `Your application ${appNumber} for "${scholarship.title}" has been submitted and is awaiting review.`,
+      referenceId: result.insertId,
+      smsMessage: `Dear member, your scholarship application ${appNumber} has been submitted for review. - KUPPET Migori`,
+    });
 
     res.status(201).json({ success: true, message: 'Application submitted successfully', data: { application_number: appNumber } });
   } catch (err) {

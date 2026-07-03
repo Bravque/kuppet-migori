@@ -265,7 +265,7 @@ CREATE TABLE IF NOT EXISTS scholarship_applications (
 CREATE TABLE IF NOT EXISTS scholarship_application_documents (
   id INT PRIMARY KEY AUTO_INCREMENT,
   application_id INT NOT NULL,
-  doc_type ENUM('kcse_cert','admission_letter','fee_structure','recommendation','other') NOT NULL,
+  doc_type ENUM('letter_of_application','tsc_slip','kcse_cert','admission_letter','fee_structure','recommendation','other') NOT NULL,
   file_url VARCHAR(500) NOT NULL,
   file_name VARCHAR(255),
   file_size INT,
