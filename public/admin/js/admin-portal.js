@@ -219,6 +219,11 @@ function getSidebarHtml() {
       <span class="nav-badge" id="new-contacts-badge" style="display:none"></span>
     </a>
 
+    <div class="sidebar-nav-section">Legal</div>
+    <a href="/admin/court-cases.html" class="sidebar-nav-item">
+      <i class="fas fa-scale-balanced"></i> Court Cases
+    </a>
+
     <div class="sidebar-nav-section">Communications</div>
     <a href="/admin/sms.html" class="sidebar-nav-item">
       <i class="fas fa-sms"></i> Send SMS
@@ -287,6 +292,40 @@ async function initDashboard() {
     renderCharts(monthly.data || {});
   } catch (err) {
     console.error('Dashboard load failed:', err.message);
+  }
+
+  loadCourtSummary();
+}
+
+async function loadCourtSummary() {
+  const el = document.getElementById('court-summary');
+  if (!el) return;
+  try {
+    const res = await adminApi.courtCases.getStats();
+    const d = res.data || {};
+    const pill = (val, label, color) =>
+      `<div style="flex:1;min-width:110px;text-align:center;background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:0.85rem">
+         <div style="font-size:1.5rem;font-weight:800;color:${color}">${val}</div>
+         <div style="font-size:0.72rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.04em">${label}</div>
+       </div>`;
+    const hearings = (d.next_hearings || []).length
+      ? `<div style="margin-top:1rem">
+           <div style="font-size:0.72rem;font-weight:700;letter-spacing:0.05em;text-transform:uppercase;color:var(--text-muted);margin-bottom:0.5rem">Upcoming Hearings</div>
+           ${d.next_hearings.map(h => `
+             <a href="/admin/court-case-detail.html?id=${h.id}" style="display:flex;justify-content:space-between;gap:0.5rem;padding:0.5rem 0;border-bottom:1px solid var(--border);font-size:0.85rem;text-decoration:none;color:inherit">
+               <span><strong>${escHtml(h.title)}</strong>${h.court ? `<br><small style="color:var(--text-muted)">${escHtml(h.court)}</small>` : ''}</span>
+               <span style="white-space:nowrap;color:var(--primary);font-weight:600">${formatDate(h.next_hearing_date)}</span>
+             </a>`).join('')}
+         </div>`
+      : `<p style="margin-top:1rem;color:var(--text-muted);font-size:0.85rem">No upcoming hearings scheduled.</p>`;
+    el.innerHTML =
+      `<div style="display:flex;gap:0.75rem;flex-wrap:wrap">
+         ${pill(d.active || 0, 'Active', 'var(--primary)')}
+         ${pill(d.upcoming_hearings || 0, 'Upcoming Hearings', 'var(--gold)')}
+         ${pill(d.closed || 0, 'Closed', 'var(--green)')}
+       </div>${hearings}`;
+  } catch (err) {
+    el.innerHTML = `<p style="color:var(--text-muted);font-size:0.85rem">Court case summary unavailable.</p>`;
   }
 }
 

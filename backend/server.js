@@ -200,6 +200,7 @@ app.use('/api/admin/sms',              (req, res, next) => {
 }, require('./routes/adminSms'));
 app.use('/api/admin/analytics',        require('./routes/adminAnalytics'));
 app.use('/api/admin/audit',            require('./routes/adminAudit'));
+app.use('/api/admin/court-cases',      require('./routes/courtCases'));
 app.use('/api/sms/webhook',            require('./routes/smsWebhook'));
 
 // Health check — pings the DB so uptime monitors detect a DB outage (503, not a false 200).

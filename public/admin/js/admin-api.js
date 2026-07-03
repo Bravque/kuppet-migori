@@ -178,5 +178,15 @@ const adminApi = (() => {
       update: (id, d) => request(`/admin/users/${id}`, { method: 'PUT', body: JSON.stringify(d) }),
       remove: (id) => request(`/admin/users/${id}`, { method: 'DELETE' }),
     },
+
+    courtCases: {
+      getAll: (p = {}) => request('/admin/court-cases?' + new URLSearchParams(p)),
+      getStats: () => request('/admin/court-cases/stats'),
+      getOne: (id) => request(`/admin/court-cases/${id}`),
+      create: (d) => request('/admin/court-cases', { method: 'POST', body: JSON.stringify(d) }),
+      update: (id, d) => request(`/admin/court-cases/${id}`, { method: 'PUT', body: JSON.stringify(d) }),
+      remove: (id) => request(`/admin/court-cases/${id}`, { method: 'DELETE' }),
+      addUpdate: (id, d) => request(`/admin/court-cases/${id}/updates`, { method: 'POST', body: JSON.stringify(d) }),
+    },
   };
 })();
