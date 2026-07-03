@@ -191,7 +191,7 @@ Code is done and correct (verified 21–22 June 2026):
 
 **Admin portal (`/public/admin/`):**
 - **`admin/js/admin-api.js`** — `window.adminApi`; injects `adminToken` from localStorage; 401 → redirect to login
-- **`admin/js/admin-portal.js`** — auth guard, sidebar init, page `init*()` functions, Chart.js integration
+- **`admin/js/admin-portal.js`** — auth guard, sidebar init, page `init*()` functions, Chart.js integration, and the shared **`renderAdminPager(elId, {total, offset, limit, onPage})`** helper (a "N–M of T" + Prev/Next pager; each list page has a `<div id="…-pager">` and calls it after rendering rows, resetting `offset` to 0 when a filter changes). List controllers return `total` for this. SMS Logs uses its own inline pager.
 - 21 HTML pages — each uses `getSidebarHtml()` + `getTopbarHtml()` injected at runtime
 
 **Member portal (`/public/member/`):**

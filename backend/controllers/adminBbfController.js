@@ -18,16 +18,22 @@ async function addTimeline(claimId, fromStatus, toStatus, comment, adminId) {
 async function getAll(req, res) {
   try {
     const { status, limit = 25, offset = 0, search } = req.query;
-    let query = `SELECT bc.*, m.full_name, m.member_number, m.phone
-                 FROM bbf_claims bc JOIN members m ON bc.member_id = m.id WHERE 1=1`;
-    const params = [];
-    if (status) { query += ' AND bc.status = ?'; params.push(status); }
-    if (search) { query += ' AND (bc.claim_number LIKE ? OR m.full_name LIKE ?)'; params.push(`%${search}%`, `%${search}%`); }
-    query += ' ORDER BY bc.created_at DESC LIMIT ? OFFSET ?';
-    params.push(parseInt(limit), parseInt(offset));
+    let where = 'WHERE 1=1';
+    const filterParams = [];
+    if (status) { where += ' AND bc.status = ?'; filterParams.push(status); }
+    if (search) { where += ' AND (bc.claim_number LIKE ? OR m.full_name LIKE ?)'; filterParams.push(`%${search}%`, `%${search}%`); }
 
-    const [rows] = await db.query(query, params);
-    res.json({ success: true, data: rows });
+    const [rows] = await db.query(
+      `SELECT bc.*, m.full_name, m.member_number, m.phone
+       FROM bbf_claims bc JOIN members m ON bc.member_id = m.id ${where}
+       ORDER BY bc.created_at DESC LIMIT ? OFFSET ?`,
+      [...filterParams, parseInt(limit), parseInt(offset)]
+    );
+    const [[{ total }]] = await db.query(
+      `SELECT COUNT(*) as total FROM bbf_claims bc JOIN members m ON bc.member_id = m.id ${where}`,
+      filterParams
+    );
+    res.json({ success: true, data: rows, total });
   } catch (err) {
     res.status(500).json({ success: false, message: 'Failed to fetch claims' });
   }

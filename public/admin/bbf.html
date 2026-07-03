@@ -36,6 +36,7 @@
             <tbody id="bbf-tbody"></tbody>
           </table>
         </div>
+        <div id="bbf-pager"></div>
       </div>
     </div>
   </main>
@@ -46,12 +47,14 @@
   document.getElementById('topbar-placeholder').outerHTML = getTopbarHtml('BBF Claims');
   const user = requireAdminAuth(); if(user) initSidebar(user);
   let currentStatus = new URLSearchParams(window.location.search).get('status') || '';
+  let bbfOffset = 0; const BBF_LIMIT = 30;
   async function loadBbf() {
     const tbody = document.getElementById('bbf-tbody');
     tbody.innerHTML = '<tr><td colspan="7">'+renderLoading()+'</td></tr>';
     try {
-      const res = await adminApi.bbf.getAll({status:currentStatus,limit:30});
-      if(!res.data.length){tbody.innerHTML='<tr><td colspan="7">'+renderEmpty()+'</td></tr>';return;}
+      const res = await adminApi.bbf.getAll({status:currentStatus,limit:BBF_LIMIT,offset:bbfOffset});
+      const pager=()=>renderAdminPager('bbf-pager',{total:res.total||0,offset:bbfOffset,limit:BBF_LIMIT,onPage:o=>{bbfOffset=o;loadBbf();}});
+      if(!res.data.length){tbody.innerHTML='<tr><td colspan="7">'+renderEmpty()+'</td></tr>';pager();return;}
       tbody.innerHTML = res.data.map(c=>`<tr>
         <td><strong>${escHtml(c.claim_number)}</strong></td>
         <td>${escHtml(c.full_name)}<br><small>${escHtml(c.member_number)}</small></td>
@@ -61,13 +64,14 @@
         <td>${formatDate(c.submitted_at)}</td>
         <td><a href="/admin/bbf-detail.html?id=${c.id}" class="btn btn-outline btn-xs"><i class="fas fa-eye"></i> Review</a></td>
       </tr>`).join('');
+      pager();
     } catch(err){tbody.innerHTML='<tr><td colspan="7">'+escHtml(err.message)+'</td></tr>';}
   }
   document.querySelectorAll('#bbf-tabs .filter-tab').forEach(t=>{
     if(t.dataset.status===currentStatus) t.classList.add('active'); else t.classList.remove('active');
     t.addEventListener('click',()=>{
       document.querySelectorAll('#bbf-tabs .filter-tab').forEach(x=>x.classList.remove('active'));
-      t.classList.add('active');currentStatus=t.dataset.status;loadBbf();
+      t.classList.add('active');currentStatus=t.dataset.status;bbfOffset=0;loadBbf();
     });
   });
   loadBbf();

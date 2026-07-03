@@ -4,16 +4,18 @@ const PDFDocument = require('pdfkit');
 async function getAll(req, res) {
   try {
     const { actor_type, action, from, to, limit = 50, offset = 0 } = req.query;
-    let query = 'SELECT * FROM audit_logs WHERE 1=1';
-    const params = [];
-    if (actor_type) { query += ' AND actor_type = ?'; params.push(actor_type); }
-    if (action)     { query += ' AND action LIKE ?'; params.push(`%${action}%`); }
-    if (from)       { query += ' AND created_at >= ?'; params.push(from); }
-    if (to)         { query += ' AND created_at <= ?'; params.push(to); }
-    query += ' ORDER BY created_at DESC LIMIT ? OFFSET ?';
-    params.push(parseInt(limit), parseInt(offset));
-    const [rows] = await db.query(query, params);
-    const [[{ total }]] = await db.query('SELECT COUNT(*) as total FROM audit_logs WHERE 1=1' + (actor_type ? ' AND actor_type = ?' : ''), actor_type ? [actor_type] : []);
+    let where = 'WHERE 1=1';
+    const filterParams = [];
+    if (actor_type) { where += ' AND actor_type = ?'; filterParams.push(actor_type); }
+    if (action)     { where += ' AND action LIKE ?'; filterParams.push(`%${action}%`); }
+    if (from)       { where += ' AND created_at >= ?'; filterParams.push(from); }
+    if (to)         { where += ' AND created_at <= ?'; filterParams.push(to); }
+
+    const [rows] = await db.query(
+      `SELECT * FROM audit_logs ${where} ORDER BY created_at DESC LIMIT ? OFFSET ?`,
+      [...filterParams, parseInt(limit), parseInt(offset)]
+    );
+    const [[{ total }]] = await db.query(`SELECT COUNT(*) as total FROM audit_logs ${where}`, filterParams);
     res.json({ success: true, data: rows, total });
   } catch (err) {
     res.status(500).json({ success: false, message: 'Failed to fetch audit logs' });

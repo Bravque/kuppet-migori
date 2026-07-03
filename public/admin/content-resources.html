@@ -29,6 +29,7 @@
             <tbody id="tbody"><tr><td colspan="6" class="portal-loading"><i class="fas fa-spinner fa-spin"></i> Loading…</td></tr></tbody>
           </table>
         </div>
+        <div id="res-pager"></div>
       </div>
     </div>
   </main>
@@ -87,12 +88,14 @@
   let editingId = null;
   const f = sel => document.getElementById('form').querySelector(`[name=${sel}]`);
 
+  let resOffset=0; const RES_LIMIT=20;
   async function load(){
     const tb=document.getElementById('tbody');
     tb.innerHTML='<tr><td colspan="6">'+renderLoading()+'</td></tr>';
     try{
-      const res=await adminApi.resources.getAll();
-      if(!res.data.length){tb.innerHTML='<tr><td colspan="6">'+renderEmpty()+'</td></tr>';return;}
+      const res=await adminApi.resources.getAll({limit:RES_LIMIT,offset:resOffset});
+      const pager=()=>renderAdminPager('res-pager',{total:res.total||0,offset:resOffset,limit:RES_LIMIT,onPage:o=>{resOffset=o;load();}});
+      if(!res.data.length){tb.innerHTML='<tr><td colspan="6">'+renderEmpty()+'</td></tr>';pager();return;}
       tb.innerHTML=res.data.map(r=>`<tr>
         <td><strong>${escHtml(r.title)}</strong></td>
         <td>${escHtml((r.category||'').replace(/_/g,' '))}</td>
@@ -104,6 +107,7 @@
           <button class="btn btn-xs" style="background:#FEE2E2;color:#991B1B" onclick="del(${r.id})"><i class="fas fa-trash"></i></button>
         </td>
       </tr>`).join('');
+      pager();
     }catch(err){showAlert('alert',err.message);}
   }
 
