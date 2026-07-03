@@ -477,16 +477,21 @@ function openApplyModal(id, title) {
   applyScholarshipId = id;
   document.getElementById('apply-scholarship-title').textContent = title;
   document.getElementById('apply-form').reset();
+  // Applicant identity comes from the member's account, shown read-only.
+  const m = memberApi.getMember();
+  document.getElementById('apply-applicant').value = m ? m.full_name : '';
   document.getElementById('apply-modal').classList.add('open');
 }
 
 async function submitApplication() {
-  const form = document.getElementById('apply-form');
-  const formData = new FormData(form);
-  const fileInput = document.getElementById('apply-docs');
-  if (fileInput.files.length) {
-    for (const f of fileInput.files) formData.append('files', f);
+  const letter = document.getElementById('apply-letter');
+  const tsc = document.getElementById('apply-tsc');
+  if (!letter.files.length || !tsc.files.length) {
+    return showMsg('apply-msg', 'Please attach both the Letter of Application and the TSC Slip.');
   }
+  const formData = new FormData(document.getElementById('apply-form'));
+  formData.append('letter_of_application', letter.files[0]);
+  formData.append('tsc_slip', tsc.files[0]);
   try {
     await memberApi.scholarships.apply(applyScholarshipId, formData);
     document.getElementById('apply-modal').classList.remove('open');

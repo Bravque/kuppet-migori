@@ -32,7 +32,11 @@
     <div class="portal-modal-body">
       <div id="apply-msg" class="hidden"></div>
       <form id="apply-form">
-        <div class="form-group"><label>Applicant Name (Child's Name) <span class="required">*</span></label><input type="text" name="applicant_name" class="form-control" required></div>
+        <div class="form-group">
+          <label>Applying as</label>
+          <input type="text" id="apply-applicant" class="form-control" readonly style="background:var(--bg)">
+          <div class="form-hint">Taken from your member account.</div>
+        </div>
         <div class="form-row">
           <div class="form-group"><label>Institution</label><input type="text" name="institution" class="form-control"></div>
           <div class="form-group"><label>Course</label><input type="text" name="course" class="form-control"></div>
@@ -42,9 +46,13 @@
           <div class="form-group"><label>Academic Year</label><input type="text" name="academic_year" class="form-control" placeholder="e.g. 2026/2027"></div>
         </div>
         <div class="form-group"><label>Personal Essay / Statement</label><textarea name="essay" class="form-control" rows="4"></textarea></div>
-        <div class="form-group"><label>Supporting Documents</label>
-          <input type="file" id="apply-docs" accept="application/pdf,image/jpeg,image/png,.pdf,.jpg,.jpeg,.png" multiple style="display:block;margin-top:0.3rem">
-          <div class="form-hint">Upload KCSE certificate, admission letter, fee structure etc. (PDF or image)</div>
+        <div class="form-group"><label>Letter of Application <span class="required">*</span></label>
+          <input type="file" id="apply-letter" accept="application/pdf,image/jpeg,image/png,.pdf,.jpg,.jpeg,.png" style="display:block;margin-top:0.3rem" required>
+          <div class="form-hint">PDF or image.</div>
+        </div>
+        <div class="form-group"><label>TSC Slip <span class="required">*</span></label>
+          <input type="file" id="apply-tsc" accept="application/pdf,image/jpeg,image/png,.pdf,.jpg,.jpeg,.png" style="display:block;margin-top:0.3rem" required>
+          <div class="form-hint">PDF or image.</div>
         </div>
       </form>
     </div>
