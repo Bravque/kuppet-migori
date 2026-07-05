@@ -60,7 +60,7 @@
 
 <script src="/member/js/member-api.js"></script>
 <script>
-  if (localStorage.getItem('memberToken')) {
+  if (sessionStorage.getItem('memberToken')) {
     window.location.href = '/member/dashboard.html';
   }
 

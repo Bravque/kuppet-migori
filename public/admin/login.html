@@ -81,8 +81,8 @@
 
 <script src="/admin/js/admin-api.js"></script>
 <script>
-  // If already logged in, redirect
-  if (adminApi.getUser() && localStorage.getItem('adminToken')) {
+  // If already logged in (active session), redirect
+  if (adminApi.getUser() && sessionStorage.getItem('adminToken')) {
     window.location.href = '/admin/dashboard.html';
   }
 

@@ -16,7 +16,7 @@ async function viewDoc(fileUrlOrName) {
   if (!fileUrlOrName) return;
   const filename = String(fileUrlOrName).split('/').pop();
   try {
-    const token = localStorage.getItem('adminToken');
+    const token = sessionStorage.getItem('adminToken');
     const res = await fetch('/api/admin/documents/' + encodeURIComponent(filename), {
       headers: token ? { Authorization: `Bearer ${token}` } : {},
     });
@@ -91,15 +91,40 @@ function hideAlert(elId) {
   if (el) el.className = 'hidden';
 }
 
-// ── Auth guard ────────────────────────────────────────────────────────────────
+// ── Auth guard + idle timeout ───────────────────────────────────────────────
+// Auto-logout after this many ms with no user activity (keep in sync with the
+// inline <head> guard on every admin page).
+const ADMIN_IDLE_MS = 30 * 60 * 1000; // 30 minutes
+
+function adminIsIdle() {
+  const la = parseInt(sessionStorage.getItem('adminLastActivity') || '0', 10);
+  return la > 0 && Date.now() - la > ADMIN_IDLE_MS;
+}
+
 function requireAdminAuth() {
-  const token = localStorage.getItem('adminToken');
+  const token = sessionStorage.getItem('adminToken');
   const user = adminApi.getUser();
-  if (!token || !user) {
+  if (!token || !user || adminIsIdle()) {
+    adminApi.clearAuth();
     window.location.href = '/admin/login.html';
     return null;
   }
   return user;
+}
+
+// Refresh the activity stamp on interaction, and periodically enforce the idle
+// cutoff even when the user is sitting on a page without navigating.
+function initIdleTimeout() {
+  const touch = () => sessionStorage.setItem('adminLastActivity', String(Date.now()));
+  touch();
+  ['mousedown', 'keydown', 'scroll', 'touchstart'].forEach(ev =>
+    window.addEventListener(ev, touch, { passive: true }));
+  setInterval(() => {
+    if (sessionStorage.getItem('adminToken') && adminIsIdle()) {
+      adminApi.clearAuth();
+      window.location.href = '/admin/login.html';
+    }
+  }, 30 * 1000);
 }
 
 // ── Sidebar ───────────────────────────────────────────────────────────────────
@@ -773,6 +798,7 @@ async function disable2FA() {
 
 // ── DOMContentLoaded ──────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
+  if (sessionStorage.getItem('adminToken')) initIdleTimeout();
   initDashboard();
   initAdminNews();
   initAdminEvents();
