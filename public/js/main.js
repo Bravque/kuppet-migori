@@ -468,6 +468,45 @@ async function initAdvocacyPage() {
 // ============================================
 // ARTICLE DETAIL PAGE (news)
 // ============================================
+// Create-or-update a <meta> tag by key attribute (name/property).
+function upsertMeta(keyAttr, keyVal, content) {
+  if (content == null || content === '') return;
+  let el = document.head.querySelector(`meta[${keyAttr}="${keyVal}"]`);
+  if (!el) { el = document.createElement('meta'); el.setAttribute(keyAttr, keyVal); document.head.appendChild(el); }
+  el.setAttribute('content', content);
+}
+
+function stripHtml(html) {
+  const d = document.createElement('div');
+  d.innerHTML = html || '';
+  return (d.textContent || '').replace(/\s+/g, ' ').trim();
+}
+
+// Set per-article SEO + social meta dynamically: self-referencing canonical
+// (incl. ?slug=), Open Graph and Twitter Card. Called after an article loads so
+// each article URL presents its own metadata to crawlers and social scrapers.
+function setArticleSeo({ title, description, image }) {
+  const url = window.location.href;
+  const fullTitle = title ? `${title} | KUPPET Migori` : document.title;
+  const img = image
+    ? (/^https?:\/\//.test(image) ? image : window.location.origin + image)
+    : window.location.origin + '/images/kuppetlogo.png';
+  let link = document.head.querySelector('link[rel="canonical"]');
+  if (!link) { link = document.createElement('link'); link.setAttribute('rel', 'canonical'); document.head.appendChild(link); }
+  link.setAttribute('href', url);
+  upsertMeta('name', 'description', description);
+  upsertMeta('property', 'og:site_name', 'KUPPET Migori');
+  upsertMeta('property', 'og:type', 'article');
+  upsertMeta('property', 'og:url', url);
+  upsertMeta('property', 'og:title', fullTitle);
+  upsertMeta('property', 'og:description', description);
+  upsertMeta('property', 'og:image', img);
+  upsertMeta('name', 'twitter:card', 'summary_large_image');
+  upsertMeta('name', 'twitter:title', fullTitle);
+  upsertMeta('name', 'twitter:description', description);
+  upsertMeta('name', 'twitter:image', img);
+}
+
 async function initArticlePage() {
   if (!document.querySelector('.article-page')) return;
 
@@ -490,6 +529,11 @@ async function initArticlePage() {
     document.title = `${data.title} | KUPPET Migori`;
     setText('page-header-title', data.title);
     setText('breadcrumb-title', data.title);
+    setArticleSeo({
+      title: data.title,
+      description: data.excerpt || stripHtml(data.content).slice(0, 155),
+      image: data.featured_image,
+    });
 
     const tags = (data.tags || '').split(',').map(t => t.trim()).filter(Boolean);
     const docName = data.document_name || 'Download attachment';
@@ -587,6 +631,11 @@ async function initAdvocacyArticlePage() {
     document.title = `${data.title} | KUPPET Migori`;
     setText('page-header-title', data.title);
     setText('breadcrumb-title', data.title);
+    setArticleSeo({
+      title: data.title,
+      description: stripHtml(data.content).slice(0, 155),
+      image: null,
+    });
 
     container.innerHTML = `
       <article class="article-full">
