@@ -2,11 +2,15 @@
 const memberApi = (() => {
   const BASE = '/api';
 
-  function getToken()  { return localStorage.getItem('memberToken'); }
-  function saveToken(t){ localStorage.setItem('memberToken', t); }
-  function saveMember(m){ localStorage.setItem('memberUser', JSON.stringify(m)); }
-  function getMember() { try { return JSON.parse(localStorage.getItem('memberUser')); } catch { return null; } }
-  function clearAuth() { localStorage.removeItem('memberToken'); localStorage.removeItem('memberUser'); }
+  // Token lives in sessionStorage (cleared when the browser/last tab closes), and
+  // an idle timestamp forces logout after MEMBER_IDLE_MS of inactivity — for
+  // members on shared computers. See the inline <head> guard on each member page
+  // and initMemberIdleTimeout() in member-portal.js.
+  function getToken()  { return sessionStorage.getItem('memberToken'); }
+  function saveToken(t){ sessionStorage.setItem('memberToken', t); sessionStorage.setItem('memberLastActivity', String(Date.now())); }
+  function saveMember(m){ sessionStorage.setItem('memberUser', JSON.stringify(m)); }
+  function getMember() { try { return JSON.parse(sessionStorage.getItem('memberUser')); } catch { return null; } }
+  function clearAuth() { sessionStorage.removeItem('memberToken'); sessionStorage.removeItem('memberUser'); sessionStorage.removeItem('memberLastActivity'); }
 
   function getCsrf() {
     const m = document.cookie.match(/__csrf=([^;]+)/);

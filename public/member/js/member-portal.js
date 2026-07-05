@@ -12,12 +12,37 @@ function statusBadge(s) {
   return `<span class="status-badge status-badge--${escHtml(s)}">${escHtml(s.replace(/_/g,' '))}</span>`;
 }
 
+// Auto-logout after this many ms with no user activity (keep in sync with the
+// inline <head> guard on every member page).
+const MEMBER_IDLE_MS = 30 * 60 * 1000; // 30 minutes
+
+function memberIsIdle() {
+  const la = parseInt(sessionStorage.getItem('memberLastActivity') || '0', 10);
+  return la > 0 && Date.now() - la > MEMBER_IDLE_MS;
+}
+
 function requireMemberAuth() {
-  if (!localStorage.getItem('memberToken') || !memberApi.getMember()) {
+  if (!sessionStorage.getItem('memberToken') || !memberApi.getMember() || memberIsIdle()) {
+    memberApi.clearAuth();
     window.location.href = '/member/login.html';
     return null;
   }
   return memberApi.getMember();
+}
+
+// Refresh the activity stamp on interaction, and periodically enforce the idle
+// cutoff even when the member is sitting on a page without navigating.
+function initMemberIdleTimeout() {
+  const touch = () => sessionStorage.setItem('memberLastActivity', String(Date.now()));
+  touch();
+  ['mousedown', 'keydown', 'scroll', 'touchstart'].forEach(ev =>
+    window.addEventListener(ev, touch, { passive: true }));
+  setInterval(() => {
+    if (sessionStorage.getItem('memberToken') && memberIsIdle()) {
+      memberApi.clearAuth();
+      window.location.href = '/member/login.html';
+    }
+  }, 30 * 1000);
 }
 
 function initMemberSidebar(member) {
@@ -603,6 +628,7 @@ function showMsg(id, msg, type = 'danger') {
 
 // ── Init ──────────────────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
+  if (sessionStorage.getItem('memberToken')) initMemberIdleTimeout();
   initMemberDashboard();
   initMemberProfile();
   initMemberBbf();

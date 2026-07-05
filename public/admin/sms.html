@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+<script>(function(){var t=sessionStorage.getItem("adminToken"),la=parseInt(sessionStorage.getItem("adminLastActivity")||"0",10);if(!t||(la&&Date.now()-la>1800000)){sessionStorage.removeItem("adminToken");sessionStorage.removeItem("adminUser");sessionStorage.removeItem("adminLastActivity");location.replace("/admin/login.html");}})();</script>
   <link rel="icon" href="/favicon.ico" sizes="any">
   <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32.png">
   <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16.png">
@@ -111,7 +112,7 @@
     if(!message){showAlert('sms-alert','Message required');return;}
     if(!confirm('Send this message to all members in the selected group?'))return;
     try{
-      const res=await fetch('/api/admin/sms/group',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+localStorage.getItem('adminToken')},body:JSON.stringify({group,message,sub_county})});
+      const res=await fetch('/api/admin/sms/group',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+sessionStorage.getItem('adminToken')},body:JSON.stringify({group,message,sub_county})});
       const data=await res.json();
       if(data.success){showAlert('sms-alert',data.message,'success');}else{showAlert('sms-alert',data.message);}
     }catch(err){showAlert('sms-alert',err.message);}

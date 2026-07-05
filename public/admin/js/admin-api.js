@@ -1,15 +1,18 @@
 /* KUPPET Migori — Admin API Client
-   Wraps all admin API calls. Reads JWT from localStorage.
+   Wraps all admin API calls. Reads JWT from sessionStorage.
    Redirects to /admin/login.html on 401. */
 
 const adminApi = (() => {
   const BASE = '/api';
 
-  function getToken() { return localStorage.getItem('adminToken'); }
-  function saveToken(t) { localStorage.setItem('adminToken', t); }
-  function saveUser(u) { localStorage.setItem('adminUser', JSON.stringify(u)); }
-  function getUser() { try { return JSON.parse(localStorage.getItem('adminUser')); } catch { return null; } }
-  function clearAuth() { localStorage.removeItem('adminToken'); localStorage.removeItem('adminUser'); }
+  // Token lives in sessionStorage (cleared when the browser/last tab closes), and
+  // an idle timestamp forces logout after ADMIN_IDLE_MS of inactivity. See the
+  // inline guard in each admin page's <head> and touchActivity() in admin-portal.js.
+  function getToken() { return sessionStorage.getItem('adminToken'); }
+  function saveToken(t) { sessionStorage.setItem('adminToken', t); sessionStorage.setItem('adminLastActivity', String(Date.now())); }
+  function saveUser(u) { sessionStorage.setItem('adminUser', JSON.stringify(u)); }
+  function getUser() { try { return JSON.parse(sessionStorage.getItem('adminUser')); } catch { return null; } }
+  function clearAuth() { sessionStorage.removeItem('adminToken'); sessionStorage.removeItem('adminUser'); sessionStorage.removeItem('adminLastActivity'); }
 
   function getCsrfToken() {
     const m = document.cookie.match(/__csrf=([^;]+)/);
