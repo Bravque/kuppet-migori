@@ -1,0 +1,14 @@
+# robots.txt for KUPPET Migori — https://kuppetmigori.co.ke
+User-agent: *
+Allow: /
+
+# Private areas — never index
+Disallow: /admin/
+Disallow: /member/
+Disallow: /api/
+Disallow: /uploads/members/
+Disallow: /uploads/bbf/
+Disallow: /uploads/scholarships/
+Disallow: /uploads/court/
+
+Sitemap: https://kuppetmigori.co.ke/sitemap.xml

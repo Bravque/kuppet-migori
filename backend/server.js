@@ -246,6 +246,47 @@ app.get('/admin/*', (req, res) => {
   });
 });
 
+// Dynamic sitemap — static public pages + every published news & advocacy article,
+// so new content gets discovered and indexed automatically. Referenced by robots.txt.
+const SITE_URL = (process.env.APP_URL || 'https://kuppetmigori.co.ke').replace(/\/$/, '');
+app.get('/sitemap.xml', async (req, res) => {
+  const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+  const urls = [
+    { loc: '/', priority: '1.0', changefreq: 'daily' },
+    { loc: '/pages/about.html', priority: '0.8', changefreq: 'monthly' },
+    { loc: '/pages/news.html', priority: '0.9', changefreq: 'daily' },
+    { loc: '/pages/resources.html', priority: '0.8', changefreq: 'weekly' },
+    { loc: '/pages/advocacy.html', priority: '0.8', changefreq: 'weekly' },
+    { loc: '/pages/scholarships.html', priority: '0.7', changefreq: 'weekly' },
+    { loc: '/pages/contact.html', priority: '0.6', changefreq: 'monthly' },
+  ];
+  try {
+    const [news] = await db.query(
+      'SELECT slug, updated_at FROM news WHERE is_published = 1 ORDER BY updated_at DESC');
+    for (const n of news) {
+      urls.push({ loc: `/pages/article.html?slug=${encodeURIComponent(n.slug)}`, lastmod: n.updated_at, priority: '0.7', changefreq: 'weekly' });
+    }
+    const [adv] = await db.query(
+      'SELECT slug, updated_at FROM advocacy WHERE is_published = 1 ORDER BY updated_at DESC');
+    for (const a of adv) {
+      urls.push({ loc: `/pages/advocacy-article.html?slug=${encodeURIComponent(a.slug)}`, lastmod: a.updated_at, priority: '0.6', changefreq: 'weekly' });
+    }
+  } catch (err) {
+    console.error('Sitemap DB query failed, serving static pages only:', err.message);
+  }
+  const body = `<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+${urls.map(u => `  <url>
+    <loc>${esc(SITE_URL + u.loc)}</loc>${u.lastmod ? `
+    <lastmod>${new Date(u.lastmod).toISOString().slice(0, 10)}</lastmod>` : ''}
+    <changefreq>${u.changefreq}</changefreq>
+    <priority>${u.priority}</priority>
+  </url>`).join('\n')}
+</urlset>`;
+  res.type('application/xml').send(body);
+});
+
 // SPA fallback for public pages
 app.get('*', (req, res) => {
   const filePath = req.path === '/' ? path.join(PUBLIC_ROOT, 'index.html') : safePublicPath(req.path);
