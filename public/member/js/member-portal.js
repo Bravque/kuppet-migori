@@ -509,12 +509,15 @@ function openApplyModal(id, title) {
 }
 
 async function submitApplication() {
+  const form = document.getElementById('apply-form');
+  // Native validation covers all the required text/number fields and the file inputs.
+  if (!form.reportValidity()) return;
   const letter = document.getElementById('apply-letter');
   const tsc = document.getElementById('apply-tsc');
   if (!letter.files.length || !tsc.files.length) {
     return showMsg('apply-msg', 'Please attach both the Letter of Application and the TSC Slip.');
   }
-  const formData = new FormData(document.getElementById('apply-form'));
+  const formData = new FormData(form);
   formData.append('letter_of_application', letter.files[0]);
   formData.append('tsc_slip', tsc.files[0]);
   try {

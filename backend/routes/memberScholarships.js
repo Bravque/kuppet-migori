@@ -10,11 +10,11 @@ const idParam = param('id').isInt({ min: 1 }).withMessage('Invalid id');
 // Applicant identity is taken from the member's account (not the form); the two
 // required documents are uploaded under fixed field names below.
 const applyRules = [
-  body('institution').optional({ nullable: true }).trim().isLength({ max: 300 }),
-  body('course').optional({ nullable: true }).trim().isLength({ max: 300 }),
-  body('year_of_study').optional({ nullable: true }).trim().isLength({ max: 50 }),
-  body('academic_year').optional({ nullable: true }).trim().isLength({ max: 50 }),
-  body('essay').optional({ nullable: true }).trim().isLength({ max: 20000 }),
+  body('institution').trim().notEmpty().withMessage('Institution is required').isLength({ max: 300 }),
+  body('course').trim().notEmpty().withMessage('Course is required').isLength({ max: 300 }),
+  body('year_of_study').trim().notEmpty().withMessage('Year of study is required').isLength({ max: 50 }),
+  body('academic_year').trim().notEmpty().withMessage('Academic year is required').isLength({ max: 50 }),
+  body('essay').trim().notEmpty().withMessage('Personal essay / statement is required').isLength({ max: 20000 }),
 ];
 
 const scholarshipUploads = upload.scholarshipDocs.fields([

@@ -10,7 +10,7 @@
   <title>Scholarships — KUPPET Migori</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
-  <link rel="stylesheet" href="/css/style.css?v=20260705a"><link rel="stylesheet" href="/css/portal.css?v=20260705a">
+  <link rel="stylesheet" href="/css/style.css?v=20260706a"><link rel="stylesheet" href="/css/portal.css?v=20260706a">
 </head>
 <body class="portal-body member-scholarships-page">
 <div class="portal-layout">
@@ -39,14 +39,14 @@
           <div class="form-hint">Taken from your member account.</div>
         </div>
         <div class="form-row">
-          <div class="form-group"><label>Institution</label><input type="text" name="institution" class="form-control"></div>
-          <div class="form-group"><label>Course</label><input type="text" name="course" class="form-control"></div>
+          <div class="form-group"><label>Institution <span class="required">*</span></label><input type="text" name="institution" class="form-control" required></div>
+          <div class="form-group"><label>Course <span class="required">*</span></label><input type="text" name="course" class="form-control" required></div>
         </div>
         <div class="form-row">
-          <div class="form-group"><label>Year of Study</label><input type="number" name="year_of_study" class="form-control" min="1" max="8"></div>
-          <div class="form-group"><label>Academic Year</label><input type="text" name="academic_year" class="form-control" placeholder="e.g. 2026/2027"></div>
+          <div class="form-group"><label>Year of Study <span class="required">*</span></label><input type="number" name="year_of_study" class="form-control" min="1" max="8" required></div>
+          <div class="form-group"><label>Academic Year <span class="required">*</span></label><input type="text" name="academic_year" class="form-control" placeholder="e.g. 2026/2027" required></div>
         </div>
-        <div class="form-group"><label>Personal Essay / Statement</label><textarea name="essay" class="form-control" rows="4"></textarea></div>
+        <div class="form-group"><label>Personal Essay / Statement <span class="required">*</span></label><textarea name="essay" class="form-control" rows="4" required></textarea></div>
         <div class="form-group"><label>Letter of Application <span class="required">*</span></label>
           <input type="file" id="apply-letter" accept="application/pdf,image/jpeg,image/png,.pdf,.jpg,.jpeg,.png" style="display:block;margin-top:0.3rem" required>
           <div class="form-hint">PDF or image.</div>

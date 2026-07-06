@@ -1141,3 +1141,26 @@ textarea.form-control { resize: vertical; min-height: 100px; }
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+
+/* ── Print — portal detail pages (e.g. scholarship application printout) ─────── */
+@media print {
+  .portal-sidebar,
+  .portal-topbar,
+  .portal-modal-overlay,
+  .page-heading-actions,
+  .btn,
+  .no-print { display: none !important; }
+
+  .portal-layout { display: block !important; }
+  .portal-main { margin: 0 !important; }
+  .portal-content { padding: 0 !important; padding-top: 0 !important; }
+
+  body { background: #fff !important; font-size: 11pt; }
+
+  /* Stack the two-column layout so nothing is clipped on paper */
+  .grid-2 { display: block !important; }
+  .data-card { box-shadow: none !important; border: 1px solid #ccc; break-inside: avoid; margin-bottom: 1rem; }
+  #review-card { display: none !important; }
+
+  a[href]:after { content: ""; }
+}
