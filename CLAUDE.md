@@ -123,17 +123,16 @@ Dated development logs (2 July back to 17 June 2026) live in **`docs/SESSION-NOT
 
 **Task 1 — Article detail pages** — ✓ DONE (21 June 2026).
 
-**⚠ Pending DB scripts (run once on the live DB via phpMyAdmin → SQL tab)**
-1. `backend/config/migration-bbf-claim-fields.sql` — (a) restructures `bbf_claims` to the two-type model + claim-particular columns, (b) adds `members.school_category`, (c) remaps `scholarships.scholarship_type` to kcse/kjsea/dte. Until run, member registration + BBF/scholarship features fail on production.
-2. `backend/config/update-leadership.sql` — clears placeholder leaders and inserts the 14 real officials. Until run, the About page shows the old placeholder names.
-3. `backend/config/migration-news-media.sql` — adds the `sport_entertainment` category to `news.category` and three media columns (`image_2`, `document_url`, `document_name`). Until run, creating/saving Notice Board articles fails on production.
-4. `backend/config/migration-resources-category.sql` — adds `sport_entertainment` to the `resources.category` ENUM. Until run, saving a resource under the new Sports & Entertainment category fails on production.
-5. `backend/config/migration-contact-reply.sql` — adds `contacts.admin_reply` + `contacts.replied_at`. Until run, the admin Contact Inbox **Reply** action fails (the email still sends, but recording the reply errors).
-6. `backend/config/migration-scholarship-doc-types.sql` — adds `letter_of_application` + `tsc_slip` to `scholarship_application_documents.doc_type`. Until run, submitting a scholarship application fails on production (the two required uploads can't be stored).
-7. `backend/config/migration-court-cases.sql` — creates `court_cases` + `court_case_updates`. Until run, the admin Court Cases page + dashboard summary error on production.
-8. `backend/config/migration-court-case-documents.sql` — creates `court_case_documents` (case file attachments). Run after #7. Until run, uploading/viewing case documents errors.
-
-Fresh installs already include all of this via `init.sql` / `init-hostinger.sql`.
+**✓ DB migrations — all applied on live (3 July 2026)**
+The following one-time scripts have been run on the live Hostinger DB; no pending DB migrations remain. Fresh installs already include all of this via `init.sql` / `init-hostinger.sql`. (Kept for reference / re-provisioning a new environment.)
+1. `backend/config/migration-bbf-claim-fields.sql` — two-type `bbf_claims` model + claim-particular columns, `members.school_category`, remaps `scholarships.scholarship_type` to kcse/kjsea/dte.
+2. `backend/config/update-leadership.sql` — clears placeholder leaders, inserts the 14 real officials.
+3. `backend/config/migration-news-media.sql` — `sport_entertainment` category on `news.category` + `image_2`/`document_url`/`document_name`.
+4. `backend/config/migration-resources-category.sql` — `sport_entertainment` on `resources.category`.
+5. `backend/config/migration-contact-reply.sql` — `contacts.admin_reply` + `contacts.replied_at`.
+6. `backend/config/migration-scholarship-doc-types.sql` — `letter_of_application` + `tsc_slip` on `scholarship_application_documents.doc_type`.
+7. `backend/config/migration-court-cases.sql` — `court_cases` + `court_case_updates`.
+8. `backend/config/migration-court-case-documents.sql` — `court_case_documents`.
 
 **Task 3 — Real content (owner must supply)**
 Still placeholder in the codebase:
