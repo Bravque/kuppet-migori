@@ -8,7 +8,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 # First-time setup
 cp .env.example .env          # Fill in DB credentials + set JWT secrets
 npm install                   # Install all dependencies
-npm run init-db               # Create MySQL schema (24 tables) and seed data
+npm run init-db               # Create MySQL schema (25 tables) and seed data
 
 # Development
 npm run dev                   # Start with nodemon auto-reload (port 3000)
@@ -42,7 +42,7 @@ There are no tests or linting scripts configured yet.
 | Layer | Status |
 |-------|--------|
 | Express server + all REST API routes | ✓ Complete |
-| MySQL schema (24 tables) + seed data | ✓ Complete |
+| MySQL schema (25 tables) + seed data | ✓ Complete |
 | Homepage (`index.html`) | ✓ Complete |
 | About Us page | ✓ Complete |
 | Teachers Notice Board (news.html) | ✓ Complete |
@@ -59,7 +59,7 @@ There are no tests or linting scripts configured yet.
 | **Member login (by TSC number) + JWT auth + account lockout + forgot/reset password** | ✓ Complete |
 | **Member portal — dashboard, profile, BBF claims, scholarships, notifications, history** | ✓ Complete |
 | **Admin login with optional TOTP 2FA** | ✓ Complete |
-| **Admin portal — 23 pages (all CRUD/actions wired)** | ✓ Complete |
+| **Admin portal — 24 pages (all CRUD/actions wired)** | ✓ Complete |
 | **Court cases tracker (branch officers) — list, detail, updates log, dashboard summary** | ✓ Complete |
 | **Admin member management — approve / reject / suspend** | ✓ Complete |
 | **BBF claims workflow (draft→submitted→under_review→approved→rejected→paid)** | ✓ Complete |
@@ -134,6 +134,8 @@ The following one-time scripts have been run on the live Hostinger DB; no pendin
 7. `backend/config/migration-court-cases.sql` — `court_cases` + `court_case_updates`.
 8. `backend/config/migration-court-case-documents.sql` — `court_case_documents`.
 
+**⚠ Pending on live (9 July 2026):** `backend/config/migration-announcements.sql` — creates the `announcements` table (homepage ticker) + seeds the 5 previously-hardcoded items. **Run once on the live Hostinger DB** (phpMyAdmin → SQL). Until it runs, the public ticker falls back to the static markup in `index.html` (the `/api/announcements` call returns 500 with no table) and the admin Ticker Announcements page shows an error. Fresh installs already include it via `init*.sql`.
+
 **Task 3 — Real content (owner must supply)**
 Still placeholder in the codebase:
 - Leadership group photos → upload to `public/images/groups/` (3 files, exact names — see About session note)
@@ -175,7 +177,7 @@ Code is done and correct (verified 21–22 June 2026):
 ### Backend layout
 - **`backend/server.js`** — Express entry; mounts all middleware, registers all routes, bootstraps upload directories at startup
 - **`backend/config/database.js`** — exports a single `mysql2/promise` connection pool
-- **`backend/config/init.sql`** — authoritative schema (24 tables) + seed data; re-runnable
+- **`backend/config/init.sql`** — authoritative schema (25 tables) + seed data; re-runnable
 - **`backend/controllers/*.js`** — async functions; parameterised queries; `{ success, data, message }` responses
 - **`backend/routes/*.js`** — thin routers with `express-validator` on mutation routes
 - **`backend/middleware/auth.js`** — `authenticate` (admin JWT), `authenticateMember` (member JWT), `authorizeAdmin`, `authorizeSuperAdmin`, `auditLog(action)` factory
@@ -194,7 +196,7 @@ Code is done and correct (verified 21–22 June 2026):
 **Admin portal (`/public/admin/`):**
 - **`admin/js/admin-api.js`** — `window.adminApi`; injects `adminToken` from localStorage; 401 → redirect to login
 - **`admin/js/admin-portal.js`** — auth guard, sidebar init, page `init*()` functions, Chart.js integration, and the shared **`renderAdminPager(elId, {total, offset, limit, onPage})`** helper (a "N–M of T" + Prev/Next pager; each list page has a `<div id="…-pager">` and calls it after rendering rows, resetting `offset` to 0 when a filter changes). List controllers return `total` for this. SMS Logs uses its own inline pager.
-- 23 HTML pages — each uses `getSidebarHtml()` + `getTopbarHtml()` injected at runtime
+- 24 HTML pages — each uses `getSidebarHtml()` + `getTopbarHtml()` injected at runtime
 
 **Member portal (`/public/member/`):**
 - **`member/js/member-api.js`** — `window.memberApi`; injects `memberToken`; 401 → redirect to login
@@ -215,7 +217,7 @@ Every `<body>` tag carries a class that gates the matching `init*` function in `
 Admin and member portal pages use `admin-*-page` / `member-*-page` classes gating functions in their respective portal JS files.
 
 ### Asset cache-busting (IMPORTANT)
-Hostinger serves CSS/JS with **no `cache-control`/`etag`**, so browsers hold stale assets after a deploy. Public CSS/JS links carry a version query, e.g. `href="/css/style.css?v=20260622b"`. **When you edit `style.css`, `portal.css`, `main.js`, or `api.js`, bump the `?v=` string on every page** (sed across `public/**/*.html`) or returning visitors won't see the change. HTML files themselves aren't versioned (they revalidate). Current token: `20260702a`.
+Hostinger serves CSS/JS with **no `cache-control`/`etag`**, so browsers hold stale assets after a deploy. Public CSS/JS links carry a version query, e.g. `href="/css/style.css?v=20260622b"`. **When you edit `style.css`, `portal.css`, `main.js`, or `api.js`, bump the `?v=` string on every page** (sed across `public/**/*.html`) or returning visitors won't see the change. HTML files themselves aren't versioned (they revalidate). Current token: `20260709a` (bumped 9 July 2026 for the announcements-ticker `main.js`/`api.js` changes).
 > ⚠ Caveat: portal JS (`member/js/member-portal.js`, `member/js/member-api.js`, `admin/js/admin-portal.js`, `admin/js/admin-api.js`) is loaded **without** a `?v=` query, so the convention above does not cover it. Editing those files relies on browser revalidation — hard-refresh after deploying portal-JS changes (e.g. member TSC login + admin export fixes live there); if stale-cache issues appear, add a `?v=` to those `<script>` tags.
 
 ### Responsive header (public pages)
@@ -259,8 +261,10 @@ Server throws at startup if they are equal.
 
 **Contact form (26 June 2026):** on submit the controller emails the branch inbox (`CONTACT_EMAIL`, falls back to `SMTP_USER`; reply-to = enquirer) and auto-acknowledges the enquirer. Admins reply from the Contact Inbox via `POST /api/contact/:id/reply` (emails the enquirer, stores `admin_reply`/`replied_at`, marks `replied`). All fail gracefully if SMTP is unconfigured.
 
-### Database schema (24 tables)
-**Core (public site):** `users`, `leadership`, `news`, `events`, `resources`, `scholarships`, `advocacy`, `contacts`, `settings`
+### Database schema (25 tables)
+**Core (public site):** `users`, `leadership`, `news`, `events`, `resources`, `scholarships`, `advocacy`, `contacts`, `settings`, `announcements`
+
+> `announcements` — the homepage scrolling ticker items (`text`, optional `link`, `sort_order`, `is_active`). Public `GET /api/announcements` returns active items in order; admin CRUD at `POST/PUT/DELETE /api/announcements` (both roles) via the **Ticker Announcements** content page (`content-announcements.html`). The homepage renders them in `main.js` `loadAnnouncements()` (items duplicated for the -50% CSS marquee loop); if the list is empty the ticker bar hides, and static fallback markup in `index.html` shows if the fetch fails.
 
 **Membership:** `members`, `bbf_claims`, `bbf_claim_documents`, `bbf_claim_timeline`, `scholarship_applications`, `scholarship_application_documents`, `notifications`
 

@@ -239,6 +239,9 @@ function getSidebarHtml() {
     <a href="/admin/content-advocacy.html" class="sidebar-nav-item">
       <i class="fas fa-gavel"></i> Advocacy
     </a>
+    <a href="/admin/content-announcements.html" class="sidebar-nav-item">
+      <i class="fas fa-bullhorn"></i> Ticker Announcements
+    </a>
     <a href="/admin/contacts.html" class="sidebar-nav-item">
       <i class="fas fa-envelope"></i> Contact Inbox
       <span class="nav-badge" id="new-contacts-badge" style="display:none"></span>
@@ -611,6 +614,80 @@ async function deleteEvent(id) {
   try { await adminApi.events.remove(id); loadEventsTable(); } catch (err) { alert(err.message); }
 }
 
+// ── Ticker announcements ──────────────────────────────────────────────────────
+async function initAdminAnnouncements() {
+  if (!document.querySelector('.admin-announcements-page')) return;
+  const user = requireAdminAuth(); if (!user) return; initSidebar(user);
+  loadAnnouncementsTable();
+  document.getElementById('btn-new-announcement')?.addEventListener('click', () => openAnnouncementModal(null));
+}
+
+let announcementsCache = [];
+async function loadAnnouncementsTable() {
+  const tbody = document.getElementById('announcements-tbody');
+  if (!tbody) return;
+  tbody.innerHTML = `<tr><td colspan="5">${renderLoading()}</td></tr>`;
+  try {
+    const res = await adminApi.announcements.getAll();
+    announcementsCache = res.data;
+    if (!res.data.length) { tbody.innerHTML = `<tr><td colspan="5">${renderEmpty()}</td></tr>`; return; }
+    tbody.innerHTML = res.data.map(a => `
+      <tr>
+        <td style="width:3rem">${a.sort_order}</td>
+        <td><strong>${escHtml(a.text)}</strong></td>
+        <td>${a.link ? `<a href="${escHtml(a.link)}" target="_blank">${escHtml(a.link)}</a>` : '<span class="text-muted">—</span>'}</td>
+        <td>${statusBadge(a.is_active ? 'approved' : 'draft')}</td>
+        <td>
+          <button class="btn btn-outline btn-xs" onclick="openAnnouncementModal(${a.id})"><i class="fas fa-edit"></i></button>
+          <button class="btn btn-xs" style="background:#FEE2E2;color:#991B1B" onclick="deleteAnnouncement(${a.id})"><i class="fas fa-trash"></i></button>
+        </td>
+      </tr>`).join('');
+  } catch (err) { tbody.innerHTML = `<tr><td colspan="5">${escHtml(err.message)}</td></tr>`; }
+}
+
+let editingAnnouncementId = null;
+function openAnnouncementModal(id) {
+  editingAnnouncementId = id;
+  const modal = document.getElementById('announcement-modal');
+  if (!modal) return;
+  const form = document.getElementById('announcement-form');
+  form.reset();
+  document.getElementById('announcement-modal-title').textContent = id ? 'Edit Announcement' : 'New Announcement';
+  if (id) {
+    const a = announcementsCache.find(x => x.id === id);
+    if (a) {
+      form.querySelector('[name=text]').value = a.text || '';
+      form.querySelector('[name=link]').value = a.link || '';
+      form.querySelector('[name=sort_order]').value = a.sort_order ?? 0;
+      form.querySelector('[name=is_active]').checked = !!a.is_active;
+    }
+  } else {
+    form.querySelector('[name=is_active]').checked = true;
+  }
+  modal.classList.add('open');
+}
+
+async function saveAnnouncement() {
+  const form = document.getElementById('announcement-form');
+  const data = {
+    text: form.querySelector('[name=text]').value.trim(),
+    link: form.querySelector('[name=link]').value.trim() || null,
+    sort_order: parseInt(form.querySelector('[name=sort_order]').value, 10) || 0,
+    is_active: form.querySelector('[name=is_active]').checked,
+  };
+  if (!data.text) { alert('Announcement text is required'); return; }
+  try {
+    editingAnnouncementId ? await adminApi.announcements.update(editingAnnouncementId, data) : await adminApi.announcements.create(data);
+    document.getElementById('announcement-modal').classList.remove('open');
+    loadAnnouncementsTable();
+  } catch (err) { alert(err.message); }
+}
+
+async function deleteAnnouncement(id) {
+  if (!confirm('Delete this announcement?')) return;
+  try { await adminApi.announcements.remove(id); loadAnnouncementsTable(); } catch (err) { alert(err.message); }
+}
+
 // ── Contacts inbox ────────────────────────────────────────────────────────────
 const contactsFilter = { status: '', category: '' };
 async function initAdminContacts() {
@@ -802,6 +879,7 @@ document.addEventListener('DOMContentLoaded', () => {
   initDashboard();
   initAdminNews();
   initAdminEvents();
+  initAdminAnnouncements();
   initAdminContacts();
   initAdminSettings();
 

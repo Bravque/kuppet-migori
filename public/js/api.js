@@ -47,6 +47,10 @@ const api = {
     getOne: (slug) => api.fetch(`/advocacy/${slug}`),
   },
 
+  announcements: {
+    getActive: () => api.fetch('/announcements'),
+  },
+
   settings: {
     getStats: () => api.fetch('/settings/stats'),
   },

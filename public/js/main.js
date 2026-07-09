@@ -143,10 +143,40 @@ async function loadHomepageData() {
   if (!document.querySelector('.home-page')) return;
 
   await Promise.allSettled([
+    loadAnnouncements(),
     loadSiteStats(),
     loadFeaturedNews(),
     loadUpcomingEvents(),
   ]);
+}
+
+// Populate the homepage announcement ticker from the admin-managed list.
+// Items are rendered twice back-to-back because the CSS marquee translates the
+// track by -50% for a seamless loop. On empty/failed load we leave the static
+// fallback markup in place (or hide the bar if the DB explicitly has none).
+async function loadAnnouncements() {
+  const track = document.getElementById('ticker-content');
+  if (!track) return;
+  try {
+    const { data } = await api.announcements.getActive();
+    if (!Array.isArray(data)) return;
+    if (!data.length) {
+      const bar = track.closest('.ticker-bar');
+      if (bar) bar.style.display = 'none';
+      return;
+    }
+    const item = (a) => {
+      const text = escHtml(a.text);
+      const link = a.link
+        ? ` <a href="${escHtml(a.link)}">Read more</a>`
+        : '';
+      return `<span class="ticker-item">${text}${link}</span>`;
+    };
+    const html = data.map(item).join('');
+    track.innerHTML = html + html; // duplicate for the -50% marquee loop
+  } catch {
+    /* leave the static fallback items in place */
+  }
 }
 
 async function loadSiteStats() {

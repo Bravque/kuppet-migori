@@ -163,6 +163,7 @@ app.use('/api/leadership',  require('./routes/leadership'));
 app.use('/api/scholarships',require('./routes/scholarships'));
 app.use('/api/contact',     require('./routes/contact'));
 app.use('/api/advocacy',    require('./routes/advocacy'));
+app.use('/api/announcements', require('./routes/announcements'));
 app.use('/api/settings',    require('./routes/settings'));
 
 // ============================================

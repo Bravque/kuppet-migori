@@ -118,6 +118,13 @@ const adminApi = (() => {
       remove: (id) => request(`/advocacy/${id}`, { method: 'DELETE' }),
     },
 
+    announcements: {
+      getAll: () => request('/announcements/all'),
+      create: (d) => request('/announcements', { method: 'POST', body: JSON.stringify(d) }),
+      update: (id, d) => request(`/announcements/${id}`, { method: 'PUT', body: JSON.stringify(d) }),
+      remove: (id) => request(`/announcements/${id}`, { method: 'DELETE' }),
+    },
+
     contacts: {
       getAll: (p = {}) => request('/contact?' + new URLSearchParams(p)),
       updateStatus: (id, status) => request(`/contact/${id}/status`, { method: 'PUT', body: JSON.stringify({ status }) }),

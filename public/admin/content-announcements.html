@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<script>(function(){var t=sessionStorage.getItem("adminToken"),la=parseInt(sessionStorage.getItem("adminLastActivity")||"0",10);if(!t||(la&&Date.now()-la>1800000)){sessionStorage.removeItem("adminToken");sessionStorage.removeItem("adminUser");sessionStorage.removeItem("adminLastActivity");location.replace("/admin/login.html");}})();</script>
+  <link rel="icon" href="/favicon.ico" sizes="any">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16.png">
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ticker Announcements — KUPPET Migori Admin</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <link rel="stylesheet" href="/css/style.css?v=20260709a"><link rel="stylesheet" href="/css/portal.css?v=20260709a">
+</head>
+<body class="portal-body admin-announcements-page">
+<div class="portal-layout">
+  <div id="sidebar-placeholder"></div>
+  <main class="portal-main">
+    <div id="topbar-placeholder"></div>
+    <div class="portal-content">
+      <div class="page-heading">
+        <div class="page-heading-text"><h1>Ticker Announcements</h1><p>Manage the scrolling announcement bar on the homepage. Lower order numbers show first.</p></div>
+        <div class="page-heading-actions">
+          <button id="btn-new-announcement" class="btn btn-gold btn-sm"><i class="fas fa-plus"></i> New Announcement</button>
+        </div>
+      </div>
+      <div class="data-card">
+        <div class="data-table-wrap">
+          <table class="data-table">
+            <thead><tr><th>#</th><th>Text</th><th>Link</th><th>Status</th><th></th></tr></thead>
+            <tbody id="announcements-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<div class="portal-modal-overlay" id="announcement-modal">
+  <div class="portal-modal">
+    <div class="portal-modal-header">
+      <h3 id="announcement-modal-title">New Announcement</h3>
+      <button class="modal-close-btn"><i class="fas fa-times"></i></button>
+    </div>
+    <div class="portal-modal-body">
+      <form id="announcement-form">
+        <div class="form-group"><label>Text <span class="required">*</span></label><input type="text" name="text" class="form-control" maxlength="500" required></div>
+        <div class="form-group"><label>Link (optional)</label><input type="text" name="link" class="form-control" placeholder="/pages/news.html or https://…"><small class="text-muted">If set, a "Read more" link is shown after the text.</small></div>
+        <div class="form-row">
+          <div class="form-group"><label>Order</label><input type="number" name="sort_order" class="form-control" value="0" min="0" max="9999"></div>
+          <div class="form-group"><label>&nbsp;</label><label style="display:flex;align-items:center;gap:0.4rem;font-size:0.82rem;height:2.5rem"><input type="checkbox" name="is_active" checked> Active (shown on site)</label></div>
+        </div>
+      </form>
+    </div>
+    <div class="portal-modal-footer">
+      <button class="btn btn-outline btn-sm modal-close-btn">Cancel</button>
+      <button class="btn btn-gold btn-sm" onclick="saveAnnouncement()"><i class="fas fa-save"></i> Save Announcement</button>
+    </div>
+  </div>
+</div>
+
+<script src="/admin/js/admin-api.js"></script><script src="/admin/js/admin-portal.js"></script>
+<script>
+  document.getElementById('sidebar-placeholder').outerHTML = getSidebarHtml();
+  document.getElementById('topbar-placeholder').outerHTML = getTopbarHtml('Ticker Announcements');
+</script>
+</body>
+</html>

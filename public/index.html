@@ -34,7 +34,7 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 
   <!-- Styles -->
-  <link rel="stylesheet" href="/css/style.css?v=20260706a">
+  <link rel="stylesheet" href="/css/style.css?v=20260709a">
 
   <!-- Schema.org -->
   <script type="application/ld+json">
@@ -192,7 +192,9 @@
     <div class="container ticker-inner">
       <span class="ticker-label"><i class="fas fa-bullhorn"></i> Latest</span>
       <div class="ticker-track">
-        <div class="ticker-content">
+        <!-- Populated from /api/announcements by main.js (loadAnnouncements).
+             The static items below are a no-JS / load-failure fallback. -->
+        <div class="ticker-content" id="ticker-content">
           <span class="ticker-item">AGM 2026 scheduled for July 20 – All members must attend</span>
           <span class="ticker-item">New TSC transfer guidelines effective June 2026 – <a href="/pages/news.html">Read more</a></span>
           <span class="ticker-item">KUPPET National Scholarship applications open until July 31</span>
@@ -815,7 +817,7 @@
       </div>
 
       <div class="footer-bottom">
-        <p class="footer-credit">Developed by <a href="https://bravinojweke.netlify.app/" target="_blank" rel="noopener noreferrer">Bravin Ojweke</a></p>
+        <!-- <p class="footer-credit">Developed by <a href="https://bravinojweke.netlify.app/" target="_blank" rel="noopener noreferrer">Bravin Ojweke</a></p> -->
         <p>&copy; 2026 KUPPET Migori Branch. All rights reserved. | A registered trade union under the Labour Relations Act, 2007.</p>
         <div class="footer-bottom-links">
           <a href="#">Privacy Policy</a>
@@ -826,8 +828,8 @@
     </div>
   </footer>
 
-  <script src="/js/api.js?v=20260706a"></script>
-  <script src="/js/main.js?v=20260706a"></script>
+  <script src="/js/api.js?v=20260709a"></script>
+  <script src="/js/main.js?v=20260709a"></script>
   <script>
     // Calendar widget
     (function initCalendar() {
