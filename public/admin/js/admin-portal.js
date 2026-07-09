@@ -139,8 +139,10 @@ function initSidebar(user) {
   if (roleEl) roleEl.textContent = user.role.replace(/_/g, ' ');
   if (avatarEl) avatarEl.textContent = user.name ? user.name[0].toUpperCase() : 'A';
 
-  // Hide super_admin-only items for branch_officer
-  if (user.role === 'branch_officer') {
+  // Hide super_admin-only items for every non-super role (branch_officer,
+  // branch_secretary). This is cosmetic — the backend authorizeSuperAdmin
+  // gate is what actually enforces access.
+  if (user.role !== 'super_admin') {
     document.querySelectorAll('[data-super-only]').forEach(el => {
       el.style.display = 'none';
     });

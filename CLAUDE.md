@@ -134,7 +134,8 @@ The following one-time scripts have been run on the live Hostinger DB; no pendin
 7. `backend/config/migration-court-cases.sql` — `court_cases` + `court_case_updates`.
 8. `backend/config/migration-court-case-documents.sql` — `court_case_documents`.
 9. `backend/config/migration-announcements.sql` — `announcements` table (homepage ticker) + seeds the 5 previously-hardcoded items. Applied on live 9 July 2026.
-10. `backend/config/migration-drop-dead-roles.sql` — prunes the unused `editor`/`viewer` roles from `users.role` (reassigns any such rows → branch_officer, contracts ENUM to `super_admin`/`branch_officer`). **⚠ Run once on the live Hostinger DB** (phpMyAdmin → SQL).
+10. `backend/config/migration-drop-dead-roles.sql` — prunes the unused `editor`/`viewer` roles from `users.role` (reassigns any such rows → branch_officer, contracts ENUM to `super_admin`/`branch_officer`). **⚠ Run once on the live Hostinger DB** (phpMyAdmin → SQL). *Superseded by #11 — you can skip this and run #11 instead.*
+11. `backend/config/migration-add-branch-secretary.sql` — adds the `branch_secretary` role (ENUM → `super_admin`/`branch_officer`/`branch_secretary`); self-contained (also reassigns any leftover editor/viewer). **⚠ Run once on the live Hostinger DB** (phpMyAdmin → SQL).
 
 **Task 3 — Real content (owner must supply)**
 Still placeholder in the codebase:
@@ -235,10 +236,11 @@ Add the **`.h-scroll`** class to a card-grid container so that at **≤640px** i
 |------|--------|
 | `super_admin` | Full access to everything |
 | `branch_officer` | Can review/recommend; cannot delete admins, change system settings, or access audit logs |
+| `branch_secretary` | Peer of `branch_officer` — identical access (added 9 July 2026) |
 
-Middleware: `authorizeAdmin` allows both roles. `authorizeSuperAdmin` allows only `super_admin`. `branch_officer` is blocked from every `authorizeSuperAdmin` route: approving BBF claims / marking paid, approving scholarship apps, suspending/deleting members, admin-user management, settings, audit logs, exports, bulk/group SMS, 2FA disable.
+Middleware: `authorizeAdmin` allows all three roles (the `ADMIN_ROLES` list in `auth.js`). `authorizeSuperAdmin` allows only `super_admin`. `branch_officer` and `branch_secretary` are blocked from every `authorizeSuperAdmin` route: approving BBF claims / marking paid, approving scholarship apps, suspending/deleting members, admin-user management, settings, audit logs, exports, bulk/group SMS, 2FA disable. The sidebar hides `data-super-only` items for any non-super role (cosmetic; the backend gate enforces it).
 
-> The old unused `editor`/`viewer` roles were pruned (9 July 2026). `users.role` is now a two-value ENUM (`super_admin | branch_officer`, default `branch_officer`); the dropdown and validators only offer those two. Live DB updated via `backend/config/migration-drop-dead-roles.sql` (reassigns any editor/viewer → branch_officer, then contracts the ENUM). To add a limited role later, wire real permissions in the auth middleware rather than reintroducing a role with no route access.
+> The old unused `editor`/`viewer` roles were pruned (9 July 2026). `users.role` is now `super_admin | branch_officer | branch_secretary` (default `branch_officer`); the dropdown and validators offer only these. To add a role with a *different* permission set (not a peer), wire real per-capability permissions in the auth middleware rather than a role with no route access.
 
 ### JWT setup
 Two separate secrets are **required** and must differ:
@@ -275,7 +277,7 @@ Server throws at startup if they are equal.
 **Legal:** `court_cases`, `court_case_updates`, `court_case_documents` (court-case tracker for branch officers; shared branch-wide, each case has a responsible `officer_id`, a dated updates/hearings log, and file attachments. Attachments live in the access-controlled `court/` upload dir, 404-blocked from static and served only via `GET /api/admin/documents/:filename` — its ownership UNION includes `court_case_documents`. Admin API at `/api/admin/court-cases`; pages `court-cases.html` + `court-case-detail.html`; dashboard summary via `getStats`. Both admin roles.)
 
 Key ENUM values:
-- `users.role`: `super_admin | branch_officer` (default `branch_officer`)
+- `users.role`: `super_admin | branch_officer | branch_secretary` (default `branch_officer`)
 - `members.status`: `pending_approval | approved | rejected | suspended`
 - `members.gender`: `male | female | other`
 - `members.school_category`: `senior_school | junior_school` (nullable; captured at registration, editable in profile)

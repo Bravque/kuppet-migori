@@ -43,10 +43,15 @@ const authenticateMember = (req, res, next) => {
   });
 };
 
-// Allow super_admin and branch_officer
+// Roles allowed through authorizeAdmin. super_admin additionally passes every
+// authorizeSuperAdmin gate; branch_officer and branch_secretary are peers with
+// identical (review/recommend + content) access.
+const ADMIN_ROLES = ['super_admin', 'branch_officer', 'branch_secretary'];
+
+// Allow any admin role
 const authorizeAdmin = (req, res, next) => {
   const role = req.user && req.user.role;
-  if (role !== 'super_admin' && role !== 'branch_officer') {
+  if (!ADMIN_ROLES.includes(role)) {
     recordAudit({
       actor: req.user, actorType: 'admin', action: 'authz.denied',
       resource: req.baseUrl.replace('/api/', '').split('/')[0], resourceId: null, req,
