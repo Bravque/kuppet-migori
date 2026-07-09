@@ -133,8 +133,8 @@ The following one-time scripts have been run on the live Hostinger DB; no pendin
 6. `backend/config/migration-scholarship-doc-types.sql` — `letter_of_application` + `tsc_slip` on `scholarship_application_documents.doc_type`.
 7. `backend/config/migration-court-cases.sql` — `court_cases` + `court_case_updates`.
 8. `backend/config/migration-court-case-documents.sql` — `court_case_documents`.
-
-**⚠ Pending on live (9 July 2026):** `backend/config/migration-announcements.sql` — creates the `announcements` table (homepage ticker) + seeds the 5 previously-hardcoded items. **Run once on the live Hostinger DB** (phpMyAdmin → SQL). Until it runs, the public ticker falls back to the static markup in `index.html` (the `/api/announcements` call returns 500 with no table) and the admin Ticker Announcements page shows an error. Fresh installs already include it via `init*.sql`.
+9. `backend/config/migration-announcements.sql` — `announcements` table (homepage ticker) + seeds the 5 previously-hardcoded items. Applied on live 9 July 2026.
+10. `backend/config/migration-drop-dead-roles.sql` — prunes the unused `editor`/`viewer` roles from `users.role` (reassigns any such rows → branch_officer, contracts ENUM to `super_admin`/`branch_officer`). **⚠ Run once on the live Hostinger DB** (phpMyAdmin → SQL).
 
 **Task 3 — Real content (owner must supply)**
 Still placeholder in the codebase:
@@ -238,7 +238,7 @@ Add the **`.h-scroll`** class to a card-grid container so that at **≤640px** i
 
 Middleware: `authorizeAdmin` allows both roles. `authorizeSuperAdmin` allows only `super_admin`. `branch_officer` is blocked from every `authorizeSuperAdmin` route: approving BBF claims / marking paid, approving scholarship apps, suspending/deleting members, admin-user management, settings, audit logs, exports, bulk/group SMS, 2FA disable.
 
-> ⚠ The `users.role` ENUM also has `editor` and `viewer`, but **no route grants them access** — `authorizeAdmin` rejects anything that isn't `super_admin`/`branch_officer`, so an editor/viewer gets 403 everywhere. They're dead roles; the user-create form still offers them (assigning one creates a useless account). Drop them from the dropdown/ENUM or wire real permissions before using them.
+> The old unused `editor`/`viewer` roles were pruned (9 July 2026). `users.role` is now a two-value ENUM (`super_admin | branch_officer`, default `branch_officer`); the dropdown and validators only offer those two. Live DB updated via `backend/config/migration-drop-dead-roles.sql` (reassigns any editor/viewer → branch_officer, then contracts the ENUM). To add a limited role later, wire real permissions in the auth middleware rather than reintroducing a role with no route access.
 
 ### JWT setup
 Two separate secrets are **required** and must differ:
@@ -275,7 +275,7 @@ Server throws at startup if they are equal.
 **Legal:** `court_cases`, `court_case_updates`, `court_case_documents` (court-case tracker for branch officers; shared branch-wide, each case has a responsible `officer_id`, a dated updates/hearings log, and file attachments. Attachments live in the access-controlled `court/` upload dir, 404-blocked from static and served only via `GET /api/admin/documents/:filename` — its ownership UNION includes `court_case_documents`. Admin API at `/api/admin/court-cases`; pages `court-cases.html` + `court-case-detail.html`; dashboard summary via `getStats`. Both admin roles.)
 
 Key ENUM values:
-- `users.role`: `super_admin | branch_officer | editor | viewer`
+- `users.role`: `super_admin | branch_officer` (default `branch_officer`)
 - `members.status`: `pending_approval | approved | rejected | suspended`
 - `members.gender`: `male | female | other`
 - `members.school_category`: `senior_school | junior_school` (nullable; captured at registration, editable in profile)

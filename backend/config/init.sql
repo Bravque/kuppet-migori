@@ -15,7 +15,7 @@ CREATE TABLE IF NOT EXISTS users (
   name VARCHAR(150) NOT NULL,
   email VARCHAR(255) UNIQUE NOT NULL,
   password VARCHAR(255) NOT NULL,
-  role ENUM('super_admin','branch_officer','editor','viewer') DEFAULT 'editor',
+  role ENUM('super_admin','branch_officer') NOT NULL DEFAULT 'branch_officer',
   is_active BOOLEAN DEFAULT TRUE,
   failed_login_attempts INT DEFAULT 0,
   locked_until TIMESTAMP NULL,
@@ -428,10 +428,12 @@ ALTER TABLE users ADD COLUMN IF NOT EXISTS failed_login_attempts INT DEFAULT 0;
 ALTER TABLE users ADD COLUMN IF NOT EXISTS locked_until TIMESTAMP NULL;
 ALTER TABLE users ADD COLUMN IF NOT EXISTS last_login TIMESTAMP NULL;
 
--- Rename admin role to super_admin (two-step: expand ENUM, update rows, contract ENUM)
-ALTER TABLE users MODIFY COLUMN role ENUM('super_admin','branch_officer','admin','editor','viewer') DEFAULT 'editor';
+-- Rename admin role to super_admin and retire the unused editor/viewer roles
+-- (two-step: expand ENUM, reassign rows, contract to the two live roles).
+ALTER TABLE users MODIFY COLUMN role ENUM('super_admin','branch_officer','admin','editor','viewer') DEFAULT 'branch_officer';
 UPDATE users SET role = 'super_admin' WHERE role = 'admin';
-ALTER TABLE users MODIFY COLUMN role ENUM('super_admin','branch_officer','editor','viewer') DEFAULT 'editor';
+UPDATE users SET role = 'branch_officer' WHERE role IN ('editor','viewer');
+ALTER TABLE users MODIFY COLUMN role ENUM('super_admin','branch_officer') NOT NULL DEFAULT 'branch_officer';
 
 -- Update BBF claim document types to official required attachments
 ALTER TABLE bbf_claim_documents MODIFY COLUMN doc_type ENUM('tsc_slip','burial_permit','birth_notification','letter_from_principal','other') NOT NULL;
