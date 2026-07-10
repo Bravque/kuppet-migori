@@ -77,6 +77,9 @@
   document.getElementById('sidebar-placeholder').outerHTML = getSidebarHtml();
   document.getElementById('topbar-placeholder').outerHTML = getTopbarHtml('BBF Claim Detail');
   const user = requireAdminAuth(); if(user) initSidebar(user);
+  // Approve/reject/mark-paid are branch_officer + super_admin decisions; branch_secretary
+  // may view/print and start review only (backend enforces). Hide decision buttons.
+  const canDecide = !!user && ['super_admin','branch_officer'].includes(user.role);
   const id = new URLSearchParams(window.location.search).get('id');
   if(!id){window.location.href='/admin/bbf.html';}
   (async()=>{
@@ -117,8 +120,8 @@
       const btns = document.getElementById('action-buttons');
       let bhtml='';
       if(c.status==='submitted')    bhtml=`<button id="act-review" class="btn btn-outline btn-sm"><i class="fas fa-search"></i> Start Review</button>`;
-      if(c.status==='under_review') bhtml=`<button id="act-approve" class="btn btn-sm" style="background:#DCFCE7;color:#166534"><i class="fas fa-check"></i> Approve</button><button id="act-reject" class="btn btn-sm" style="background:#FEE2E2;color:#991B1B"><i class="fas fa-times"></i> Reject</button>`;
-      if(c.status==='approved')     bhtml=`<button id="act-paid" class="btn btn-gold btn-sm"><i class="fas fa-money-bill"></i> Mark as Paid</button>`;
+      if(canDecide && c.status==='under_review') bhtml=`<button id="act-approve" class="btn btn-sm" style="background:#DCFCE7;color:#166534"><i class="fas fa-check"></i> Approve</button><button id="act-reject" class="btn btn-sm" style="background:#FEE2E2;color:#991B1B"><i class="fas fa-times"></i> Reject</button>`;
+      if(canDecide && c.status==='approved')     bhtml=`<button id="act-paid" class="btn btn-gold btn-sm"><i class="fas fa-money-bill"></i> Mark as Paid</button>`;
       btns.innerHTML=bhtml;
       document.getElementById('act-review')?.addEventListener('click',()=>openAction('review'));
       document.getElementById('act-approve')?.addEventListener('click',()=>openAction('approve'));

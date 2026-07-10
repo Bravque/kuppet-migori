@@ -68,6 +68,9 @@
   document.getElementById('sidebar-placeholder').outerHTML = getSidebarHtml();
   document.getElementById('topbar-placeholder').outerHTML = getTopbarHtml('Scholarship Application');
   const user = requireAdminAuth(); if(user) initSidebar(user);
+  // Approve/reject are branch_officer + super_admin decisions; branch_secretary may
+  // view/print only (backend enforces). Hide the review-decision card for them.
+  const canDecide = !!user && ['super_admin','branch_officer'].includes(user.role);
   const id = new URLSearchParams(window.location.search).get('id');
   if(!id){ window.location.href = '/admin/scholarship-apps.html'; }
 
@@ -116,8 +119,9 @@
         ? a.documents.map(d=>`<li class="doc-item"><i class="fas fa-file doc-icon"></i><span class="doc-name">${escHtml(d.file_name||d.file_url)}</span><span class="doc-size">${escHtml(DOC_LABELS[d.doc_type]||d.doc_type||'')}</span><button type="button" onclick="viewDoc('${escHtml(d.file_url)}')" class="btn btn-outline btn-xs">View</button></li>`).join('')
         : '<li style="padding:0.5rem;color:var(--text-muted)">No documents</li>';
 
-      // Show the review card only while the application is still actionable
-      if (a.status === 'applied' || a.status === 'under_review') {
+      // Show the review card only while the application is still actionable, and
+      // only to roles that can decide (branch_officer + super_admin).
+      if (canDecide && (a.status === 'applied' || a.status === 'under_review')) {
         document.getElementById('review-card').style.display = '';
       }
     } catch (err) {

@@ -24,7 +24,7 @@
           <a href="/admin/members.html" class="btn btn-outline btn-sm"><i class="fas fa-arrow-left"></i> Back</a>
           <button id="btn-approve" class="btn btn-sm" style="background:#DCFCE7;color:#166534;display:none"><i class="fas fa-check"></i> Approve</button>
           <button id="btn-reject" class="btn btn-sm" style="background:#FEE2E2;color:#991B1B;display:none"><i class="fas fa-times"></i> Reject</button>
-          <button id="btn-suspend" class="btn btn-sm" style="background:#F3F4F6;color:#4B5563;display:none" data-super-only><i class="fas fa-ban"></i> Suspend</button>
+          <button id="btn-suspend" class="btn btn-sm" style="background:#F3F4F6;color:#4B5563;display:none"><i class="fas fa-ban"></i> Suspend</button>
         </div>
       </div>
       <div id="detail-alert" class="hidden" style="max-width:700px;margin-bottom:1rem"></div>
@@ -63,6 +63,9 @@
   document.getElementById('sidebar-placeholder').outerHTML = getSidebarHtml();
   document.getElementById('topbar-placeholder').outerHTML = getTopbarHtml('Member Detail');
   const user = requireAdminAuth(); if(user) initSidebar(user);
+  // Approve/reject/suspend are branch_officer + super_admin decisions; branch_secretary
+  // may view/print only. Backend enforces this; here we just hide the buttons.
+  const canDecide = !!user && ['super_admin','branch_officer'].includes(user.role);
   const id = new URLSearchParams(window.location.search).get('id');
   if(!id){window.location.href='/admin/members.html';}
   (async()=>{
@@ -84,9 +87,11 @@
         m.passport_photo_url ? `<div class="doc-item"><i class="fas fa-camera doc-icon"></i><span class="doc-name">Passport Photo</span><button type="button" onclick="viewDoc('${escHtml(m.passport_photo_url)}')" class="btn btn-outline btn-xs">View</button></div>` : '',
         m.national_id_url ? `<div class="doc-item"><i class="fas fa-id-card doc-icon"></i><span class="doc-name">National ID Copy</span><button type="button" onclick="viewDoc('${escHtml(m.national_id_url)}')" class="btn btn-outline btn-xs">View</button></div>` : '',
       ].join('') || '<p style="font-size:0.85rem;color:var(--text-muted)">No documents uploaded</p>';
-      if(m.status!=='approved'){document.getElementById('btn-approve').style.display='';}
-      if(m.status!=='rejected'){document.getElementById('btn-reject').style.display='';}
-      if(m.status!=='suspended'){document.getElementById('btn-suspend').style.display='';}
+      if(canDecide){
+        if(m.status!=='approved'){document.getElementById('btn-approve').style.display='';}
+        if(m.status!=='rejected'){document.getElementById('btn-reject').style.display='';}
+        if(m.status!=='suspended'){document.getElementById('btn-suspend').style.display='';}
+      }
       const reasonModal = document.getElementById('reason-modal');
       function askReason(title, label, onConfirm){
         document.getElementById('reason-title').textContent = title;
