@@ -148,6 +148,14 @@ function initSidebar(user) {
     });
   }
 
+  // Court Cases are for branch officers + super_admin only; hide from other roles
+  // (branch_secretary). Cosmetic — the backend authorizeCourt gate enforces it.
+  if (!['super_admin', 'branch_officer'].includes(user.role)) {
+    document.querySelectorAll('[data-court-only]').forEach(el => {
+      el.style.display = 'none';
+    });
+  }
+
   // Mark active nav item
   const current = window.location.pathname;
   document.querySelectorAll('.sidebar-nav-item[href]').forEach(link => {
@@ -249,8 +257,8 @@ function getSidebarHtml() {
       <span class="nav-badge" id="new-contacts-badge" style="display:none"></span>
     </a>
 
-    <div class="sidebar-nav-section">Legal</div>
-    <a href="/admin/court-cases.html" class="sidebar-nav-item">
+    <div class="sidebar-nav-section" data-court-only>Legal</div>
+    <a href="/admin/court-cases.html" class="sidebar-nav-item" data-court-only>
       <i class="fas fa-scale-balanced"></i> Court Cases
     </a>
 
@@ -330,6 +338,9 @@ async function initDashboard() {
 async function loadCourtSummary() {
   const el = document.getElementById('court-summary');
   if (!el) return;
+  // Skip for roles without court access (branch_secretary) — the card is hidden anyway.
+  const user = adminApi.getUser();
+  if (!user || !['super_admin', 'branch_officer'].includes(user.role)) return;
   try {
     const res = await adminApi.courtCases.getStats();
     const d = res.data || {};

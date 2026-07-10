@@ -1,6 +1,10 @@
 const router = require('express').Router();
 const { param, body } = require('express-validator');
-const { authenticate, authorizeAdmin, auditLog } = require('../middleware/auth');
+const { authenticate, authorizeRoles, auditLog } = require('../middleware/auth');
+
+// Court cases are restricted to branch officers (super_admin retains full access);
+// branch_secretary is excluded.
+const authorizeCourt = authorizeRoles('branch_officer');
 const { handleValidation } = require('../middleware/validate');
 const upload = require('../middleware/upload');
 const ctrl = require('../controllers/courtCasesController');
@@ -29,20 +33,20 @@ const updateNoteRules = [
   body('update_date').optional({ nullable: true, checkFalsy: true }).isISO8601().withMessage('update_date must be a date'),
 ];
 
-// All routes require an authenticated admin (super_admin or branch_officer).
-router.get('/', authenticate, authorizeAdmin, ctrl.getAll);
-router.get('/stats', authenticate, authorizeAdmin, ctrl.getStats);
-router.get('/:id', authenticate, authorizeAdmin, idParam, handleValidation, ctrl.getOne);
-router.post('/', authenticate, authorizeAdmin, caseRules, handleValidation, auditLog('court_case.create'), ctrl.create);
-router.put('/:id', authenticate, authorizeAdmin, idParam, caseRules, handleValidation, auditLog('court_case.update'), ctrl.update);
-router.delete('/:id', authenticate, authorizeAdmin, idParam, handleValidation, auditLog('court_case.delete'), ctrl.remove);
-router.post('/:id/updates', authenticate, authorizeAdmin, idParam, updateNoteRules, handleValidation, auditLog('court_case.update_added'), ctrl.addUpdate);
+// All routes are restricted to branch officers + super_admin (see authorizeCourt).
+router.get('/', authenticate, authorizeCourt, ctrl.getAll);
+router.get('/stats', authenticate, authorizeCourt, ctrl.getStats);
+router.get('/:id', authenticate, authorizeCourt, idParam, handleValidation, ctrl.getOne);
+router.post('/', authenticate, authorizeCourt, caseRules, handleValidation, auditLog('court_case.create'), ctrl.create);
+router.put('/:id', authenticate, authorizeCourt, idParam, caseRules, handleValidation, auditLog('court_case.update'), ctrl.update);
+router.delete('/:id', authenticate, authorizeCourt, idParam, handleValidation, auditLog('court_case.delete'), ctrl.remove);
+router.post('/:id/updates', authenticate, authorizeCourt, idParam, updateNoteRules, handleValidation, auditLog('court_case.update_added'), ctrl.addUpdate);
 
 // Document attachments (validators run after multer so req.body.label is populated)
-router.post('/:id/documents', authenticate, authorizeAdmin, upload.courtDocs.array('files', 10),
+router.post('/:id/documents', authenticate, authorizeCourt, upload.courtDocs.array('files', 10),
   idParam, body('label').optional({ nullable: true }).trim().isLength({ max: 200 }), handleValidation,
   auditLog('court_case.doc_upload'), ctrl.uploadDocuments);
-router.delete('/:id/documents/:docId', authenticate, authorizeAdmin,
+router.delete('/:id/documents/:docId', authenticate, authorizeCourt,
   idParam, param('docId').isInt({ min: 1 }).withMessage('Invalid doc id'), handleValidation,
   auditLog('court_case.doc_delete'), ctrl.removeDocument);
 

@@ -236,9 +236,9 @@ Add the **`.h-scroll`** class to a card-grid container so that at **≤640px** i
 |------|--------|
 | `super_admin` | Full access to everything |
 | `branch_officer` | Can review/recommend; cannot delete admins, change system settings, or access audit logs |
-| `branch_secretary` | Peer of `branch_officer` — identical access (added 9 July 2026) |
+| `branch_secretary` | Peer of `branch_officer` — identical access **except the Legal / Court Cases section, which excludes `branch_secretary`** (10 July 2026) |
 
-Middleware: `authorizeAdmin` allows all three roles (the `ADMIN_ROLES` list in `auth.js`). `authorizeSuperAdmin` allows only `super_admin`. `branch_officer` and `branch_secretary` are blocked from every `authorizeSuperAdmin` route: approving BBF claims / marking paid, approving scholarship apps, suspending/deleting members, admin-user management, settings, audit logs, exports, bulk/group SMS, 2FA disable. The sidebar hides `data-super-only` items for any non-super role (cosmetic; the backend gate enforces it).
+Middleware: `authorizeAdmin` allows all three roles (the `ADMIN_ROLES` list in `auth.js`). `authorizeSuperAdmin` allows only `super_admin`. `authorizeRoles(...roles)` is a factory that allows `super_admin` plus the listed roles (used by the court-cases routes as `authorizeRoles('branch_officer')`). `branch_officer` and `branch_secretary` are blocked from every `authorizeSuperAdmin` route: approving BBF claims / marking paid, approving scholarship apps, suspending/deleting members, admin-user management, settings, audit logs, exports, bulk/group SMS, 2FA disable. Additionally, `branch_secretary` is blocked from the Legal / Court Cases routes (see the Legal schema note). The sidebar hides `data-super-only` items for any non-super role, and `data-court-only` items for any role outside {`super_admin`,`branch_officer`} (cosmetic; the backend gate enforces it).
 
 > The old unused `editor`/`viewer` roles were pruned (9 July 2026). `users.role` is now `super_admin | branch_officer | branch_secretary` (default `branch_officer`); the dropdown and validators offer only these. To add a role with a *different* permission set (not a peer), wire real per-capability permissions in the auth middleware rather than a role with no route access.
 
@@ -274,7 +274,7 @@ Server throws at startup if they are equal.
 
 **Security & audit:** `audit_logs`, `login_history`, `admin_2fa`
 
-**Legal:** `court_cases`, `court_case_updates`, `court_case_documents` (court-case tracker for branch officers; shared branch-wide, each case has a responsible `officer_id`, a dated updates/hearings log, and file attachments. Attachments live in the access-controlled `court/` upload dir, 404-blocked from static and served only via `GET /api/admin/documents/:filename` — its ownership UNION includes `court_case_documents`. Admin API at `/api/admin/court-cases`; pages `court-cases.html` + `court-case-detail.html`; dashboard summary via `getStats`. Both admin roles.)
+**Legal:** `court_cases`, `court_case_updates`, `court_case_documents` (court-case tracker for branch officers; shared branch-wide, each case has a responsible `officer_id`, a dated updates/hearings log, and file attachments. Attachments live in the access-controlled `court/` upload dir, 404-blocked from static and served only via `GET /api/admin/documents/:filename` — its ownership UNION includes `court_case_documents`. Admin API at `/api/admin/court-cases`; pages `court-cases.html` + `court-case-detail.html`; dashboard summary via `getStats`. **Access restricted to `branch_officer` + `super_admin`** via `authorizeRoles('branch_officer')` in `courtCases.js`; `branch_secretary` is excluded — the shared `/api/admin/documents/:filename` endpoint also drops the `court_case_documents` UNION branch for non-court roles, and the sidebar/dashboard `[data-court-only]` items are hidden from them.)
 
 Key ENUM values:
 - `users.role`: `super_admin | branch_officer | branch_secretary` (default `branch_officer`)

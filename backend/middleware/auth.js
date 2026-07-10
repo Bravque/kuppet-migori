@@ -62,6 +62,25 @@ const authorizeAdmin = (req, res, next) => {
   next();
 };
 
+// Allow only the listed admin roles. super_admin is always allowed (it has full
+// access to everything), so pass the extra roles that should also get through —
+// e.g. authorizeRoles('branch_officer') → super_admin + branch_officer only.
+const authorizeRoles = (...roles) => {
+  const allowed = new Set(['super_admin', ...roles]);
+  return (req, res, next) => {
+    const role = req.user && req.user.role;
+    if (!allowed.has(role)) {
+      recordAudit({
+        actor: req.user, actorType: 'admin', action: 'authz.denied',
+        resource: req.baseUrl.replace('/api/', '').split('/')[0], resourceId: null, req,
+        newValue: { status: 403, required: [...allowed], role: role || null, method: req.method, path: req.originalUrl },
+      });
+      return res.status(403).json({ success: false, message: 'Insufficient permissions' });
+    }
+    next();
+  };
+};
+
 // Allow super_admin only
 const authorizeSuperAdmin = (req, res, next) => {
   if (req.user && req.user.role !== 'super_admin') {
@@ -103,4 +122,4 @@ function extractBearer(req) {
   return h && h.startsWith('Bearer ') ? h.slice(7) : null;
 }
 
-module.exports = { authenticate, authenticateMember, authorizeAdmin, authorizeSuperAdmin, auditLog };
+module.exports = { authenticate, authenticateMember, authorizeAdmin, authorizeRoles, authorizeSuperAdmin, auditLog };
