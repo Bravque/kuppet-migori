@@ -103,64 +103,72 @@ async function login(req, res) {
   const ip = req.ip || req.connection.remoteAddress;
   const ua = req.headers['user-agent'] || '';
 
-  const [[member]] = await db.query(
-    'SELECT id, full_name, member_number, email, password, status, failed_login_attempts, locked_until FROM members WHERE tsc_number = ?',
-    [tsc_number]
-  );
+  try {
+    const [[member]] = await db.query(
+      'SELECT id, full_name, member_number, email, password, status, failed_login_attempts, locked_until FROM members WHERE tsc_number = ?',
+      [tsc_number]
+    );
 
-  if (!member) {
-    return res.status(401).json({ success: false, message: 'Invalid TSC number or password' });
-  }
+    if (!member) {
+      return res.status(401).json({ success: false, message: 'Invalid TSC number or password' });
+    }
 
-  // Lock check
-  if (member.locked_until && new Date(member.locked_until) > new Date()) {
-    const remaining = Math.ceil((new Date(member.locked_until) - Date.now()) / 60000);
-    await logLogin(member.id, ip, ua, 'locked');
-    return res.status(423).json({ success: false, message: `Account locked. Try again in ${remaining} minute(s).` });
-  }
+    // Lock check
+    if (member.locked_until && new Date(member.locked_until) > new Date()) {
+      const remaining = Math.ceil((new Date(member.locked_until) - Date.now()) / 60000);
+      await logLogin(member.id, ip, ua, 'locked');
+      return res.status(423).json({ success: false, message: `Account locked. Try again in ${remaining} minute(s).` });
+    }
 
-  // Status check
-  if (member.status === 'pending_approval') {
-    return res.status(403).json({ success: false, message: 'Your application is pending approval. Please wait for admin review.' });
-  }
-  if (member.status === 'rejected') {
-    return res.status(403).json({ success: false, message: 'Your application was not approved. Please contact the branch office.' });
-  }
-  if (member.status === 'suspended') {
-    return res.status(403).json({ success: false, message: 'Your account has been suspended. Please contact the branch office.' });
-  }
+    // Status check
+    if (member.status === 'pending_approval') {
+      return res.status(403).json({ success: false, message: 'Your application is pending approval. Please wait for admin review.' });
+    }
+    if (member.status === 'rejected') {
+      return res.status(403).json({ success: false, message: 'Your application was not approved. Please contact the branch office.' });
+    }
+    if (member.status === 'suspended') {
+      return res.status(403).json({ success: false, message: 'Your account has been suspended. Please contact the branch office.' });
+    }
 
-  const passwordOk = await bcrypt.compare(password, member.password);
-  if (!passwordOk) {
-    const attempts = (member.failed_login_attempts || 0) + 1;
-    const maxAttempts = parseInt(process.env.LOGIN_MAX_ATTEMPTS || '5');
-    const lockMins = parseInt(process.env.LOGIN_LOCK_MINUTES || '30');
-    const lockedUntil = attempts >= maxAttempts ? new Date(Date.now() + lockMins * 60000) : null;
-    await db.query('UPDATE members SET failed_login_attempts = ?, locked_until = ? WHERE id = ?', [attempts, lockedUntil, member.id]);
-    await logLogin(member.id, ip, ua, 'failed');
-    return res.status(401).json({ success: false, message: 'Invalid TSC number or password' });
+    const passwordOk = await bcrypt.compare(password, member.password);
+    if (!passwordOk) {
+      const attempts = (member.failed_login_attempts || 0) + 1;
+      const maxAttempts = parseInt(process.env.LOGIN_MAX_ATTEMPTS || '5');
+      const lockMins = parseInt(process.env.LOGIN_LOCK_MINUTES || '30');
+      const lockedUntil = attempts >= maxAttempts ? new Date(Date.now() + lockMins * 60000) : null;
+      await db.query('UPDATE members SET failed_login_attempts = ?, locked_until = ? WHERE id = ?', [attempts, lockedUntil, member.id]);
+      await logLogin(member.id, ip, ua, 'failed');
+      return res.status(401).json({ success: false, message: 'Invalid TSC number or password' });
+    }
+
+    await db.query('UPDATE members SET failed_login_attempts = 0, locked_until = NULL, last_login = NOW() WHERE id = ?', [member.id]);
+    await logLogin(member.id, ip, ua, 'success');
+
+    return res.json({
+      success: true,
+      token: signMemberToken(member),
+      member: { id: member.id, full_name: member.full_name, member_number: member.member_number, email: member.email },
+    });
+  } catch (err) {
+    return res.status(500).json({ success: false, message: 'Login failed. Please try again.' });
   }
-
-  await db.query('UPDATE members SET failed_login_attempts = 0, locked_until = NULL, last_login = NOW() WHERE id = ?', [member.id]);
-  await logLogin(member.id, ip, ua, 'success');
-
-  return res.json({
-    success: true,
-    token: signMemberToken(member),
-    member: { id: member.id, full_name: member.full_name, member_number: member.member_number, email: member.email },
-  });
 }
 
 // ── Get current member ────────────────────────────────────────────────────────
 async function getMe(req, res) {
-  const [[member]] = await db.query(
-    `SELECT id, member_number, full_name, tsc_number, phone, email, gender, date_of_birth,
-            school_name, sub_county, passport_photo_url, status, created_at
-     FROM members WHERE id = ?`,
-    [req.member.id]
-  );
-  if (!member) return res.status(404).json({ success: false, message: 'Member not found' });
-  return res.json({ success: true, data: member });
+  try {
+    const [[member]] = await db.query(
+      `SELECT id, member_number, full_name, tsc_number, phone, email, gender, date_of_birth,
+              school_name, sub_county, passport_photo_url, status, created_at
+       FROM members WHERE id = ?`,
+      [req.member.id]
+    );
+    if (!member) return res.status(404).json({ success: false, message: 'Member not found' });
+    return res.json({ success: true, data: member });
+  } catch (err) {
+    return res.status(500).json({ success: false, message: 'Failed to load your profile' });
+  }
 }
 
 // ── Change password ───────────────────────────────────────────────────────────
@@ -169,12 +177,16 @@ async function changePassword(req, res) {
   if (!oldPassword || !newPassword || newPassword.length < 8) {
     return res.status(400).json({ success: false, message: 'Old and new passwords required (min 8 chars)' });
   }
-  const [[m]] = await db.query('SELECT password FROM members WHERE id = ?', [req.member.id]);
-  const ok = await bcrypt.compare(oldPassword, m.password);
-  if (!ok) return res.status(401).json({ success: false, message: 'Current password incorrect' });
-  const hash = await bcrypt.hash(newPassword, 10);
-  await db.query('UPDATE members SET password = ? WHERE id = ?', [hash, req.member.id]);
-  return res.json({ success: true, message: 'Password updated successfully' });
+  try {
+    const [[m]] = await db.query('SELECT password FROM members WHERE id = ?', [req.member.id]);
+    const ok = await bcrypt.compare(oldPassword, m.password);
+    if (!ok) return res.status(401).json({ success: false, message: 'Current password incorrect' });
+    const hash = await bcrypt.hash(newPassword, 10);
+    await db.query('UPDATE members SET password = ? WHERE id = ?', [hash, req.member.id]);
+    return res.json({ success: true, message: 'Password updated successfully' });
+  } catch (err) {
+    return res.status(500).json({ success: false, message: 'Failed to update password' });
+  }
 }
 
 // ── Forgot / reset password ───────────────────────────────────────────────────
