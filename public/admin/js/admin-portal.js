@@ -706,6 +706,11 @@ const contactsFilter = { status: '', category: '' };
 async function initAdminContacts() {
   if (!document.querySelector('.admin-contacts-page')) return;
   const user = requireAdminAuth(); if (!user) return; initSidebar(user);
+  // Advocacy reports are for branch_officer + super_admin only; hide the filter
+  // chip from other roles (branch_secretary). Backend also filters them out.
+  if (!['super_admin', 'branch_officer'].includes(user.role)) {
+    document.querySelectorAll('[data-advocacy-only]').forEach(el => { el.style.display = 'none'; });
+  }
   loadContactsTable();
   // Status and category are two independent filter rows; each keeps one active
   // tab within its own row and both dimensions are combined in the query.

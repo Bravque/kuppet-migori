@@ -17,14 +17,16 @@ function getTransporter() {
   return transporter;
 }
 
-async function sendMail({ to, subject, html, text, replyTo }) {
+async function sendMail({ to, subject, html, text, replyTo, from }) {
   if (!process.env.SMTP_HOST || !process.env.SMTP_USER || !process.env.SMTP_PASS) {
     console.warn('[mailer] SMTP not configured — skipping email to', to);
     return { skipped: true };
   }
   try {
     const info = await getTransporter().sendMail({
-      from: `"KUPPET Migori" <${process.env.SMTP_USER}>`,
+      // Sends via the authenticated SMTP account; `from` may override the shown
+      // sender (e.g. advocacy@ for advocacy replies) on the same mail server.
+      from: from || `"KUPPET Migori" <${process.env.SMTP_USER}>`,
       to,
       replyTo,
       subject,

@@ -2,6 +2,11 @@ const db = require('../config/database');
 const { validationResult } = require('express-validator');
 const { sendMail, templates } = require('../services/mailerService');
 
+// Advocacy reports (contacts.category = 'advocacy') are restricted to branch_officer
+// + super_admin; branch_secretary cannot list, view, reply to, or restatus them.
+const ADVOCACY_INBOX = process.env.ADVOCACY_EMAIL || 'advocacy@kuppetmigori.co.ke';
+const canViewAdvocacy = (req) => ['super_admin', 'branch_officer'].includes(req.user && req.user.role);
+
 const submit = async (req, res) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
@@ -49,9 +54,18 @@ const reply = async (req, res) => {
     const { message } = req.body;
     const [[contact]] = await db.query('SELECT * FROM contacts WHERE id = ?', [req.params.id]);
     if (!contact) return res.status(404).json({ success: false, message: 'Enquiry not found' });
+    if (contact.category === 'advocacy' && !canViewAdvocacy(req)) {
+      return res.status(403).json({ success: false, message: 'Advocacy reports are restricted to branch officers.' });
+    }
 
+    // Advocacy replies go out from the advocacy inbox (from + reply-to); everything
+    // else uses the default branch sender.
+    const advocacy = contact.category === 'advocacy';
     const tpl = templates.contactReply(contact.name, contact.subject, contact.message, message);
-    const result = await sendMail({ to: contact.email, subject: tpl.subject, html: tpl.html });
+    const result = await sendMail({
+      to: contact.email, subject: tpl.subject, html: tpl.html,
+      ...(advocacy ? { from: `"KUPPET Migori Advocacy Desk" <${ADVOCACY_INBOX}>`, replyTo: ADVOCACY_INBOX } : {}),
+    });
     if (result.skipped) {
       return res.status(503).json({ success: false, message: 'Email is not configured on the server, so the reply could not be sent.' });
     }
@@ -72,14 +86,17 @@ const reply = async (req, res) => {
 const adminGetAll = async (req, res) => {
   try {
     const { status, category, limit = 20, offset = 0 } = req.query;
-    let query = 'SELECT * FROM contacts WHERE 1=1';
+    // Hide advocacy reports from roles without advocacy access (branch_secretary).
+    // Applied to both the page query and the count so totals/pager stay consistent.
+    const advocacyFilter = canViewAdvocacy(req) ? '' : " AND category != 'advocacy'";
+    let query = 'SELECT * FROM contacts WHERE 1=1' + advocacyFilter;
     const params = [];
     if (status) { query += ' AND status = ?'; params.push(status); }
     if (category) { query += ' AND category = ?'; params.push(category); }
     query += ' ORDER BY created_at DESC LIMIT ? OFFSET ?';
     params.push(parseInt(limit), parseInt(offset));
     const [rows] = await db.query(query, params);
-    const [[{ total }]] = await db.query('SELECT COUNT(*) as total FROM contacts WHERE 1=1' +
+    const [[{ total }]] = await db.query('SELECT COUNT(*) as total FROM contacts WHERE 1=1' + advocacyFilter +
       (status ? ' AND status = ?' : '') + (category ? ' AND category = ?' : ''),
       [...(status ? [status] : []), ...(category ? [category] : [])]
     );
@@ -94,8 +111,11 @@ const adminUpdateStatus = async (req, res) => {
     const { status } = req.body;
     const valid = ['new', 'read', 'replied', 'closed'];
     if (!valid.includes(status)) return res.status(400).json({ success: false, message: 'Invalid status' });
-    const [[existing]] = await db.query('SELECT id FROM contacts WHERE id = ?', [req.params.id]);
+    const [[existing]] = await db.query('SELECT id, category FROM contacts WHERE id = ?', [req.params.id]);
     if (!existing) return res.status(404).json({ success: false, message: 'Contact not found' });
+    if (existing.category === 'advocacy' && !canViewAdvocacy(req)) {
+      return res.status(403).json({ success: false, message: 'Advocacy reports are restricted to branch officers.' });
+    }
     await db.query('UPDATE contacts SET status = ? WHERE id = ?', [status, req.params.id]);
     res.json({ success: true, message: 'Status updated' });
   } catch (err) {

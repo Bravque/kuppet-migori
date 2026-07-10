@@ -125,7 +125,13 @@ const smsBulkLimiter = rateLimit({
 });
 
 app.use('/api/', apiLimiter);
-app.use('/api/contact', contactLimiter);
+// Only rate-limit public contact-form submissions (POST /api/contact). The admin
+// Contact Inbox reads/replies (GET, PUT, POST /:id/reply) must NOT count against
+// the 5/hr limit, or loading the inbox a few times locks admins out.
+app.use('/api/contact', (req, res, next) => {
+  if (req.method === 'POST' && (req.path === '/' || req.path === '')) return contactLimiter(req, res, next);
+  next();
+});
 app.use('/api/auth', authLimiter);
 app.use('/api/member/auth/login', authLimiter);
 app.use('/api/member/auth/register', regLimiter);

@@ -33,7 +33,7 @@ There are no tests or linting scripts configured yet.
 - **Deployment:** GitHub auto-deploy (push to `main` → Hostinger rebuilds automatically)
 - **Database:** MySQL on Hostinger — `u735599564_KuppetMigori44`, user `u735599564_Admin44Kuppet`
 - **Schema:** imported via `backend/config/init-hostinger.sql` (no `CREATE DATABASE` line)
-- **Env vars:** set in hPanel → Environment variables (imported from `env-kuppet.txt` on Desktop). **Must include `UPLOAD_DIR=/home/u735599564/uploads`** (see persistent-uploads note) and `CONTACT_EMAIL` (contact-form notifications).
+- **Env vars:** set in hPanel → Environment variables (imported from `env-kuppet.txt` on Desktop). **Must include `UPLOAD_DIR=/home/u735599564/uploads`** (see persistent-uploads note) and `CONTACT_EMAIL` (contact-form notifications). `ADVOCACY_EMAIL` (`advocacy@kuppetmigori.co.ke`, a working Hostinger mailbox) receives + sends advocacy-report replies.
 - **SSH:** `ssh -p 65002 u735599564@92.113.28.102` — password set in hPanel → SSH Access (separate from hPanel login password). Interactive shell may be disabled (`/sbin/nologin`); if so use **SFTP** or **hPanel File Manager** instead. App lives in `~/nodejs/`, web root in `~/public_html/`; uploads in `~/uploads/` (outside both).
 - **Persistent uploads:** runtime uploads live in `~/uploads/` (set via `UPLOAD_DIR`), **outside** the git-deployed `~/nodejs/` tree, so they survive redeploys. See the File uploads section.
 
@@ -261,7 +261,11 @@ Server throws at startup if they are equal.
 ### Email (SMTP) — required for password reset & notification emails
 `backend/services/mailerService.js` sends via nodemailer when `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS` are set (else it logs & skips). `sendMail()` supports an optional `replyTo`. `APP_URL` (e.g. `https://kuppetmigori.co.ke`) is used to build links in emails (password reset). Live uses the Hostinger mailbox for `info@kuppetmigori.co.ke` (`smtp.hostinger.com:465`). Test with `node backend/scripts/test-email.js you@example.com`.
 
-**Contact form (26 June 2026):** on submit the controller emails the branch inbox (`CONTACT_EMAIL`, falls back to `SMTP_USER`; reply-to = enquirer) and auto-acknowledges the enquirer. Admins reply from the Contact Inbox via `POST /api/contact/:id/reply` (emails the enquirer, stores `admin_reply`/`replied_at`, marks `replied`). All fail gracefully if SMTP is unconfigured.
+**Contact form (26 June 2026):** on submit the controller emails the branch inbox (`CONTACT_EMAIL`, falls back to `SMTP_USER`; reply-to = enquirer) and auto-acknowledges the enquirer. **Advocacy-category** enquiries route to `ADVOCACY_EMAIL` (`advocacy@kuppetmigori.co.ke`) instead. Admins reply from the Contact Inbox via `POST /api/contact/:id/reply` (emails the enquirer, stores `admin_reply`/`replied_at`, marks `replied`). All fail gracefully if SMTP is unconfigured.
+
+**Advocacy reports access (10 July 2026):** contacts with `category = 'advocacy'` (the Advocacy Desk issue reports) are restricted to `branch_officer` + `super_admin`; `branch_secretary` is excluded. `contactController` filters advocacy rows out of the admin list/count and returns 403 on reply/restatus of an advocacy contact for non-advocacy roles (`canViewAdvocacy`); the Contact Inbox hides the `[data-advocacy-only]` "Advocacy Reports" filter chip for them. **Advocacy replies are sent from advocacy@** — `POST /api/contact/:id/reply` sets both `from` and `replyTo` to `ADVOCACY_EMAIL` for advocacy-category enquiries (via the new optional `from` param on `mailerService.sendMail`), sent over the existing SMTP login.
+
+> ⚠ **Rate-limit scoping (10 July 2026):** `contactLimiter` (5/hr) is now applied only to `POST /api/contact` (the public form) — previously `app.use('/api/contact', contactLimiter)` covered the whole path, so admins loading the Contact Inbox (`GET /api/contact`) a handful of times hit the limit and saw the public "Too many contact submissions" message. The admin reads/replies/status are no longer rate-limited by it.
 
 ### Database schema (25 tables)
 **Core (public site):** `users`, `leadership`, `news`, `events`, `resources`, `scholarships`, `advocacy`, `contacts`, `settings`, `announcements`
