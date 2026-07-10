@@ -185,6 +185,21 @@ function initSidebar(user) {
       window.location.href = '/admin/login.html';
     });
   });
+
+  // Show the count of members awaiting approval on the sidebar nav badge.
+  loadPendingBadge();
+}
+
+// Populate the "Pending Approval" sidebar badge (all admin roles can view members).
+// Uses a limit:1 query — we only need the total. Fails silently.
+async function loadPendingBadge() {
+  const badge = document.getElementById('pending-count-badge');
+  if (!badge) return;
+  try {
+    const res = await adminApi.members.getAll({ status: 'pending_approval', limit: 1, offset: 0 });
+    const n = res.total || 0;
+    if (n > 0) { badge.textContent = n > 99 ? '99+' : n; badge.style.display = ''; }
+  } catch (_) { /* silent — badge stays hidden */ }
 }
 
 // ── Shared sidebar HTML ───────────────────────────────────────────────────────
@@ -710,6 +725,14 @@ async function initAdminContacts() {
   // chip from other roles (branch_secretary). Backend also filters them out.
   if (!['super_admin', 'branch_officer'].includes(user.role)) {
     document.querySelectorAll('[data-advocacy-only]').forEach(el => { el.style.display = 'none'; });
+  }
+  // Honour a ?status= deep-link (e.g. the dashboard "View New Enquiries" action).
+  const urlStatus = new URLSearchParams(window.location.search).get('status');
+  if (urlStatus) {
+    contactsFilter.status = urlStatus;
+    document.querySelectorAll('#status-filters .filter-tab').forEach(t => {
+      t.classList.toggle('active', (t.dataset.status || '') === urlStatus);
+    });
   }
   loadContactsTable();
   // Status and category are two independent filter rows; each keeps one active

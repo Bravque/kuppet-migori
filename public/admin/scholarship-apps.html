@@ -43,7 +43,8 @@
   document.getElementById('sidebar-placeholder').outerHTML = getSidebarHtml();
   document.getElementById('topbar-placeholder').outerHTML = getTopbarHtml('Scholarship Applications');
   const user = requireAdminAuth(); if(user) initSidebar(user);
-  let currentStatus='', schOffset=0; const SCH_LIMIT=30;
+  // Honour a ?status= deep-link (e.g. from the dashboard Quick Actions).
+  let currentStatus=new URLSearchParams(window.location.search).get('status')||'', schOffset=0; const SCH_LIMIT=30;
   async function loadApps(){
     const tbody=document.getElementById('sch-tbody');
     tbody.innerHTML='<tr><td colspan="7">'+renderLoading()+'</td></tr>';
@@ -63,9 +64,12 @@
       pager();
     }catch(err){tbody.innerHTML='<tr><td colspan="7">'+escHtml(err.message)+'</td></tr>';}
   }
-  document.querySelectorAll('#sch-tabs .filter-tab').forEach(t=>t.addEventListener('click',()=>{
-    document.querySelectorAll('#sch-tabs .filter-tab').forEach(x=>x.classList.remove('active'));t.classList.add('active');currentStatus=t.dataset.status;schOffset=0;loadApps();
-  }));
+  document.querySelectorAll('#sch-tabs .filter-tab').forEach(t=>{
+    if(t.dataset.status===currentStatus) t.classList.add('active'); else t.classList.remove('active');
+    t.addEventListener('click',()=>{
+      document.querySelectorAll('#sch-tabs .filter-tab').forEach(x=>x.classList.remove('active'));t.classList.add('active');currentStatus=t.dataset.status;schOffset=0;loadApps();
+    });
+  });
   loadApps();
 </script>
 </body>
