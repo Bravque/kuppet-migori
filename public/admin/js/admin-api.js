@@ -33,7 +33,13 @@ const adminApi = (() => {
       window.location.href = '/admin/login.html';
       return;
     }
-    if (!res.ok) throw new Error(data.message || `Error ${res.status}`);
+    if (!res.ok) {
+      let msg = data.message || `Error ${res.status}`;
+      if (Array.isArray(data.errors) && data.errors.length) {
+        msg += ': ' + data.errors.map(e => e.message).join('; ');
+      }
+      throw new Error(msg);
+    }
     return data;
   }
 
