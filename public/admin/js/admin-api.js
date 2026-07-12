@@ -151,7 +151,7 @@ const adminApi = (() => {
       approve: (id) => request(`/admin/members/${id}/approve`, { method: 'PUT', body: '{}' }),
       reject: (id, reason) => request(`/admin/members/${id}/reject`, { method: 'PUT', body: JSON.stringify({ reason }) }),
       suspend: (id, reason) => request(`/admin/members/${id}/suspend`, { method: 'PUT', body: JSON.stringify({ reason }) }),
-      exportExcel: () => download('/admin/members/export', 'members.xlsx'),
+      exportExcel: (p = {}) => download('/admin/members/export?' + new URLSearchParams(p), 'members.xlsx'),
     },
 
     bbf: {
@@ -161,7 +161,7 @@ const adminApi = (() => {
       approve: (id, amount, notes) => request(`/admin/bbf/${id}/approve`, { method: 'PUT', body: JSON.stringify({ amount, notes }) }),
       reject: (id, notes) => request(`/admin/bbf/${id}/reject`, { method: 'PUT', body: JSON.stringify({ notes }) }),
       markPaid: (id, ref) => request(`/admin/bbf/${id}/paid`, { method: 'PUT', body: JSON.stringify({ ref }) }),
-      exportExcel: () => download('/admin/bbf/export', 'bbf-claims.xlsx'),
+      exportExcel: (p = {}) => download('/admin/bbf/export?' + new URLSearchParams(p), 'bbf-claims.xlsx'),
     },
 
     schApps: {
@@ -188,7 +188,7 @@ const adminApi = (() => {
 
     audit: {
       getAll: (p = {}) => request('/admin/audit?' + new URLSearchParams(p)),
-      exportPdf: () => download('/admin/audit/export', 'audit-logs.pdf'),
+      exportPdf: (p = {}) => download('/admin/audit/export?' + new URLSearchParams(p), 'audit-logs.pdf'),
     },
 
     users: {

@@ -3,18 +3,22 @@ const { sendXlsx } = require('../utils/excel');
 const notificationService = require('../services/notificationService');
 const mailerService = require('../services/mailerService');
 
+// Build the members filter once (status, sub_county, gender, search) so the list,
+// its count and the Excel export all stay in sync. Returns { where, params }.
+function buildMemberFilter({ status, sub_county, gender, search } = {}) {
+  let where = 'WHERE 1=1';
+  const params = [];
+  if (status) { where += ' AND status = ?'; params.push(status); }
+  if (sub_county) { where += ' AND sub_county = ?'; params.push(sub_county); }
+  if (gender) { where += ' AND gender = ?'; params.push(gender); }
+  if (search) { where += ' AND (full_name LIKE ? OR tsc_number LIKE ? OR email LIKE ?)'; params.push(`%${search}%`, `%${search}%`, `%${search}%`); }
+  return { where, params };
+}
+
 async function getAll(req, res) {
   try {
-    const { status, sub_county, gender, search, limit = 25, offset = 0 } = req.query;
-
-    // Build the filter once so status, sub_county, gender and search can be combined
-    // and the count stays in sync with the rows.
-    let where = 'WHERE 1=1';
-    const filterParams = [];
-    if (status) { where += ' AND status = ?'; filterParams.push(status); }
-    if (sub_county) { where += ' AND sub_county = ?'; filterParams.push(sub_county); }
-    if (gender) { where += ' AND gender = ?'; filterParams.push(gender); }
-    if (search) { where += ' AND (full_name LIKE ? OR tsc_number LIKE ? OR email LIKE ?)'; filterParams.push(`%${search}%`, `%${search}%`, `%${search}%`); }
+    const { limit = 25, offset = 0 } = req.query;
+    const { where, params: filterParams } = buildMemberFilter(req.query);
 
     const [rows] = await db.query(
       `SELECT id, member_number, full_name, tsc_number, phone, email, gender,
@@ -117,10 +121,13 @@ async function remove(req, res) {
 
 async function exportExcel(req, res) {
   try {
+    // Honour the same filters the list is showing (status, sub_county, gender, search).
+    const { where, params } = buildMemberFilter(req.query);
     const [rows] = await db.query(
       `SELECT member_number, full_name, tsc_number, phone, email, gender, school_name,
               sub_county, school_category, status, DATE(created_at) as registered
-       FROM members ORDER BY created_at DESC`
+       FROM members ${where} ORDER BY created_at DESC`,
+      params
     );
     await sendXlsx(res, { sheetName: 'Members', filename: 'kuppet-members.xlsx', rows });
   } catch (err) {

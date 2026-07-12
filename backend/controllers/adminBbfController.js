@@ -15,13 +15,20 @@ async function addTimeline(claimId, fromStatus, toStatus, comment, adminId) {
   );
 }
 
+// Build the claims filter once (status, search) so the list, its count and the
+// Excel export all stay in sync. Returns { where, params }.
+function buildBbfFilter({ status, search } = {}) {
+  let where = 'WHERE 1=1';
+  const params = [];
+  if (status) { where += ' AND bc.status = ?'; params.push(status); }
+  if (search) { where += ' AND (bc.claim_number LIKE ? OR m.full_name LIKE ?)'; params.push(`%${search}%`, `%${search}%`); }
+  return { where, params };
+}
+
 async function getAll(req, res) {
   try {
-    const { status, limit = 25, offset = 0, search } = req.query;
-    let where = 'WHERE 1=1';
-    const filterParams = [];
-    if (status) { where += ' AND bc.status = ?'; filterParams.push(status); }
-    if (search) { where += ' AND (bc.claim_number LIKE ? OR m.full_name LIKE ?)'; filterParams.push(`%${search}%`, `%${search}%`); }
+    const { limit = 25, offset = 0 } = req.query;
+    const { where, params: filterParams } = buildBbfFilter(req.query);
 
     const [rows] = await db.query(
       `SELECT bc.*, m.full_name, m.member_number, m.phone
@@ -151,13 +158,16 @@ async function markPaid(req, res) {
 
 async function exportExcel(req, res) {
   try {
+    // Honour the same filters the list is showing (status, search).
+    const { where, params } = buildBbfFilter(req.query);
     const [rows] = await db.query(
       `SELECT bc.claim_number, m.full_name, m.member_number, bc.claim_type,
               bc.deceased_name, bc.tsc_no, bc.sub_county, bc.school, bc.school_category,
               bc.relationship, DATE(bc.date_of_death) as date_of_death, bc.status,
               bc.amount_requested, bc.amount_approved, DATE(bc.submitted_at) as submitted,
               DATE(bc.resolved_at) as resolved
-       FROM bbf_claims bc JOIN members m ON bc.member_id = m.id ORDER BY bc.created_at DESC`
+       FROM bbf_claims bc JOIN members m ON bc.member_id = m.id ${where} ORDER BY bc.created_at DESC`,
+      params
     );
     await sendXlsx(res, { sheetName: 'BBF Claims', filename: 'bbf-claims.xlsx', rows });
   } catch (err) {

@@ -20,7 +20,7 @@
     <div class="portal-content">
       <div class="page-heading">
         <div class="page-heading-text"><h1>BBF Claims</h1></div>
-        <button class="btn btn-outline btn-sm" onclick="adminApi.bbf.exportExcel().catch(e=>alert(e.message))"><i class="fas fa-file-excel"></i> Export</button>
+        <button id="btn-export" class="btn btn-outline btn-sm"><i class="fas fa-file-excel"></i> Export</button>
       </div>
       <div class="filter-tabs" id="bbf-tabs">
         <button class="filter-tab active" data-status="">All</button>
@@ -75,6 +75,8 @@
       t.classList.add('active');currentStatus=t.dataset.status;bbfOffset=0;loadBbf();
     });
   });
+  // Export mirrors the active status filter, not the whole table.
+  document.getElementById('btn-export').addEventListener('click',function(){adminApi.bbf.exportExcel({status:currentStatus}).catch(e=>alert(e.message));});
   loadBbf();
 </script>
 </body>

@@ -20,7 +20,7 @@
     <div class="portal-content">
       <div class="page-heading">
         <div class="page-heading-text"><h1>Members</h1><p>Manage member registrations and accounts.</p></div>
-        <button class="btn btn-outline btn-sm" onclick="adminApi.members.exportExcel().catch(e=>alert(e.message))"><i class="fas fa-file-excel"></i> Export</button>
+        <button id="btn-export" class="btn btn-outline btn-sm"><i class="fas fa-file-excel"></i> Export</button>
       </div>
       <div class="filter-tabs" id="status-tabs">
         <button class="filter-tab active" data-status="">All</button>
@@ -112,6 +112,8 @@
   let st;document.getElementById('member-search').addEventListener('input',function(){clearTimeout(st);st=setTimeout(()=>{currentSearch=this.value;memberOffset=0;loadMembers();},400);});
   document.getElementById('subcounty-filter').addEventListener('change',function(){currentSubCounty=this.value;memberOffset=0;loadMembers();});
   document.getElementById('gender-filter').addEventListener('change',function(){currentGender=this.value;memberOffset=0;loadMembers();});
+  // Export mirrors the active filters (status/search/sub-county/gender), not the whole table.
+  document.getElementById('btn-export').addEventListener('click',function(){adminApi.members.exportExcel({status:currentStatus,search:currentSearch,sub_county:currentSubCounty,gender:currentGender}).catch(e=>alert(e.message));});
   const urlTab=new URLSearchParams(window.location.search).get('tab');
   if(urlTab==='pending'){document.querySelector('[data-status="pending_approval"]').click();}else{loadMembers();}
 </script>

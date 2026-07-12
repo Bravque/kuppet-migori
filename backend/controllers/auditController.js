@@ -1,15 +1,22 @@
 const db = require('../config/database');
 const PDFDocument = require('pdfkit');
 
+// Build the audit filter once (actor_type, action, from, to) so the list, its
+// count and the PDF export all stay in sync. Returns { where, params }.
+function buildAuditFilter({ actor_type, action, from, to } = {}) {
+  let where = 'WHERE 1=1';
+  const params = [];
+  if (actor_type) { where += ' AND actor_type = ?'; params.push(actor_type); }
+  if (action)     { where += ' AND action LIKE ?'; params.push(`%${action}%`); }
+  if (from)       { where += ' AND created_at >= ?'; params.push(from); }
+  if (to)         { where += ' AND created_at <= ?'; params.push(to); }
+  return { where, params };
+}
+
 async function getAll(req, res) {
   try {
-    const { actor_type, action, from, to, limit = 50, offset = 0 } = req.query;
-    let where = 'WHERE 1=1';
-    const filterParams = [];
-    if (actor_type) { where += ' AND actor_type = ?'; filterParams.push(actor_type); }
-    if (action)     { where += ' AND action LIKE ?'; filterParams.push(`%${action}%`); }
-    if (from)       { where += ' AND created_at >= ?'; filterParams.push(from); }
-    if (to)         { where += ' AND created_at <= ?'; filterParams.push(to); }
+    const { limit = 50, offset = 0 } = req.query;
+    const { where, params: filterParams } = buildAuditFilter(req.query);
 
     const [rows] = await db.query(
       `SELECT * FROM audit_logs ${where} ORDER BY created_at DESC LIMIT ? OFFSET ?`,
@@ -24,7 +31,12 @@ async function getAll(req, res) {
 
 async function exportPdf(req, res) {
   try {
-    const [rows] = await db.query('SELECT * FROM audit_logs ORDER BY created_at DESC LIMIT 500');
+    // Honour the same filters the list is showing (actor_type, action, from, to).
+    const { where, params } = buildAuditFilter(req.query);
+    const [rows] = await db.query(
+      `SELECT * FROM audit_logs ${where} ORDER BY created_at DESC LIMIT 500`,
+      params
+    );
 
     const doc = new PDFDocument({ margin: 50, size: 'A4', layout: 'landscape' });
     res.setHeader('Content-Type', 'application/pdf');
