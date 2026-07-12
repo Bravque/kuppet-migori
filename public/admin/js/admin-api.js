@@ -28,7 +28,10 @@ const adminApi = (() => {
 
     const res = await fetch(BASE + path, { ...options, headers });
     const data = await res.json().catch(() => ({}));
-    if ((res.status === 401 || res.status === 403) && token) {
+    // 401 = not authenticated (missing/expired token) → session is dead, log out.
+    // 403 = authenticated but not authorized (e.g. branch_secretary hitting a
+    // super_admin route) → keep the session and surface the message below.
+    if (res.status === 401 && token) {
       clearAuth();
       window.location.href = '/admin/login.html';
       return;
@@ -48,7 +51,7 @@ const adminApi = (() => {
   async function download(path, fallbackName) {
     const token = getToken();
     const res = await fetch(BASE + path, { headers: token ? { Authorization: `Bearer ${token}` } : {} });
-    if ((res.status === 401 || res.status === 403) && token) {
+    if (res.status === 401 && token) {
       clearAuth(); window.location.href = '/admin/login.html'; return;
     }
     if (!res.ok) {

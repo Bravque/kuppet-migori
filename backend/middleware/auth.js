@@ -25,7 +25,7 @@ const authenticate = (req, res, next) => {
   if (!token) return res.status(401).json({ success: false, message: 'Access token required' });
 
   jwt.verify(token, process.env.JWT_SECRET, (err, payload) => {
-    if (err) return res.status(403).json({ success: false, message: 'Invalid or expired token' });
+    if (err) return res.status(401).json({ success: false, message: 'Invalid or expired token' });
     req.user = payload;
     next();
   });
@@ -37,7 +37,7 @@ const authenticateMember = (req, res, next) => {
   if (!token) return res.status(401).json({ success: false, message: 'Access token required' });
 
   jwt.verify(token, process.env.JWT_MEMBER_SECRET, (err, payload) => {
-    if (err) return res.status(403).json({ success: false, message: 'Invalid or expired token' });
+    if (err) return res.status(401).json({ success: false, message: 'Invalid or expired token' });
     req.member = payload;
     next();
   });

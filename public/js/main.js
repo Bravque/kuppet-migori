@@ -147,7 +147,53 @@ async function loadHomepageData() {
     loadSiteStats(),
     loadFeaturedNews(),
     loadUpcomingEvents(),
+    loadHomeScholarships(),
   ]);
+}
+
+// Populate the homepage scholarships preview from the admin-managed list so it
+// stays in sync with the Scholarships page (deleting/adding in the admin portal
+// is reflected here). On empty/failed load we leave the static fallback cards in
+// place, or hide the whole section if the DB explicitly has none.
+async function loadHomeScholarships() {
+  const container = document.getElementById('home-scholarships');
+  if (!container) return;
+  try {
+    const { data } = await api.scholarships.getAll({ limit: 3 });
+    if (!Array.isArray(data)) return;
+    if (!data.length) {
+      const section = container.closest('.scholarships-preview');
+      if (section) section.style.display = 'none';
+      return;
+    }
+    container.innerHTML = data.map(renderHomeScholarshipCard).join('');
+  } catch {
+    /* leave the static fallback cards in place */
+  }
+}
+
+function renderHomeScholarshipCard(s) {
+  const isExpired = s.application_deadline && new Date(s.application_deadline) < new Date();
+  const deadline = s.application_deadline
+    ? new Date(s.application_deadline).toLocaleDateString('en-KE', { day: 'numeric', month: 'long', year: 'numeric' })
+    : 'Open';
+  return `
+    <div class="scholarship-card${isExpired ? ' expired' : ''}">
+      ${s.is_featured ? '<span class="scholarship-featured-badge"><i class="fas fa-star"></i> Featured</span>' : ''}
+      <p class="scholarship-provider">${escHtml(s.provider)}</p>
+      <h3>${escHtml(s.title)}</h3>
+      <p>${escHtml((s.description || '').substring(0, 160))}${(s.description || '').length > 160 ? '...' : ''}</p>
+      <div class="scholarship-meta">
+        <span class="scholarship-meta-item">
+          <i class="far fa-calendar-alt"></i>
+          <span class="scholarship-deadline">Deadline: ${isExpired ? 'Closed' : deadline}</span>
+        </span>
+        <span class="scholarship-meta-item"><i class="fas fa-graduation-cap"></i> ${scholarshipTypeLabel(s.scholarship_type)}</span>
+      </div>
+      <a href="/pages/scholarships.html" class="btn btn-primary btn-sm">
+        <i class="fas fa-info-circle"></i> View Details &amp; Apply
+      </a>
+    </div>`;
 }
 
 // Populate the homepage announcement ticker from the admin-managed list.
