@@ -70,6 +70,7 @@ async function apply(req, res) {
       title: 'Scholarship Application Submitted',
       body: `Your application ${appNumber} for "${scholarship.title}" has been submitted and is awaiting review.`,
       referenceId: result.insertId,
+      email: true,
       smsMessage: `Dear member, your scholarship application ${appNumber} has been submitted for review. - KUPPET Migori`,
     });
 

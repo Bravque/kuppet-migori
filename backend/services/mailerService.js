@@ -87,6 +87,18 @@ const templates = {
 <p>Regards,<br>KUPPET Migori Branch Secretariat</p>`,
   }),
 
+  // Generic member status notice — used for BBF claim & scholarship application
+  // status changes (submitted, under review, approved, rejected, paid). The
+  // title/body come straight from the in-app notification so the wording stays
+  // in one place.
+  memberNotice: (name, title, body) => ({
+    subject: `KUPPET Migori — ${esc(title)}`,
+    html: `<p>Dear ${esc(name || 'Member')},</p>
+<p>${nl2br(body || title)}</p>
+<p>You can view the details anytime in your member portal at <a href="https://kuppetmigori.co.ke/member/login.html">kuppetmigori.co.ke/member/login.html</a>.</p>
+<p>Regards,<br>KUPPET Migori Branch Secretariat</p>`,
+  }),
+
   contactAutoReply: (name, category) => ({
     subject: `KUPPET Migori — We received your ${esc(category)} enquiry`,
     html: `<p>Dear ${esc(name)},</p>

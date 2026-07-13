@@ -60,6 +60,7 @@ async function approve(req, res) {
       body: `Your scholarship application for "${app.title}" (${app.applicant_name}) has been approved.`,
       referenceId: app.id,
       adminId: req.user.id,
+      email: true,
       smsMessage: `Dear member, the scholarship application for ${app.applicant_name} (${app.title}) has been APPROVED. - KUPPET Migori`,
     });
     res.json({ success: true, message: 'Application approved' });
@@ -84,9 +85,11 @@ async function reject(req, res) {
       memberId: app.member_id,
       type: 'scholarship',
       title: 'Scholarship Application Unsuccessful',
-      body: `Your scholarship application for "${app.title}" (${app.applicant_name}) was not successful this time.`,
+      body: `Your scholarship application for "${app.title}" (${app.applicant_name}) was not successful this time.${notes ? ` Reason: ${notes}` : ''}`,
       referenceId: app.id,
       adminId: req.user.id,
+      email: true,
+      smsMessage: `Dear member, the scholarship application for ${app.applicant_name} (${app.title}) was not successful this time. ${notes ? `Reason: ${notes}` : 'Contact the office for details.'} - KUPPET Migori`,
     });
     res.json({ success: true, message: 'Application rejected' });
   } catch (err) {

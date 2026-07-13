@@ -112,6 +112,7 @@ async function submitClaim(req, res) {
       title: 'BBF Claim Submitted',
       body: `Your claim ${claim.claim_number} has been submitted and is awaiting review.`,
       referenceId: claim.id,
+      email: true,
       smsMessage: `Dear member, your BBF claim ${claim.claim_number} has been submitted for review. - KUPPET Migori`,
     });
 

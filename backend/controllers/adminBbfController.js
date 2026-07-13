@@ -72,6 +72,16 @@ async function startReview(req, res) {
     }
     await db.query('UPDATE bbf_claims SET status = "under_review", assigned_to = ?, reviewed_at = NOW() WHERE id = ?', [req.user.id, claim.id]);
     await addTimeline(claim.id, claim.status, 'under_review', req.body.notes, req.user.id);
+    await notificationService.createNotification({
+      memberId: claim.member_id,
+      type: 'bbf_claim',
+      title: 'BBF Claim Under Review',
+      body: `Your BBF claim ${claim.claim_number} is now under review by the welfare desk. You will be notified once a decision is made.`,
+      referenceId: claim.id,
+      adminId: req.user.id,
+      email: true,
+      smsMessage: `Dear member, your BBF claim ${claim.claim_number} is now UNDER REVIEW. - KUPPET Migori`,
+    });
     res.json({ success: true, message: 'Claim marked under review' });
   } catch (err) {
     res.status(500).json({ success: false, message: 'Failed to update' });
@@ -98,6 +108,7 @@ async function approveClaim(req, res) {
       body: `Your BBF claim ${claim.claim_number} has been approved${amount ? `. Approved amount: KES ${Number(amount).toLocaleString()}` : ''}.`,
       referenceId: claim.id,
       adminId: req.user.id,
+      email: true,
       smsMessage: `Dear member, your BBF claim ${claim.claim_number} has been APPROVED${amount ? `. Amount: KES ${Number(amount).toLocaleString()}` : ''}. Payment will be processed shortly. - KUPPET Migori`,
     });
     res.json({ success: true, message: 'Claim approved' });
@@ -123,6 +134,7 @@ async function rejectClaim(req, res) {
       body: `Your BBF claim ${claim.claim_number} could not be approved at this time. ${notes ? `Reason: ${notes}` : ''}`,
       referenceId: claim.id,
       adminId: req.user.id,
+      email: true,
       smsMessage: `Dear member, your BBF claim ${claim.claim_number} was not approved. ${notes ? `Reason: ${notes}` : 'Contact welfare desk for details.'}  - KUPPET Migori`,
     });
     res.json({ success: true, message: 'Claim rejected' });
@@ -146,9 +158,11 @@ async function markPaid(req, res) {
       memberId: claim.member_id,
       type: 'bbf_claim',
       title: 'BBF Claim Payment Processed',
-      body: `Your BBF claim ${claim.claim_number} payment has been processed.`,
+      body: `Your BBF claim ${claim.claim_number} payment has been processed${ref ? ` (Ref: ${ref})` : ''}.`,
       referenceId: claim.id,
       adminId: req.user.id,
+      email: true,
+      smsMessage: `Dear member, payment for your BBF claim ${claim.claim_number} has been PROCESSED${ref ? `. Ref: ${ref}` : ''}. - KUPPET Migori`,
     });
     res.json({ success: true, message: 'Claim marked as paid' });
   } catch (err) {
