@@ -254,20 +254,29 @@ app.use('/api', (req, res) => {
 });
 
 // Portal page handlers — must be above the wildcard to prevent index.html fallback
+// Serve a static HTML file, falling back to a shell page; if even the shell
+// can't be served (e.g. a transient during a redeploy), return a plain 404
+// rather than throwing into the global handler — which would 500 and fire an
+// alert email. `sendFile` errors before streaming leave headers unsent.
+function sendPage(res, file, shell) {
+  res.sendFile(file, err => {
+    if (!err) return;
+    res.sendFile(path.join(PUBLIC_ROOT, shell), err2 => {
+      if (err2 && !res.headersSent) res.status(404).type('txt').send('Not found');
+    });
+  });
+}
+
 app.get('/member/*', (req, res) => {
   const file = safePublicPath(req.path);
   if (!file) return res.status(400).end();
-  res.sendFile(file.endsWith('.html') ? file : file + '.html', err => {
-    if (err) res.sendFile(path.join(PUBLIC_ROOT, 'member/login.html'));
-  });
+  sendPage(res, file.endsWith('.html') ? file : file + '.html', 'member/login.html');
 });
 
 app.get('/admin/*', (req, res) => {
   const file = safePublicPath(req.path);
   if (!file) return res.status(400).end();
-  res.sendFile(file.endsWith('.html') ? file : file + '.html', err => {
-    if (err) res.sendFile(path.join(PUBLIC_ROOT, 'admin/login.html'));
-  });
+  sendPage(res, file.endsWith('.html') ? file : file + '.html', 'admin/login.html');
 });
 
 // Dynamic sitemap — static public pages + every published news & advocacy article,
@@ -315,9 +324,7 @@ ${urls.map(u => `  <url>
 app.get('*', (req, res) => {
   const filePath = req.path === '/' ? path.join(PUBLIC_ROOT, 'index.html') : safePublicPath(req.path);
   if (!filePath) return res.status(400).end();
-  res.sendFile(filePath, err => {
-    if (err) res.sendFile(path.join(PUBLIC_ROOT, 'index.html'));
-  });
+  sendPage(res, filePath, 'index.html');
 });
 
 // Global error handler (catches multer errors too)
