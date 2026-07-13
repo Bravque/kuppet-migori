@@ -180,6 +180,12 @@ const adminApi = (() => {
       updateTemplate: (id, d) => request(`/admin/sms/templates/${id}`, { method: 'PUT', body: JSON.stringify(d) }),
     },
 
+    email: {
+      send: (d) => request('/admin/email/send', { method: 'POST', body: JSON.stringify(d) }),
+      bulk: (d) => request('/admin/email/bulk', { method: 'POST', body: JSON.stringify(d) }),
+      group: (d) => request('/admin/email/group', { method: 'POST', body: JSON.stringify(d) }),
+    },
+
     analytics: {
       getSummary: () => request('/admin/analytics/summary'),
       getMonthly: () => request('/admin/analytics/monthly'),

@@ -99,6 +99,16 @@ const templates = {
 <p>Regards,<br>KUPPET Migori Branch Secretariat</p>`,
   }),
 
+  // Admin-composed email (Communications → Send Email): individual, bulk, or
+  // group broadcast. Subject is plain text (email header); body is wrapped in a
+  // branded greeting/sign-off. Name defaults to "Member" for anonymous sends.
+  adminEmail: (name, subject, body) => ({
+    subject: String(subject || 'A message from KUPPET Migori'),
+    html: `<p>Dear ${esc(name || 'Member')},</p>
+<p>${nl2br(body)}</p>
+<p>Regards,<br>KUPPET Migori Branch Secretariat</p>`,
+  }),
+
   contactAutoReply: (name, category) => ({
     subject: `KUPPET Migori — We received your ${esc(category)} enquiry`,
     html: `<p>Dear ${esc(name)},</p>

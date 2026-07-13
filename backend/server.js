@@ -124,6 +124,18 @@ const smsBulkLimiter = rateLimit({
   message: { success: false, message: 'Bulk SMS limit reached. Try again in an hour.' },
 });
 
+const emailLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 20,
+  message: { success: false, message: 'Email rate limit exceeded.' },
+});
+
+const emailBulkLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  max: 5,
+  message: { success: false, message: 'Bulk email limit reached. Try again in an hour.' },
+});
+
 app.use('/api/', apiLimiter);
 // Only rate-limit public contact-form submissions (POST /api/contact). The admin
 // Contact Inbox reads/replies (GET, PUT, POST /:id/reply) must NOT count against
@@ -206,6 +218,11 @@ app.use('/api/admin/sms',              (req, res, next) => {
   if (req.method === 'POST' && req.path === '/bulk') return smsBulkLimiter(req, res, next);
   next();
 }, require('./routes/adminSms'));
+app.use('/api/admin/email',            (req, res, next) => {
+  if (req.method === 'POST' && req.path === '/send') return emailLimiter(req, res, next);
+  if (req.method === 'POST' && (req.path === '/bulk' || req.path === '/group')) return emailBulkLimiter(req, res, next);
+  next();
+}, require('./routes/adminEmail'));
 app.use('/api/admin/analytics',        require('./routes/adminAnalytics'));
 app.use('/api/admin/audit',            require('./routes/adminAudit'));
 app.use('/api/admin/court-cases',      require('./routes/courtCases'));

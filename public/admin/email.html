@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<script>(function(){var t=sessionStorage.getItem("adminToken"),la=parseInt(sessionStorage.getItem("adminLastActivity")||"0",10);if(!t||(la&&Date.now()-la>1800000)){sessionStorage.removeItem("adminToken");sessionStorage.removeItem("adminUser");sessionStorage.removeItem("adminLastActivity");location.replace("/admin/login.html");}})();</script>
+  <link rel="icon" href="/favicon.ico" sizes="any">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16.png">
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Send Email — KUPPET Migori Admin</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <link rel="stylesheet" href="/css/style.css?v=20260712a"><link rel="stylesheet" href="/css/portal.css?v=20260712a">
+</head>
+<body class="portal-body admin-email-page">
+<div class="portal-layout">
+  <div id="sidebar-placeholder"></div>
+  <main class="portal-main">
+    <div id="topbar-placeholder"></div>
+    <div class="portal-content">
+      <div class="page-heading"><div class="page-heading-text"><h1>Send Email</h1><p>Send individual, bulk, or group emails to members.</p></div></div>
+      <div class="filter-tabs">
+        <button class="filter-tab active" data-mode="individual">Individual</button>
+        <button class="filter-tab" data-mode="bulk">Bulk</button>
+        <button class="filter-tab" data-mode="group">Group</button>
+      </div>
+      <div id="email-alert" class="hidden" style="max-width:600px;margin-bottom:1rem"></div>
+
+      <!-- Individual -->
+      <div id="panel-individual" class="data-card" style="max-width:600px;padding:1.5rem">
+        <div class="form-group"><label>Recipient Email</label><input type="email" id="ind-email" class="form-control" placeholder="member@example.com"></div>
+        <div class="form-group"><label>Recipient Name (optional)</label><input type="text" id="ind-name" class="form-control" placeholder="Used in the greeting — defaults to 'Member'"></div>
+        <div class="form-group"><label>Subject</label><input type="text" id="ind-subject" class="form-control" maxlength="200"></div>
+        <div class="form-group"><label>Message</label><textarea id="ind-message" class="form-control" rows="6" maxlength="5000"></textarea></div>
+        <button class="btn btn-gold btn-sm" onclick="sendIndividual()"><i class="fas fa-paper-plane"></i> Send Email</button>
+      </div>
+
+      <!-- Bulk -->
+      <div id="panel-bulk" class="data-card" style="max-width:600px;padding:1.5rem;display:none">
+        <div class="form-group"><label>Email Addresses (one per line)</label><textarea id="bulk-emails" class="form-control" rows="6" placeholder="member1@example.com&#10;member2@example.com&#10;..."></textarea></div>
+        <div class="form-group"><label>Subject</label><input type="text" id="bulk-subject" class="form-control" maxlength="200"></div>
+        <div class="form-group"><label>Message</label><textarea id="bulk-message" class="form-control" rows="6" maxlength="5000"></textarea></div>
+        <button class="btn btn-gold btn-sm" onclick="sendBulk()"><i class="fas fa-layer-group"></i> Send Bulk Email</button>
+      </div>
+
+      <!-- Group -->
+      <div id="panel-group" class="data-card" style="max-width:600px;padding:1.5rem;display:none">
+        <div class="form-group"><label>Target Group</label>
+          <select id="group-target" class="form-control" onchange="document.getElementById('group-subcounty-row').style.display=this.value==='sub_county'?'':'none'">
+            <option value="all_approved">All Approved Members</option>
+            <option value="sub_county">By Sub-County</option>
+          </select>
+        </div>
+        <div id="group-subcounty-row" style="display:none" class="form-group"><label>Sub-County</label>
+          <select id="group-subcounty" class="form-control"><option>Rongo</option><option>Awendo</option><option>Uriri</option><option>Suna East</option><option>Suna West</option><option>Ntimaru</option><option>Kuria West</option><option>Kuria East</option><option>Mabera</option><option>Nyatike South</option><option>Nyatike West</option><option>Nyatike North</option></select>
+        </div>
+        <div class="form-group"><label>Subject</label><input type="text" id="group-subject" class="form-control" maxlength="200"></div>
+        <div class="form-group"><label>Message</label><textarea id="group-message" class="form-control" rows="6" maxlength="5000"></textarea></div>
+        <p style="font-size:0.8rem;color:var(--text-muted);margin:-0.25rem 0 0.75rem">Each member is greeted by name automatically. Only approved members with an email address receive the message.</p>
+        <button class="btn btn-gold btn-sm" onclick="sendGroup()"><i class="fas fa-users"></i> Send Group Email</button>
+      </div>
+    </div>
+  </main>
+</div>
+<script src="/admin/js/admin-api.js"></script><script src="/admin/js/admin-portal.js"></script>
+<script>
+  document.getElementById('sidebar-placeholder').outerHTML = getSidebarHtml();
+  document.getElementById('topbar-placeholder').outerHTML = getTopbarHtml('Send Email');
+  const user = requireAdminAuth(); if(user) initSidebar(user);
+
+  document.querySelectorAll('.filter-tab').forEach(t=>t.addEventListener('click',()=>{
+    document.querySelectorAll('.filter-tab').forEach(x=>x.classList.remove('active'));t.classList.add('active');
+    document.querySelectorAll('[id^=panel-]').forEach(p=>p.style.display='none');
+    document.getElementById('panel-'+t.dataset.mode).style.display='';
+    hideAlert('email-alert');
+  }));
+
+  async function sendIndividual(){
+    const email=document.getElementById('ind-email').value.trim();
+    const name=document.getElementById('ind-name').value.trim();
+    const subject=document.getElementById('ind-subject').value.trim();
+    const message=document.getElementById('ind-message').value.trim();
+    if(!email||!subject||!message){showAlert('email-alert','Email, subject and message are required');return;}
+    try{
+      const res=await adminApi.email.send({email,name,subject,message});
+      showAlert('email-alert',res.message,res.success?'success':'danger');
+      if(res.success){
+        document.getElementById('ind-email').value='';
+        document.getElementById('ind-name').value='';
+        document.getElementById('ind-subject').value='';
+        document.getElementById('ind-message').value='';
+      }
+    }catch(err){showAlert('email-alert',err.message);}
+  }
+
+  async function sendBulk(){
+    const emails=document.getElementById('bulk-emails').value.trim().split('\n').map(p=>p.trim()).filter(Boolean);
+    const subject=document.getElementById('bulk-subject').value.trim();
+    const message=document.getElementById('bulk-message').value.trim();
+    if(!emails.length||!subject||!message){showAlert('email-alert','Email addresses, subject and message are required');return;}
+    const recipients=emails.map(email=>({email}));
+    try{
+      const res=await adminApi.email.bulk({recipients,subject,message});
+      showAlert('email-alert',res.message,res.success?'success':'danger');
+    }catch(err){showAlert('email-alert',err.message);}
+  }
+
+  async function sendGroup(){
+    const group=document.getElementById('group-target').value;
+    const subject=document.getElementById('group-subject').value.trim();
+    const message=document.getElementById('group-message').value.trim();
+    const sub_county=document.getElementById('group-subcounty').value;
+    if(!subject||!message){showAlert('email-alert','Subject and message are required');return;}
+    if(!confirm('Send this email to all members in the selected group?'))return;
+    try{
+      const res=await adminApi.email.group({group,subject,message,sub_county});
+      showAlert('email-alert',res.message,res.success?'success':'danger');
+    }catch(err){showAlert('email-alert',err.message);}
+  }
+</script>
+</body>
+</html>
