@@ -1,6 +1,6 @@
 const router = require('express').Router();
 const { body } = require('express-validator');
-const { authenticate, authorizeAdmin, authorizeSuperAdmin, auditLog } = require('../middleware/auth');
+const { authenticate, authorizeAdmin, auditLog } = require('../middleware/auth');
 const { handleValidation } = require('../middleware/validate');
 const ctrl = require('../controllers/smsController');
 
@@ -25,12 +25,14 @@ const templateRules = [
   body('is_active').optional().isBoolean().withMessage('is_active must be a boolean'),
 ];
 
+// All communication features are open to every admin role (super_admin,
+// branch_officer, branch_secretary) via authorizeAdmin.
 router.post('/send', authenticate, authorizeAdmin, sendRules, handleValidation, auditLog('sms.send'), ctrl.send);
-router.post('/bulk', authenticate, authorizeSuperAdmin, bulkRules, handleValidation, auditLog('sms.bulk'), ctrl.bulk);
-router.post('/group', authenticate, authorizeSuperAdmin, groupRules, handleValidation, auditLog('sms.group'), ctrl.sendToGroup);
+router.post('/bulk', authenticate, authorizeAdmin, bulkRules, handleValidation, auditLog('sms.bulk'), ctrl.bulk);
+router.post('/group', authenticate, authorizeAdmin, groupRules, handleValidation, auditLog('sms.group'), ctrl.sendToGroup);
 router.get('/logs', authenticate, authorizeAdmin, ctrl.getLogs);
 router.get('/templates', authenticate, authorizeAdmin, ctrl.getTemplates);
-router.post('/templates', authenticate, authorizeSuperAdmin, templateRules, handleValidation, ctrl.createTemplate);
-router.put('/templates/:id', authenticate, authorizeSuperAdmin, templateRules, handleValidation, ctrl.updateTemplate);
+router.post('/templates', authenticate, authorizeAdmin, templateRules, handleValidation, ctrl.createTemplate);
+router.put('/templates/:id', authenticate, authorizeAdmin, templateRules, handleValidation, ctrl.updateTemplate);
 
 module.exports = router;
