@@ -27,7 +27,8 @@ async function getAll(req, res) {
 async function getOne(req, res) {
   try {
     const [[app]] = await db.query(
-      `SELECT sa.*, m.full_name, m.member_number, m.phone, m.email, s.title as scholarship_title
+      `SELECT sa.*, m.full_name, m.member_number, m.phone, m.email,
+              m.tsc_number, m.sub_county, m.school_name, m.school_category, s.title as scholarship_title
        FROM scholarship_applications sa
        JOIN members m ON sa.member_id = m.id
        JOIN scholarships s ON sa.scholarship_id = s.id WHERE sa.id = ?`,

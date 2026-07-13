@@ -33,10 +33,20 @@
     <div class="portal-modal-body">
       <div id="apply-msg" class="hidden"></div>
       <form id="apply-form">
-        <div class="form-group">
-          <label>Applying as</label>
-          <input type="text" id="apply-applicant" class="form-control" readonly style="background:var(--bg)">
-          <div class="form-hint">Taken from your member account.</div>
+        <!-- Applicant details — pulled from the member's profile, not re-entered -->
+        <div style="padding:0.85rem 1rem;background:var(--bg);border-radius:8px;margin-bottom:1rem">
+          <div style="font-size:0.72rem;text-transform:uppercase;letter-spacing:0.05em;color:var(--text-muted);margin-bottom:0.5rem"><i class="fas fa-id-badge" style="color:var(--primary)"></i> Your details (from your profile)</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.4rem 1rem;font-size:0.82rem">
+            <div><span style="color:var(--text-muted)">Name:</span> <strong id="sa-name">—</strong></div>
+            <div><span style="color:var(--text-muted)">Member No:</span> <strong id="sa-memberno">—</strong></div>
+            <div><span style="color:var(--text-muted)">TSC No:</span> <strong id="sa-tsc">—</strong></div>
+            <div><span style="color:var(--text-muted)">Phone:</span> <strong id="sa-phone">—</strong></div>
+            <div><span style="color:var(--text-muted)">Email:</span> <strong id="sa-email">—</strong></div>
+            <div><span style="color:var(--text-muted)">Sub-County:</span> <strong id="sa-subcounty">—</strong></div>
+            <div><span style="color:var(--text-muted)">School:</span> <strong id="sa-school">—</strong></div>
+            <div><span style="color:var(--text-muted)">Category:</span> <strong id="sa-category">—</strong></div>
+          </div>
+          <div style="font-size:0.72rem;color:var(--text-muted);margin-top:0.5rem">Need to change these? Update your <a href="/member/profile.html">profile</a>.</div>
         </div>
         <div class="form-row">
           <div class="form-group"><label>Institution <span class="required">*</span></label><input type="text" name="institution" class="form-control" required></div>

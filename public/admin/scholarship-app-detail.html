@@ -92,8 +92,12 @@
       { title:"Applicant's Details", rows:[
         ['Name', escHtml(a.applicant_name||a.full_name||'—')],
         ['Member No', escHtml(a.member_number||'—')],
+        ['TSC No', escHtml(a.tsc_number||'—')],
         ['Phone', escHtml(a.phone||'—')],
         ['Email', escHtml(a.email||'—')],
+        ['Sub-County', escHtml(a.sub_county||'—')],
+        ['School', escHtml(a.school_name||'—')],
+        ['Category', escHtml(bbfSchoolCatLabel(a.school_category))],
       ]},
       { title:'Study Details', rows:[
         ['Institution', escHtml(a.institution||'—')],
@@ -137,8 +141,12 @@
       const applicantRows = [
         ['Name', escHtml(a.applicant_name || a.full_name || '—')],
         ['Member No', escHtml(a.member_number || '—')],
+        ['TSC No', escHtml(a.tsc_number || '—')],
         ['Phone', a.phone ? `<a href="tel:${escHtml(a.phone)}">${escHtml(a.phone)}</a>` : '—'],
         ['Email', a.email ? `<a href="mailto:${escHtml(a.email)}">${escHtml(a.email)}</a>` : '—'],
+        ['Sub-County', escHtml(a.sub_county || '—')],
+        ['School', escHtml(a.school_name || '—')],
+        ['Category', escHtml(bbfSchoolCatLabel(a.school_category))],
       ];
       const studyRows = [
         ['Institution', escHtml(a.institution || '—')],

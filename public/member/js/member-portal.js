@@ -498,14 +498,24 @@ async function initMemberScholarships() {
 }
 
 let applyScholarshipId = null;
-function openApplyModal(id, title) {
+async function openApplyModal(id, title) {
   applyScholarshipId = id;
   document.getElementById('apply-scholarship-title').textContent = title;
   document.getElementById('apply-form').reset();
-  // Applicant identity comes from the member's account, shown read-only.
-  const m = memberApi.getMember();
-  document.getElementById('apply-applicant').value = m ? m.full_name : '';
   document.getElementById('apply-modal').classList.add('open');
+  // Applicant identity comes in full from the member's profile — read-only, never re-entered.
+  try {
+    const { data: m } = await memberApi.profile.get();
+    const set = (elId, v) => { const el = document.getElementById(elId); if (el) el.textContent = v || '—'; };
+    set('sa-name', m.full_name);
+    set('sa-memberno', m.member_number);
+    set('sa-tsc', m.tsc_number);
+    set('sa-phone', m.phone);
+    set('sa-email', m.email);
+    set('sa-subcounty', m.sub_county);
+    set('sa-school', m.school_name);
+    set('sa-category', bbfSchoolCatLabel(m.school_category));
+  } catch { /* read-only display; ignore fetch errors */ }
 }
 
 async function submitApplication() {
