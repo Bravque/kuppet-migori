@@ -56,7 +56,7 @@ const templates = {
     html: `<p>Dear ${name},</p>
 <p>Thank you for registering with KUPPET Migori. Your application is under review and you will be notified via SMS and email once it has been processed.</p>
 <p>If you have any questions, contact our office at <a href="mailto:info@kuppetmigori.co.ke">info@kuppetmigori.co.ke</a> or call +254 721 808 993.</p>
-<p>Regards,<br>KUPPET Migori Branch Secretariat</p>`,
+<p>Regards,<br>KUPPET Migori Branch</p>`,
   }),
 
   memberApproved: (name, memberNumber) => ({
@@ -65,7 +65,7 @@ const templates = {
 <p>Congratulations! Your KUPPET Migori membership has been <strong>approved</strong>.</p>
 <p>Your member number is: <strong>${memberNumber}</strong></p>
 <p>You can now log in to your member portal at <a href="https://kuppetmigori.co.ke/member/login.html">kuppetmigori.co.ke/member/login.html</a></p>
-<p>Regards,<br>KUPPET Migori Branch Secretariat</p>`,
+<p>Regards,<br>KUPPET Migori Branch</p>`,
   }),
 
   memberRejected: (name, reason) => ({
@@ -74,7 +74,7 @@ const templates = {
 <p>We regret to inform you that your membership application could not be approved at this time.</p>
 <p><strong>Reason:</strong> ${reason}</p>
 <p>Please visit our office or contact us at info@kuppetmigori.co.ke for further assistance.</p>
-<p>Regards,<br>KUPPET Migori Branch Secretariat</p>`,
+<p>Regards,<br>KUPPET Migori Branch</p>`,
   }),
 
   passwordReset: (name, link) => ({
@@ -84,7 +84,7 @@ const templates = {
 <p><a href="${link}" style="display:inline-block;background:#1B3A6E;color:#fff;padding:10px 18px;border-radius:6px;text-decoration:none">Reset my password</a></p>
 <p>If the button doesn't work, copy and paste this link into your browser:<br><a href="${link}">${link}</a></p>
 <p>If you did not request this, you can safely ignore this email — your password will not change.</p>
-<p>Regards,<br>KUPPET Migori Branch Secretariat</p>`,
+<p>Regards,<br>KUPPET Migori Branch</p>`,
   }),
 
   // Generic member status notice — used for BBF claim & scholarship application
@@ -96,7 +96,7 @@ const templates = {
     html: `<p>Dear ${esc(name || 'Member')},</p>
 <p>${nl2br(body || title)}</p>
 <p>You can view the details anytime in your member portal at <a href="https://kuppetmigori.co.ke/member/login.html">kuppetmigori.co.ke/member/login.html</a>.</p>
-<p>Regards,<br>KUPPET Migori Branch Secretariat</p>`,
+<p>Regards,<br>KUPPET Migori Branch</p>`,
   }),
 
   // Admin-composed email (Communications → Send Email): individual, bulk, or
@@ -106,7 +106,7 @@ const templates = {
     subject: String(subject || 'A message from KUPPET Migori'),
     html: `<p>Dear ${esc(name || 'Member')},</p>
 <p>${nl2br(body)}</p>
-<p>Regards,<br>KUPPET Migori Branch Secretariat</p>`,
+<p>Regards,<br>KUPPET Migori Branch</p>`,
   }),
 
   contactAutoReply: (name, category) => ({
@@ -114,7 +114,7 @@ const templates = {
     html: `<p>Dear ${esc(name)},</p>
 <p>Thank you for contacting KUPPET Migori. We have received your enquiry and will respond within 2 working days.</p>
 <p>For urgent matters, call +254 721 808 993.</p>
-<p>Regards,<br>KUPPET Migori Branch Secretariat</p>`,
+<p>Regards,<br>KUPPET Migori Branch</p>`,
   }),
 
   // Sent to the branch inbox whenever a new enquiry is submitted. replyTo is set
@@ -141,7 +141,7 @@ const templates = {
 <p>${nl2br(replyBody)}</p>
 <hr style="border:none;border-top:1px solid #e2e8f0;margin:1.25rem 0">
 <p style="color:#718096;font-size:0.85rem">In reply to your message:<br><em>${nl2br(originalMessage)}</em></p>
-<p>Regards,<br>KUPPET Migori Branch Secretariat</p>`,
+<p>Regards,<br>KUPPET Migori Branch</p>`,
   }),
 };
 
