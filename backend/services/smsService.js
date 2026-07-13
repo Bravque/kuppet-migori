@@ -35,7 +35,10 @@ async function sendSms({ phone, message, memberId = null, sentBy, templateId = n
       const data = await response.json().catch(() => ({}));
       if (response.ok && data.status !== 'error') {
         status = 'sent';
-        talksasaRef = data.data?.uid || data.data?.message_id || data.message_id || data.reference || null;
+        // TalkSasa v3 returns the id as data.data.queue_uid on a successful send
+        // (HTTP 202 "accepted"); older/other shapes use uid/message_id. Capture
+        // whichever is present — the DLR webhook matches sms_logs on this ref.
+        talksasaRef = data.data?.queue_uid || data.data?.uid || data.data?.message_id || data.message_id || data.reference || null;
       } else {
         errorMessage = data.message || data.error || `HTTP ${response.status}`;
       }

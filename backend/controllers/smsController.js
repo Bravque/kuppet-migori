@@ -112,8 +112,8 @@ async function webhook(req, res) {
   try {
     const b = req.body || {};
     const d = b.data || {};
-    const reference = b.reference || b.uid || b.message_id || b.messageId || b.id ||
-                      d.uid || d.message_id || null;
+    const reference = b.reference || b.queue_uid || b.uid || b.message_id || b.messageId || b.id ||
+                      d.queue_uid || d.uid || d.message_id || null;
     const status = b.status || b.dlr_status || b.delivery_status || b.message_status ||
                    d.status || d.dlr_status || null;
     console.log('[sms webhook]', JSON.stringify(b));
