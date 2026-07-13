@@ -1337,6 +1337,20 @@ select.form-control { cursor: pointer; }
 .search-bar input { flex: 1; min-width: 0; border: none; outline: none; font-size: 0.9375rem; background: transparent; color: var(--text); }
 .search-bar button { flex-shrink: 0; }
 
+/* Notice-board search + subscribe toolbar (was inline styles on news.html) */
+.news-toolbar {
+  display: flex; gap: 1rem; flex-wrap: wrap; align-items: center; justify-content: space-between;
+  margin-bottom: 2rem; background: var(--bg-white); padding: 1.5rem;
+  border-radius: var(--radius-lg); border: 1px solid var(--border);
+}
+.news-toolbar .search-bar { flex: 1; max-width: 420px; }
+@media (max-width: 640px) {
+  /* Stack the search bar over "Subscribe" and let it use the full width, rather
+     than cramming both onto one line. */
+  .news-toolbar { flex-direction: column; align-items: stretch; gap: 0.85rem; padding: 1rem; }
+  .news-toolbar .search-bar { max-width: none; }
+}
+
 /* Filter tabs */
 .filter-tabs { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 2rem; }
 .filter-tab {
@@ -1349,6 +1363,12 @@ select.form-control { cursor: pointer; }
 }
 .filter-tab:hover { border-color: var(--primary); color: var(--primary); }
 .filter-tab.active { background: var(--primary); border-color: var(--primary); color: #fff; }
+/* Tighten the category chips on phones so they pack neatly instead of sprawling
+   into ragged, cramped rows. */
+@media (max-width: 640px) {
+  .filter-tabs { gap: 0.4rem; margin-bottom: 1.25rem; }
+  .filter-tab { padding: 0.4rem 0.85rem; font-size: 0.78rem; }
+}
 
 /* Alert / Notice */
 .alert { padding: 1rem 1.25rem; border-radius: var(--radius); margin-bottom: 1.25rem; font-size: 0.9rem; }
