@@ -101,6 +101,46 @@ async function updateDeliveryStatus(talksasaRef, rawStatus) {
   return mapped;
 }
 
+// Pull a delivery-status word out of a TalkSasa queue-status payload. The inner
+// `data` object carries the delivery state (the outer `status` is just the API
+// call result); a per-recipient array may also be present.
+function extractQueueStatus(body) {
+  const d = body?.data || {};
+  if (Array.isArray(d.recipients) && d.recipients.length) {
+    const r = d.recipients[0];
+    return r.status || r.delivery_status || r.dlr_status || null;
+  }
+  return d.delivery_status || d.dlr_status || d.status || null;
+}
+
+// Actively poll TalkSasa for the delivery status of a queued message (the
+// GET /sms/queue/{uid} endpoint whose URL TalkSasa returns as check_status_url).
+// Updates sms_logs to the mapped status when a terminal/known state is returned.
+// Never throws — returns { rawStatus, mapped, raw } or { error }.
+async function checkDelivery(talksasaRef) {
+  if (!talksasaRef) return { error: 'No TalkSasa reference stored for this message' };
+  if (!API_KEY) return { error: 'No TALKSASA_API_KEY configured' };
+  try {
+    const response = await fetch(`${BASE_URL}/sms/queue/${encodeURIComponent(talksasaRef)}`, {
+      method: 'GET',
+      headers: { 'Accept': 'application/json', 'Authorization': `Bearer ${API_KEY}` },
+      signal: AbortSignal.timeout(10000),
+    });
+    const body = await response.json().catch(() => ({}));
+    if (!response.ok || body.status === 'error') {
+      return { error: body.message || body.error || `HTTP ${response.status}` };
+    }
+    const rawStatus = extractQueueStatus(body);
+    const mapped = mapDlrStatus(rawStatus);
+    if (mapped) {
+      await db.query('UPDATE sms_logs SET status = ? WHERE talksasa_ref = ?', [mapped, talksasaRef]);
+    }
+    return { rawStatus, mapped, raw: body };
+  } catch (err) {
+    return { error: err.message };
+  }
+}
+
 function normalizePhone(phone) {
   const digits = phone.replace(/\D/g, '');
   if (digits.startsWith('0')) return '254' + digits.slice(1);
@@ -108,4 +148,4 @@ function normalizePhone(phone) {
   return digits;
 }
 
-module.exports = { sendSms, sendBulk, resolveTemplate, updateDeliveryStatus };
+module.exports = { sendSms, sendBulk, resolveTemplate, updateDeliveryStatus, checkDelivery };

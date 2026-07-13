@@ -31,6 +31,7 @@ router.post('/send', authenticate, authorizeAdmin, sendRules, handleValidation, 
 router.post('/bulk', authenticate, authorizeAdmin, bulkRules, handleValidation, auditLog('sms.bulk'), ctrl.bulk);
 router.post('/group', authenticate, authorizeAdmin, groupRules, handleValidation, auditLog('sms.group'), ctrl.sendToGroup);
 router.get('/logs', authenticate, authorizeAdmin, ctrl.getLogs);
+router.post('/logs/:id/check-status', authenticate, authorizeAdmin, auditLog('sms.check_status'), ctrl.checkStatus);
 router.get('/templates', authenticate, authorizeAdmin, ctrl.getTemplates);
 router.post('/templates', authenticate, authorizeAdmin, templateRules, handleValidation, ctrl.createTemplate);
 router.put('/templates/:id', authenticate, authorizeAdmin, templateRules, handleValidation, ctrl.updateTemplate);

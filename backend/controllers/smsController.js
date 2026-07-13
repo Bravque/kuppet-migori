@@ -64,6 +64,27 @@ async function getLogs(req, res) {
   }
 }
 
+// Actively re-check a message's delivery status against TalkSasa's queue
+// endpoint (for messages that never received a webhook DLR). Updates the row.
+async function checkStatus(req, res) {
+  try {
+    const [[log]] = await db.query('SELECT id, talksasa_ref, status FROM sms_logs WHERE id = ?', [req.params.id]);
+    if (!log) return res.status(404).json({ success: false, message: 'Log entry not found' });
+    if (!log.talksasa_ref) {
+      return res.json({ success: false, message: 'No TalkSasa reference stored — this message predates delivery tracking and cannot be checked' });
+    }
+    const result = await smsService.checkDelivery(log.talksasa_ref);
+    if (result.error) return res.json({ success: false, message: `Status check failed: ${result.error}` });
+    const newStatus = result.mapped || log.status;
+    const message = result.mapped
+      ? `Delivery status: ${result.mapped}`
+      : `TalkSasa reports "${result.rawStatus || 'pending/unknown'}" — not yet a final delivery state`;
+    res.json({ success: true, data: { status: newStatus, raw: result.rawStatus || null }, message });
+  } catch (err) {
+    res.status(500).json({ success: false, message: 'Failed to check status' });
+  }
+}
+
 async function getTemplates(req, res) {
   try {
     const [rows] = await db.query('SELECT * FROM sms_templates WHERE is_active = 1 ORDER BY category, name');
@@ -124,4 +145,4 @@ async function webhook(req, res) {
   }
 }
 
-module.exports = { send, bulk, sendToGroup, getLogs, getTemplates, createTemplate, updateTemplate, webhook };
+module.exports = { send, bulk, sendToGroup, getLogs, checkStatus, getTemplates, createTemplate, updateTemplate, webhook };

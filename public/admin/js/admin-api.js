@@ -175,6 +175,7 @@ const adminApi = (() => {
       send: (d) => request('/admin/sms/send', { method: 'POST', body: JSON.stringify(d) }),
       bulk: (d) => request('/admin/sms/bulk', { method: 'POST', body: JSON.stringify(d) }),
       getLogs: (p = {}) => request('/admin/sms/logs?' + new URLSearchParams(p)),
+      checkStatus: (id) => request(`/admin/sms/logs/${id}/check-status`, { method: 'POST' }),
       getTemplates: () => request('/admin/sms/templates'),
       createTemplate: (d) => request('/admin/sms/templates', { method: 'POST', body: JSON.stringify(d) }),
       updateTemplate: (id, d) => request(`/admin/sms/templates/${id}`, { method: 'PUT', body: JSON.stringify(d) }),
