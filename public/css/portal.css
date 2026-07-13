@@ -1059,6 +1059,13 @@ textarea.form-control { resize: vertical; min-height: 100px; }
 .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
 .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; }
 
+/* Read-only "your details (from your profile)" fact grid on the BBF & scholarship
+   forms. Long values (e.g. email) wrap instead of overflowing the narrow column,
+   and it collapses to a single column on very small phones. */
+.profile-facts { display: grid; grid-template-columns: 1fr 1fr; gap: 0.4rem 1rem; font-size: 0.82rem; }
+.profile-facts strong { overflow-wrap: anywhere; }
+@media (max-width: 420px) { .profile-facts { grid-template-columns: 1fr; } }
+
 @media (max-width: 640px) {
   .portal-content { padding: 1rem; padding-top: calc(60px + 1rem); }
   .portal-login-card { padding: 1.75rem; }
