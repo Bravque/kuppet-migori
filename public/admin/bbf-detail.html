@@ -96,7 +96,6 @@
         ['Claim No', escHtml(c.claim_number)],
         ['Type', escHtml(bbfTypeLabel(c.claim_type))],
         ['Status', escHtml((c.status||'').replace(/_/g,' '))],
-        ['Amount Requested', money(c.amount_requested)],
         ['Amount Approved', money(c.amount_approved)],
         ['Submitted', formatDate(c.submitted_at)],
         ['Reviewed', formatDate(c.reviewed_at)],
@@ -140,7 +139,6 @@
         </div>`;
 
       const claimRows=[['Claim No',c.claim_number],['Type',bbfTypeLabel(c.claim_type)],['Status',statusBadge(c.status)],
-        ['Amount Req',c.amount_requested?'KES '+Number(c.amount_requested).toLocaleString():'—'],
         ['Amount Approved',c.amount_approved?'KES '+Number(c.amount_approved).toLocaleString():'—'],
         ['Submitted',formatDate(c.submitted_at)],['Reviewed',formatDate(c.reviewed_at)],['Resolved',formatDate(c.resolved_at)],
         ['Notes',c.reviewer_notes||'—'],['Payment Ref',c.payment_reference||'—']];

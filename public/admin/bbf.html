@@ -33,7 +33,7 @@
       <div class="data-card">
         <div class="data-table-wrap">
           <table class="data-table">
-            <thead><tr><th>Claim No</th><th>Member</th><th>Type</th><th>Amount Requested</th><th>Status</th><th>Submitted</th><th>Action</th></tr></thead>
+            <thead><tr><th>Claim No</th><th>Member</th><th>Type</th><th>Status</th><th>Submitted</th><th>Action</th></tr></thead>
             <tbody id="bbf-tbody"></tbody>
           </table>
         </div>
@@ -51,16 +51,15 @@
   let bbfOffset = 0; const BBF_LIMIT = 30;
   async function loadBbf() {
     const tbody = document.getElementById('bbf-tbody');
-    tbody.innerHTML = '<tr><td colspan="7">'+renderLoading()+'</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="6">'+renderLoading()+'</td></tr>';
     try {
       const res = await adminApi.bbf.getAll({status:currentStatus,limit:BBF_LIMIT,offset:bbfOffset});
       const pager=()=>renderAdminPager('bbf-pager',{total:res.total||0,offset:bbfOffset,limit:BBF_LIMIT,onPage:o=>{bbfOffset=o;loadBbf();}});
-      if(!res.data.length){tbody.innerHTML='<tr><td colspan="7">'+renderEmpty()+'</td></tr>';pager();return;}
+      if(!res.data.length){tbody.innerHTML='<tr><td colspan="6">'+renderEmpty()+'</td></tr>';pager();return;}
       tbody.innerHTML = res.data.map(c=>`<tr>
         <td><strong>${escHtml(c.claim_number)}</strong></td>
         <td>${escHtml(c.full_name)}<br><small>${escHtml(c.member_number)}</small></td>
         <td>${escHtml(bbfTypeLabel(c.claim_type))}</td>
-        <td>${c.amount_requested ? 'KES '+Number(c.amount_requested).toLocaleString() : '—'}</td>
         <td>${statusBadge(c.status)}</td>
         <td>${formatDate(c.submitted_at)}</td>
         <td><a href="/admin/bbf-detail.html?id=${c.id}" class="btn btn-outline btn-xs"><i class="fas fa-eye"></i> Review</a></td>

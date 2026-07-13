@@ -178,7 +178,7 @@ async function exportExcel(req, res) {
       `SELECT bc.claim_number, m.full_name, m.member_number, bc.claim_type,
               bc.deceased_name, bc.tsc_no, bc.sub_county, bc.school, bc.school_category,
               bc.relationship, DATE(bc.date_of_death) as date_of_death, bc.status,
-              bc.amount_requested, bc.amount_approved, DATE(bc.submitted_at) as submitted,
+              bc.amount_approved, DATE(bc.submitted_at) as submitted,
               DATE(bc.resolved_at) as resolved
        FROM bbf_claims bc JOIN members m ON bc.member_id = m.id ${where} ORDER BY bc.created_at DESC`,
       params
