@@ -1351,6 +1351,15 @@ select.form-control { cursor: pointer; }
   .news-toolbar .search-bar { max-width: none; }
 }
 
+/* Plain search + hint toolbar (resources page — no card background). Same
+   mobile stacking as .news-toolbar so the search bar and hint don't cram. */
+.search-toolbar { display: flex; gap: 1rem; flex-wrap: wrap; align-items: center; margin-bottom: 2rem; }
+.search-toolbar .search-bar { flex: 1; max-width: 450px; }
+@media (max-width: 640px) {
+  .search-toolbar { flex-direction: column; align-items: stretch; gap: 0.85rem; }
+  .search-toolbar .search-bar { max-width: none; }
+}
+
 /* Filter tabs */
 .filter-tabs { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 2rem; }
 .filter-tab {
