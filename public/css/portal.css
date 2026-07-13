@@ -1079,6 +1079,9 @@ textarea.form-control { resize: vertical; min-height: 100px; }
 @media (max-width: 480px) {
   .portal-content { padding: 0.75rem; padding-top: calc(60px + 0.75rem); }
   .stats-grid { grid-template-columns: 1fr; }
+  /* Dashboards with many stat cards (admin) stay two-up on phones instead of
+     collapsing into one long scrolling column. */
+  .stats-grid.stats-grid--compact { grid-template-columns: 1fr 1fr; gap: 0.6rem; }
   .grid-3 { grid-template-columns: 1fr; }
   .topbar-title { font-size: 0.875rem; max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .portal-modal { border-radius: var(--radius-md, 12px); max-height: 95vh; }
