@@ -53,7 +53,7 @@ const nl2br = (s) => esc(s).replace(/\r?\n/g, '<br>');
 const templates = {
   memberRegistered: (name) => ({
     subject: 'KUPPET Migori — Registration Received',
-    html: `<p>Dear ${name},</p>
+    html: `<p>Dear ${esc(name)},</p>
 <p>Thank you for registering with KUPPET Migori. Your application is under review and you will be notified via SMS and email once it has been processed.</p>
 <p>If you have any questions, contact our office at <a href="mailto:info@kuppetmigori.co.ke">info@kuppetmigori.co.ke</a> or call +254 721 808 993.</p>
 <p>Regards,<br>KUPPET Migori Branch</p>`,
@@ -61,28 +61,28 @@ const templates = {
 
   memberApproved: (name, memberNumber) => ({
     subject: 'KUPPET Migori — Membership Approved',
-    html: `<p>Dear ${name},</p>
+    html: `<p>Dear ${esc(name)},</p>
 <p>Congratulations! Your KUPPET Migori membership has been <strong>approved</strong>.</p>
-<p>Your member number is: <strong>${memberNumber}</strong></p>
+<p>Your member number is: <strong>${esc(memberNumber)}</strong></p>
 <p>You can now log in to your member portal at <a href="https://kuppetmigori.co.ke/member/login.html">kuppetmigori.co.ke/member/login.html</a></p>
 <p>Regards,<br>KUPPET Migori Branch</p>`,
   }),
 
   memberRejected: (name, reason) => ({
     subject: 'KUPPET Migori — Membership Application Update',
-    html: `<p>Dear ${name},</p>
+    html: `<p>Dear ${esc(name)},</p>
 <p>We regret to inform you that your membership application could not be approved at this time.</p>
-<p><strong>Reason:</strong> ${reason}</p>
+<p><strong>Reason:</strong> ${esc(reason)}</p>
 <p>Please visit our office or contact us at info@kuppetmigori.co.ke for further assistance.</p>
 <p>Regards,<br>KUPPET Migori Branch</p>`,
   }),
 
   passwordReset: (name, link) => ({
     subject: 'KUPPET Migori — Password Reset',
-    html: `<p>Dear ${name},</p>
+    html: `<p>Dear ${esc(name)},</p>
 <p>We received a request to reset the password for your KUPPET Migori member portal account. Click the button below to choose a new password. This link expires in <strong>30 minutes</strong> and can only be used once.</p>
-<p><a href="${link}" style="display:inline-block;background:#1B3A6E;color:#fff;padding:10px 18px;border-radius:6px;text-decoration:none">Reset my password</a></p>
-<p>If the button doesn't work, copy and paste this link into your browser:<br><a href="${link}">${link}</a></p>
+<p><a href="${esc(link)}" style="display:inline-block;background:#1B3A6E;color:#fff;padding:10px 18px;border-radius:6px;text-decoration:none">Reset my password</a></p>
+<p>If the button doesn't work, copy and paste this link into your browser:<br><a href="${esc(link)}">${esc(link)}</a></p>
 <p>If you did not request this, you can safely ignore this email — your password will not change.</p>
 <p>Regards,<br>KUPPET Migori Branch</p>`,
   }),
