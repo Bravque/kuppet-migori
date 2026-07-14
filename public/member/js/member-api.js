@@ -31,7 +31,11 @@ const memberApi = (() => {
       window.location.href = '/member/login.html';
       return;
     }
-    if (!res.ok) throw new Error(data.message || `Error ${res.status}`);
+    if (!res.ok) {
+      const e = new Error(data.message || `Error ${res.status}`);
+      e.code = data.code; e.status = res.status;
+      throw e;
+    }
     return data;
   }
 

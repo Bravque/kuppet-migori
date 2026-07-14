@@ -47,6 +47,20 @@ async function register(req, res) {
       school_name, sub_county, school_category,
     } = req.body;
 
+    // Already a member (e.g. bulk-imported) with this exact TSC + national ID?
+    // They have an account — send them to log in instead of erroring.
+    const [[existing]] = await db.query(
+      'SELECT id FROM members WHERE tsc_number = ? AND national_id = ?',
+      [tsc_number, national_id]
+    );
+    if (existing) {
+      return res.status(409).json({
+        success: false,
+        code: 'ACCOUNT_EXISTS',
+        message: 'You already have an account. Please log in with your TSC number — your ID number is your default password.',
+      });
+    }
+
     // Uniqueness checks
     const [[byTsc]] = await db.query('SELECT id FROM members WHERE tsc_number = ?', [tsc_number]);
     if (byTsc) return res.status(409).json({ success: false, message: 'TSC number already registered' });

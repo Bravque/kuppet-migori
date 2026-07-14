@@ -269,6 +269,12 @@
       document.querySelectorAll('#btn-prev,#btn-next,#btn-submit').forEach(b => b.style.display = 'none');
       showReg(res.message || 'Application submitted successfully! You will receive a notification once reviewed.', 'success');
     } catch (err) {
+      if (err.code === 'ACCOUNT_EXISTS') {
+        showReg((err.message || 'You already have an account.') + ' Redirecting to login…', 'success');
+        const tsc = (document.querySelector('[name="tsc_number"]')?.value || '').trim();
+        setTimeout(() => { window.location.href = '/member/login.html?tsc=' + encodeURIComponent(tsc); }, 2000);
+        return;
+      }
       showReg(err.message || 'Registration failed. Please try again.');
     } finally {
       btn.disabled = false;

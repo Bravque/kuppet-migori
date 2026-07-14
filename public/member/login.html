@@ -66,6 +66,10 @@
 
   const tscEl = document.getElementById('tsc-number');
   const passwordEl = document.getElementById('password');
+
+  // Prefill the TSC number if we arrived here from a "you already have an account" redirect.
+  const tscParam = new URLSearchParams(window.location.search).get('tsc');
+  if (tscParam) { tscEl.value = tscParam; setTimeout(() => passwordEl.focus(), 0); }
   const loginBtn = document.getElementById('login-btn');
   const alertEl = document.getElementById('login-alert');
 
