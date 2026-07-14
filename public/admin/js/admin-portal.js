@@ -854,7 +854,9 @@ function openAnnouncementModal(id) {
   modal.classList.add('open');
 }
 
-async function saveAnnouncement() {
+let savingAnnouncement = false;
+async function saveAnnouncement(btn) {
+  if (savingAnnouncement) return; // guard against double-clicks creating duplicates
   const form = document.getElementById('announcement-form');
   const data = {
     text: form.querySelector('[name=text]').value.trim(),
@@ -863,11 +865,14 @@ async function saveAnnouncement() {
     is_active: form.querySelector('[name=is_active]').checked,
   };
   if (!data.text) { alert('Announcement text is required'); return; }
+  savingAnnouncement = true;
+  if (btn) btn.disabled = true;
   try {
     editingAnnouncementId ? await adminApi.announcements.update(editingAnnouncementId, data) : await adminApi.announcements.create(data);
     document.getElementById('announcement-modal').classList.remove('open');
     loadAnnouncementsTable();
   } catch (err) { alert(err.message); }
+  finally { savingAnnouncement = false; if (btn) btn.disabled = false; }
 }
 
 async function deleteAnnouncement(id) {
