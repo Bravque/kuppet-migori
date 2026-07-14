@@ -219,7 +219,18 @@ async function loadAnnouncements() {
       return `<span class="ticker-item">${text}${link}</span>`;
     };
     const html = data.map(item).join('');
-    track.innerHTML = html + html; // duplicate for the -50% marquee loop
+    // Render one copy first and measure it. Only when the content is wider than
+    // the visible bar do we duplicate it (for the seamless -50% marquee scroll);
+    // if it already fits, a single static copy avoids the "doubled" look you get
+    // when a lone/short announcement is repeated back-to-back.
+    track.classList.remove('ticker-static');
+    track.innerHTML = html;
+    const visible = track.parentElement ? track.parentElement.clientWidth : 0;
+    if (track.scrollWidth > visible + 4) {
+      track.innerHTML = html + html;
+    } else {
+      track.classList.add('ticker-static');
+    }
   } catch {
     /* leave the static fallback items in place */
   }

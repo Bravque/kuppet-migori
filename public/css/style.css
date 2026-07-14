@@ -528,6 +528,8 @@ h1,h2,h3,h4,h5,h6 { line-height: 1.25; font-weight: 700; }
   white-space: nowrap;
 }
 .ticker-content:hover { animation-play-state: paused; }
+/* When the announcements fit within the bar, don't scroll or duplicate them. */
+.ticker-content.ticker-static { animation: none; transform: none; }
 .ticker-item {
   font-size: 0.875rem;
   font-weight: 500;
