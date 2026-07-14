@@ -12,6 +12,42 @@ function statusBadge(s) {
   return `<span class="status-badge status-badge--${escHtml(s)}">${escHtml(s.replace(/_/g,' '))}</span>`;
 }
 
+// Passport photos live in the access-controlled members/ upload dir and are
+// streamed from /api/member/documents/:filename behind the member Bearer token.
+// A CSS background-image / <img src> GET can't carry that header, so fetch the
+// file with the token and hand back a data: URL (the site CSP allows data: for
+// images, but not blob:). Returns '' on any failure so callers can no-op.
+async function fetchMemberDocDataUrl(fileUrlOrName) {
+  try {
+    const filename = String(fileUrlOrName).split('/').pop();
+    const token = sessionStorage.getItem('memberToken');
+    const res = await fetch('/api/member/documents/' + encodeURIComponent(filename), {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    });
+    if (!res.ok) return '';
+    const blob = await res.blob();
+    return await new Promise((resolve) => {
+      const fr = new FileReader();
+      fr.onload = () => resolve(fr.result);
+      fr.onerror = () => resolve('');
+      fr.readAsDataURL(blob);
+    });
+  } catch { return ''; }
+}
+
+// Load the member's passport photo into #profile-photo (clearing the placeholder
+// icon on success).
+async function renderProfilePhoto(fileUrlOrName) {
+  const el = document.getElementById('profile-photo');
+  if (!el || !fileUrlOrName) return;
+  const dataUrl = await fetchMemberDocDataUrl(fileUrlOrName);
+  if (!dataUrl) return;
+  el.style.backgroundImage = `url(${dataUrl})`;
+  el.style.backgroundSize = 'cover';
+  el.style.backgroundPosition = 'center';
+  el.innerHTML = '';
+}
+
 // Auto-logout after this many ms with no user activity (keep in sync with the
 // inline <head> guard on every member page).
 const MEMBER_IDLE_MS = 30 * 60 * 1000; // 30 minutes
@@ -191,7 +227,7 @@ async function initMemberProfile() {
     document.getElementById('p-status').innerHTML = statusBadge(m.status);
     document.getElementById('p-joined').textContent = formatDate(m.created_at);
     if (m.passport_photo_url) {
-      document.getElementById('profile-photo').style.backgroundImage = `url(${memberApi.document(m.passport_photo_url.split('/').pop())})`;
+      renderProfilePhoto(m.passport_photo_url);
     }
   } catch (err) {
     showMsg('profile-msg', err.message);
@@ -217,7 +253,12 @@ async function initMemberProfile() {
     try {
       const res = await memberApi.profile.uploadPhoto(form);
       showMsg('profile-msg', 'Photo updated', 'success');
-    } catch (err) { showMsg('profile-msg', err.message); }
+      if (res?.data?.url) await renderProfilePhoto(res.data.url);
+    } catch (err) {
+      showMsg('profile-msg', err.message);
+    } finally {
+      this.value = ''; // allow re-selecting the same file to retry
+    }
   });
 
   document.getElementById('btn-change-pw')?.addEventListener('click', async () => {
