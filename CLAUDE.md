@@ -146,10 +146,10 @@ Still placeholder in the codebase:
 - DONE: ✓ address ✓ email ✓ social links (WhatsApp) ✓ Google Maps embed ✓ schema.org telephone ✓ mission/vision ✓ org structure
 
 **Task 4 — SEO files**
-- `public/sitemap.xml` — all public pages
-- `public/robots.txt` — allow all, point to sitemap
-- Branded `og:image` 1200×630 px, add `<meta property="og:image">` to all pages
-- Add canonical and full `og:url` tags to inner pages
+- ✓ `public/sitemap.xml` — 7 public pages (home + about/news/resources/advocacy/scholarships/contact); article templates excluded (need `?slug=`). Referenced by `robots.txt`. (14 July 2026)
+- ✓ `public/robots.txt` — allow all, disallow portals/api/private uploads, points to sitemap
+- ✓ Favicons for Google search — added 48/96/192/512px PNGs generated from `kuppetlogo.png` (Google needs ≥48px); `<link rel="icon" sizes="48x48"/"192x192">` added to all public pages. (14 July 2026)
+- Still TODO: branded `og:image` 1200×630 px (currently reuses the square logo); canonical + full `og:url` on inner pages
 
 **Task 5 — TalkSasa SMS (code complete; blocked on TalkSasa account)**
 Code is done and correct (verified 21–22 June 2026):
