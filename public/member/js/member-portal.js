@@ -431,7 +431,10 @@ async function loadClaimDetail(id) {
     // Applicant = the member who filed the claim
     const applicantRows = [
       ['Name', escHtml(c.applicant_name || '—')],
+      ['Member No', escHtml(c.applicant_member_number || '—')],
       ['TSC No', escHtml(c.tsc_no || '—')],
+      ['Phone', escHtml(c.applicant_phone || '—')],
+      ['Email', escHtml(c.applicant_email || '—')],
       ['Sub-County', escHtml(c.sub_county || '—')],
       ['School', escHtml(c.school || '—')],
       ['Category', escHtml(bbfSchoolCatLabel(c.school_category))],
