@@ -8,6 +8,17 @@ function escHtml(s) {
     .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
 }
 
+// Run a save/submit handler once, disabling its button until it resolves so a
+// fast double-click can't fire the request twice (which creates duplicate rows).
+// Wire modal save buttons as: onclick="submitOnce(this, saveThing)".
+async function submitOnce(btn, fn) {
+  if (btn && btn.disabled) return;      // already in flight — ignore repeat clicks
+  if (btn) btn.disabled = true;
+  try { await fn(); }
+  finally { if (btn) btn.disabled = false; }
+}
+window.submitOnce = submitOnce;
+
 // Fetch a protected document as a Blob. Files are streamed from
 // /api/admin/documents/:filename with the admin Bearer token (no longer public
 // static assets), so a plain link/img src can't load them.
@@ -854,9 +865,7 @@ function openAnnouncementModal(id) {
   modal.classList.add('open');
 }
 
-let savingAnnouncement = false;
-async function saveAnnouncement(btn) {
-  if (savingAnnouncement) return; // guard against double-clicks creating duplicates
+async function saveAnnouncement() {
   const form = document.getElementById('announcement-form');
   const data = {
     text: form.querySelector('[name=text]').value.trim(),
@@ -865,14 +874,11 @@ async function saveAnnouncement(btn) {
     is_active: form.querySelector('[name=is_active]').checked,
   };
   if (!data.text) { alert('Announcement text is required'); return; }
-  savingAnnouncement = true;
-  if (btn) btn.disabled = true;
   try {
     editingAnnouncementId ? await adminApi.announcements.update(editingAnnouncementId, data) : await adminApi.announcements.create(data);
     document.getElementById('announcement-modal').classList.remove('open');
     loadAnnouncementsTable();
   } catch (err) { alert(err.message); }
-  finally { savingAnnouncement = false; if (btn) btn.disabled = false; }
 }
 
 async function deleteAnnouncement(id) {
