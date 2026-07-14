@@ -66,6 +66,26 @@ function requireMemberAuth() {
   return memberApi.getMember();
 }
 
+// Force bulk-imported members through onboarding before they reach the portal:
+// (1) set a real password (must_change_password), then (2) complete their
+// profile (onboarding_complete). Existing members default to complete, so this
+// is a no-op for them. Runs on every portal page except the two onboarding pages.
+async function enforceMemberOnboarding() {
+  if (!sessionStorage.getItem('memberToken')) return;
+  const path = window.location.pathname;
+  const onFirstLogin = /\/first-login\.html$/.test(path);
+  const onProfile = /\/profile\.html$/.test(path);
+  let me;
+  try { me = (await memberApi.auth.me()).data; } catch { return; }
+  if (me.must_change_password) {
+    if (!onFirstLogin) window.location.replace('/member/first-login.html');
+    return;
+  }
+  if (me.onboarding_complete === false && !onProfile) {
+    window.location.replace('/member/profile.html');
+  }
+}
+
 // Refresh the activity stamp on interaction, and periodically enforce the idle
 // cutoff even when the member is sitting on a page without navigating.
 function initMemberIdleTimeout() {
@@ -208,6 +228,20 @@ function renderRecentNotifications(notifs) {
     </div>`).join('');
 }
 
+// Friendly labels for the required-profile fields (used in the onboarding banner).
+const PROFILE_FIELD_LABELS = {
+  phone: 'Phone number', email: 'Email', gender: 'Gender', date_of_birth: 'Date of birth',
+  school_name: 'School name', sub_county: 'Sub-county', school_category: 'Category (senior/junior)',
+};
+function showOnboardingBanner(missing) {
+  const banner = document.getElementById('onboarding-banner');
+  if (!banner) return;
+  banner.classList.remove('hidden');
+  const list = (missing || []).map(f => PROFILE_FIELD_LABELS[f] || f);
+  const el = document.getElementById('onboarding-missing');
+  if (el) el.textContent = list.length ? ` Still needed: ${list.join(', ')}.` : '';
+}
+
 // ── Profile ───────────────────────────────────────────────────────────────────
 async function initMemberProfile() {
   if (!document.querySelector('.member-profile-page')) return;
@@ -223,26 +257,47 @@ async function initMemberProfile() {
       const el = document.getElementById(`p-${f.replace(/_/g,'-')}`);
       if (el) el.value = m[f] || '';
     });
+    // Imported sub-counties (e.g. "Nyatike") may not be one of the 12 canonical
+    // dropdown options — keep the stored value visible (as a flagged option) so
+    // it isn't silently overwritten, prompting the member to pick the exact one.
+    const scEl = document.getElementById('p-sub-county');
+    if (scEl && m.sub_county && scEl.value !== m.sub_county) {
+      const opt = new Option(`${m.sub_county} — please reselect`, m.sub_county, true, true);
+      scEl.add(opt, scEl.firstChild);
+    }
     document.getElementById('p-member-number').textContent = m.member_number;
     document.getElementById('p-status').innerHTML = statusBadge(m.status);
     document.getElementById('p-joined').textContent = formatDate(m.created_at);
     if (m.passport_photo_url) {
       renderProfilePhoto(m.passport_photo_url);
     }
+    // First-login onboarding: show which fields still need filling.
+    if (m.onboarding_complete === false) showOnboardingBanner(m.missing_fields || []);
   } catch (err) {
     showMsg('profile-msg', err.message);
   }
 
   document.getElementById('btn-save-profile')?.addEventListener('click', async () => {
     try {
-      await memberApi.profile.update({
-        phone: document.getElementById('p-phone').value,
-        school_name: document.getElementById('p-school-name').value,
+      const res = await memberApi.profile.update({
+        phone: document.getElementById('p-phone').value.trim(),
+        email: document.getElementById('p-email').value.trim(),
+        gender: document.getElementById('p-gender').value,
+        date_of_birth: document.getElementById('p-date-of-birth').value,
+        school_name: document.getElementById('p-school-name').value.trim(),
         sub_county: document.getElementById('p-sub-county').value,
         school_category: document.getElementById('p-school-category').value,
-        employment_number: document.getElementById('p-employment-number').value,
+        employment_number: document.getElementById('p-employment-number').value.trim(),
       });
-      showMsg('profile-msg', 'Profile updated successfully', 'success');
+      if (res.onboarding_complete) {
+        showMsg('profile-msg', 'Profile complete! Taking you to your dashboard…', 'success');
+        setTimeout(() => window.location.href = '/member/dashboard.html', 1200);
+      } else if (res.profile_complete === false) {
+        showOnboardingBanner(res.missing_fields || []);
+        showMsg('profile-msg', 'Saved. Please fill the remaining required fields.', 'success');
+      } else {
+        showMsg('profile-msg', 'Profile updated successfully', 'success');
+      }
     } catch (err) { showMsg('profile-msg', err.message); }
   });
 
@@ -687,6 +742,7 @@ function showMsg(id, msg, type = 'danger') {
 // ── Init ──────────────────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
   if (sessionStorage.getItem('memberToken')) initMemberIdleTimeout();
+  enforceMemberOnboarding();
   initMemberDashboard();
   initMemberProfile();
   initMemberBbf();

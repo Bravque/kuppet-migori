@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <link rel="icon" href="/favicon.ico" sizes="any">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16.png">
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Set Your Password — KUPPET Migori</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <link rel="stylesheet" href="/css/style.css?v=20260713d">
+  <link rel="stylesheet" href="/css/portal.css?v=20260713d">
+</head>
+<body class="portal-body portal-login-page member-login-page">
+
+<div class="portal-login-card">
+  <div class="login-logo">
+    <div class="login-logo-icon"><img src="/images/kuppetlogo.png" class="logo-img" alt="KUPPET"></div>
+    <h1>Set Your Password</h1>
+    <p>Welcome — secure your account to continue</p>
+  </div>
+
+  <p style="font-size:0.82rem;color:var(--text-muted);margin-bottom:1rem">
+    Your account was set up with your ID number as a temporary password. Choose a new password to continue. It must be at least 8 characters with a letter and a number, and cannot be your ID number.
+  </p>
+
+  <div id="fl-alert" class="hidden"></div>
+
+  <div class="form-group">
+    <label for="new-pw">New Password</label>
+    <div style="position:relative">
+      <input type="password" id="new-pw" class="form-control" placeholder="New password" autocomplete="new-password" style="padding-right:2.5rem">
+      <button type="button" id="toggle-pw" style="position:absolute;right:0.75rem;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--text-muted);cursor:pointer">
+        <i class="fas fa-eye"></i>
+      </button>
+    </div>
+  </div>
+
+  <div class="form-group">
+    <label for="confirm-pw">Confirm Password</label>
+    <input type="password" id="confirm-pw" class="form-control" placeholder="Re-enter new password" autocomplete="new-password">
+  </div>
+
+  <button id="save-btn" class="btn btn-primary" style="width:100%;margin-top:0.5rem">
+    <i class="fas fa-lock"></i> Set Password & Continue
+  </button>
+
+  <div style="text-align:center;margin-top:1.25rem">
+    <a href="#" id="signout-link" style="font-size:0.78rem;color:var(--text-muted)"><i class="fas fa-arrow-left"></i> Sign out</a>
+  </div>
+</div>
+
+<script src="/member/js/member-api.js"></script>
+<script>
+  const alertEl = document.getElementById('fl-alert');
+  const newEl = document.getElementById('new-pw');
+  const confirmEl = document.getElementById('confirm-pw');
+  const saveBtn = document.getElementById('save-btn');
+
+  function showErr(msg) { alertEl.className = 'alert alert-danger'; alertEl.textContent = msg; }
+
+  // Must be logged in; if the flag is already cleared, move on.
+  (async () => {
+    if (!memberApi.getToken()) { window.location.replace('/member/login.html'); return; }
+    try {
+      const me = (await memberApi.auth.me()).data;
+      if (!me.must_change_password) {
+        window.location.replace(me.onboarding_complete ? '/member/dashboard.html' : '/member/profile.html');
+      }
+    } catch { window.location.replace('/member/login.html'); }
+  })();
+
+  document.getElementById('toggle-pw').addEventListener('click', () => {
+    const t = newEl.type === 'password' ? 'text' : 'password';
+    newEl.type = t;
+    document.querySelector('#toggle-pw i').className = t === 'password' ? 'fas fa-eye' : 'fas fa-eye-slash';
+  });
+
+  document.getElementById('signout-link').addEventListener('click', (e) => {
+    e.preventDefault(); memberApi.clearAuth(); window.location.href = '/member/login.html';
+  });
+
+  async function save() {
+    alertEl.className = 'hidden';
+    const pw = newEl.value;
+    if (pw.length < 8 || !/[A-Za-z]/.test(pw) || !/\d/.test(pw)) {
+      return showErr('Password must be at least 8 characters and include a letter and a number.');
+    }
+    if (pw !== confirmEl.value) return showErr('Passwords do not match.');
+
+    saveBtn.disabled = true;
+    saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving…';
+    try {
+      await memberApi.auth.firstPassword(pw);
+      // Password done → on to profile completion.
+      window.location.href = '/member/profile.html';
+    } catch (err) {
+      showErr(err.message || 'Could not set password');
+      saveBtn.disabled = false;
+      saveBtn.innerHTML = '<i class="fas fa-lock"></i> Set Password & Continue';
+    }
+  }
+
+  saveBtn.addEventListener('click', save);
+  confirmEl.addEventListener('keydown', e => { if (e.key === 'Enter') save(); });
+</script>
+</body>
+</html>

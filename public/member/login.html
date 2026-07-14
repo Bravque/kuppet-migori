@@ -83,7 +83,15 @@
       const res = await memberApi.auth.login(tscEl.value.trim(), passwordEl.value);
       memberApi.saveToken(res.token);
       memberApi.saveMember(res.member);
-      window.location.href = '/member/dashboard.html';
+      // Bulk-imported members must set a real password, then complete their
+      // profile, before reaching the portal.
+      if (res.must_change_password) {
+        window.location.href = '/member/first-login.html';
+      } else if (res.onboarding_complete === false) {
+        window.location.href = '/member/profile.html';
+      } else {
+        window.location.href = '/member/dashboard.html';
+      }
     } catch (err) {
       alertEl.className = 'alert alert-danger';
       alertEl.textContent = err.message || 'Login failed';

@@ -3,6 +3,7 @@ const jwt = require('jsonwebtoken');
 const db = require('../config/database');
 const { validationResult } = require('express-validator');
 const mailerService = require('../services/mailerService');
+const { missingProfileFields } = require('../utils/memberProfile');
 
 // ── Sequence number generator (atomic) ───────────────────────────────────────
 async function nextSeq(key, prefix) {
@@ -105,7 +106,7 @@ async function login(req, res) {
 
   try {
     const [[member]] = await db.query(
-      'SELECT id, full_name, member_number, email, password, status, failed_login_attempts, locked_until FROM members WHERE tsc_number = ?',
+      'SELECT id, full_name, member_number, email, password, status, failed_login_attempts, locked_until, must_change_password, onboarding_complete FROM members WHERE tsc_number = ?',
       [tsc_number]
     );
 
@@ -149,6 +150,8 @@ async function login(req, res) {
       success: true,
       token: signMemberToken(member),
       member: { id: member.id, full_name: member.full_name, member_number: member.member_number, email: member.email },
+      must_change_password: !!member.must_change_password,
+      onboarding_complete: !!member.onboarding_complete,
     });
   } catch (err) {
     return res.status(500).json({ success: false, message: 'Login failed. Please try again.' });
@@ -159,15 +162,54 @@ async function login(req, res) {
 async function getMe(req, res) {
   try {
     const [[member]] = await db.query(
-      `SELECT id, member_number, full_name, tsc_number, phone, email, gender, date_of_birth,
-              school_name, sub_county, passport_photo_url, status, created_at
+      `SELECT id, member_number, full_name, tsc_number, national_id, phone, email, gender, date_of_birth,
+              school_name, sub_county, school_category, passport_photo_url, status, created_at,
+              must_change_password, onboarding_complete
        FROM members WHERE id = ?`,
       [req.member.id]
     );
     if (!member) return res.status(404).json({ success: false, message: 'Member not found' });
-    return res.json({ success: true, data: member });
+    const missing = missingProfileFields(member);
+    // Don't leak the national ID back to the client here.
+    delete member.national_id;
+    return res.json({
+      success: true,
+      data: {
+        ...member,
+        must_change_password: !!member.must_change_password,
+        onboarding_complete: !!member.onboarding_complete,
+        profile_complete: missing.length === 0,
+        missing_fields: missing,
+      },
+    });
   } catch (err) {
     return res.status(500).json({ success: false, message: 'Failed to load your profile' });
+  }
+}
+
+// ── First-login forced password change ────────────────────────────────────────
+// Imported members log in with their national ID as the default password and
+// must_change_password = 1. This sets a real password (must differ from the ID)
+// and clears the flag. No old password required — they just used it to log in.
+async function firstPassword(req, res) {
+  const { newPassword } = req.body;
+  if (!newPassword || String(newPassword).length < 8) {
+    return res.status(400).json({ success: false, message: 'New password must be at least 8 characters' });
+  }
+  try {
+    const [[m]] = await db.query('SELECT national_id, must_change_password FROM members WHERE id = ?', [req.member.id]);
+    if (!m) return res.status(404).json({ success: false, message: 'Member not found' });
+    if (!m.must_change_password) {
+      return res.status(400).json({ success: false, message: 'Password has already been set. Use the normal change-password form.' });
+    }
+    if (String(newPassword).trim() === String(m.national_id).trim()) {
+      return res.status(400).json({ success: false, message: 'Your new password cannot be the same as your ID number' });
+    }
+    const hash = await bcrypt.hash(newPassword, 10);
+    await db.query('UPDATE members SET password = ?, must_change_password = 0 WHERE id = ?', [hash, req.member.id]);
+    return res.json({ success: true, message: 'Password set successfully' });
+  } catch (err) {
+    return res.status(500).json({ success: false, message: 'Failed to set password' });
   }
 }
 
@@ -258,4 +300,4 @@ async function resetPassword(req, res) {
   }
 }
 
-module.exports = { register, login, getMe, changePassword, forgotPassword, resetPassword, nextSeq };
+module.exports = { register, login, getMe, firstPassword, changePassword, forgotPassword, resetPassword, nextSeq };

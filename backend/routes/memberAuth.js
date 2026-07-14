@@ -60,6 +60,14 @@ router.post('/reset-password',
 
 // Protected routes
 router.get('/me', authenticateMember, ctrl.getMe);
+
+// First-login forced password change (imported members on the default ID password)
+router.post('/first-password', authenticateMember,
+  body('newPassword').isLength({ min: 8 }).matches(/^(?=.*[A-Za-z])(?=.*\d).{8,}$/)
+    .withMessage('Password must be at least 8 characters and include a letter and a number'),
+  validate,
+  ctrl.firstPassword
+);
 router.put('/password', authenticateMember,
   body('newPassword').isLength({ min: 8 }).matches(/^(?=.*[A-Za-z])(?=.*\d).{8,}$/)
     .withMessage('Password must be at least 8 characters and include a letter and a number'),

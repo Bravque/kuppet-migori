@@ -45,6 +45,7 @@ const memberApi = (() => {
       register: (formData) => request('/member/auth/register', { method: 'POST', body: formData }),
       me: () => request('/member/auth/me'),
       changePassword: (oldPassword, newPassword) => request('/member/auth/password', { method: 'PUT', body: JSON.stringify({ oldPassword, newPassword }) }),
+      firstPassword: (newPassword) => request('/member/auth/first-password', { method: 'POST', body: JSON.stringify({ newPassword }) }),
     },
 
     profile: {

@@ -22,6 +22,10 @@
         <div class="page-heading-text"><h1>My Profile</h1><p>Manage your membership information</p></div>
       </div>
       <div id="profile-msg" class="hidden"></div>
+      <div id="onboarding-banner" class="alert alert-warning hidden" style="margin-bottom:1.25rem">
+        <strong><i class="fas fa-circle-info"></i> Complete your profile to continue.</strong>
+        <span id="onboarding-missing"></span>
+      </div>
 
       <!-- Photo + membership info -->
       <div class="data-card" style="margin-bottom:1.25rem">
@@ -50,14 +54,21 @@
         <div style="padding:1.25rem">
           <div class="form-row">
             <div class="form-group"><label>Full Name</label><input type="text" id="p-full-name" class="form-control" disabled></div>
-            <div class="form-group"><label>Email</label><input type="email" id="p-email" class="form-control" disabled></div>
+            <div class="form-group"><label>Email</label><input type="email" id="p-email" class="form-control"></div>
           </div>
           <div class="form-row">
             <div class="form-group"><label>Phone Number</label><input type="tel" id="p-phone" class="form-control"></div>
-            <div class="form-group"><label>Gender</label><input type="text" id="p-gender" class="form-control" disabled></div>
+            <div class="form-group"><label>Gender</label>
+              <select id="p-gender" class="form-control">
+                <option value="">Select gender</option>
+                <option value="male">Male</option>
+                <option value="female">Female</option>
+                <option value="other">Other</option>
+              </select>
+            </div>
           </div>
           <div class="form-row">
-            <div class="form-group"><label>Date of Birth</label><input type="date" id="p-date-of-birth" class="form-control" disabled></div>
+            <div class="form-group"><label>Date of Birth</label><input type="date" id="p-date-of-birth" class="form-control"></div>
             <div class="form-group"><label>National ID</label><input type="text" id="p-national-id" class="form-control" disabled></div>
           </div>
           <div class="form-row">

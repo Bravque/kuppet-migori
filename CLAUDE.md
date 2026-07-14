@@ -136,6 +136,7 @@ The following one-time scripts have been run on the live Hostinger DB; no pendin
 9. `backend/config/migration-announcements.sql` — `announcements` table (homepage ticker) + seeds the 5 previously-hardcoded items. Applied on live 9 July 2026.
 10. `backend/config/migration-drop-dead-roles.sql` — prunes the unused `editor`/`viewer` roles from `users.role` (reassigns any such rows → branch_officer, contracts ENUM to `super_admin`/`branch_officer`). **⚠ Run once on the live Hostinger DB** (phpMyAdmin → SQL). *Superseded by #11 — you can skip this and run #11 instead.*
 11. `backend/config/migration-add-branch-secretary.sql` — adds the `branch_secretary` role (ENUM → `super_admin`/`branch_officer`/`branch_secretary`); self-contained (also reassigns any leftover editor/viewer). **⚠ Run once on the live Hostinger DB** (phpMyAdmin → SQL).
+12. `backend/config/migration-member-import.sql` — bulk-member-import support: relaxes NOT NULL on `phone`/`email`/`gender`/`date_of_birth`/`school_name`/`sub_county` (fill-later), adds `members.must_change_password` + `members.onboarding_complete`. **⚠ Run once on the live Hostinger DB BEFORE deploying the first-login/onboarding code or importing** (the login/getMe queries read the new columns). See the bulk-import flow below.
 
 **Task 3 — Real content (owner must supply)**
 Still placeholder in the codebase:
@@ -261,6 +262,9 @@ Server throws at startup if they are equal.
 ### Auth identifiers
 - **Members** log in with **TSC number + password** (`members.tsc_number`). Email is still collected at registration (unique) but isn't the login identifier. Password reset is by email (see forgot/reset flow).
 - **Admins** log in with **email + password** (+ optional TOTP 2FA).
+
+### Bulk member import + forced first-login onboarding (14 July 2026)
+Rosters are imported as **active** members via an offline script → SQL for phpMyAdmin (`node backend/scripts/import-members.js <xlsx> --start-seq <member_seq> --out members-import.sql`); default password = the member's **national ID**. Two `members` flags drive a forced first-login flow: `must_change_password` (1 → locked to `/member/first-login.html` until a new password ≠ ID is set via `POST /api/member/auth/first-password`) and `onboarding_complete` (0 → locked to `/member/profile.html` until all `REQUIRED_PROFILE_FIELDS` are filled; `updateProfile` flips it to 1 automatically). Existing members default to `must_change_password=0`/`onboarding_complete=1`, so the flow is a no-op for them. The client guard is `enforceMemberOnboarding()` in `member-portal.js`; `login`/`getMe`/`getProfile` all return `must_change_password`/`onboarding_complete`/`profile_complete`/`missing_fields`. Required-field list lives in `backend/utils/memberProfile.js`. Members can now self-edit `email`/`gender`/`date_of_birth` in profile (email uniqueness enforced). Full runbook: **`docs/MEMBER-IMPORT.md`**. Needs migration #12 first.
 
 ### Email (SMTP) — required for password reset & notification emails
 `backend/services/mailerService.js` sends via nodemailer when `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS` are set (else it logs & skips). `sendMail()` supports an optional `replyTo`. `APP_URL` (e.g. `https://kuppetmigori.co.ke`) is used to build links in emails (password reset). Live uses the Hostinger mailbox for `info@kuppetmigori.co.ke` (`smtp.hostinger.com:465`). Test with `node backend/scripts/test-email.js you@example.com`.
