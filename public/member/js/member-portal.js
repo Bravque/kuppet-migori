@@ -433,6 +433,7 @@ async function loadClaimDetail(id) {
       ['Name', escHtml(c.applicant_name || '—')],
       ['Member No', escHtml(c.applicant_member_number || '—')],
       ['TSC No', escHtml(c.tsc_no || '—')],
+      ['ID No', escHtml(c.applicant_national_id || '—')],
       ['Phone', escHtml(c.applicant_phone || '—')],
       ['Email', escHtml(c.applicant_email || '—')],
       ['Sub-County', escHtml(c.sub_county || '—')],

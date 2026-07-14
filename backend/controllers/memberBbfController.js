@@ -64,7 +64,7 @@ async function getOne(req, res) {
   try {
     const [[claim]] = await db.query(
       `SELECT bc.*, m.full_name AS applicant_name, m.member_number AS applicant_member_number,
-              m.phone AS applicant_phone, m.email AS applicant_email
+              m.phone AS applicant_phone, m.email AS applicant_email, m.national_id AS applicant_national_id
        FROM bbf_claims bc JOIN members m ON bc.member_id = m.id
        WHERE bc.id = ? AND bc.member_id = ?`,
       [req.params.id, req.member.id]
