@@ -569,6 +569,14 @@ function stripHtml(html) {
   return (d.textContent || '').replace(/\s+/g, ' ').trim();
 }
 
+// Cap a teaser string at `max` characters, trimming back to a word boundary and
+// appending an ellipsis, so long excerpts don't make cards run on.
+function truncate(str, max = 150) {
+  str = String(str || '').trim();
+  if (str.length <= max) return str;
+  return str.slice(0, max).replace(/\s+\S*$/, '').trimEnd() + '…';
+}
+
 // Set per-article SEO + social meta dynamically: self-referencing canonical
 // (incl. ?slug=), Open Graph and Twitter Card. Called after an article loads so
 // each article URL presents its own metadata to crawlers and social scrapers.
@@ -787,7 +795,7 @@ function renderNewsCard(article) {
           <span class="news-date"><i class="far fa-calendar-alt"></i> ${date}</span>
         </div>
         <h3>${escHtml(article.title)}</h3>
-        <p>${escHtml(article.excerpt || '')}</p>
+        <p>${escHtml(truncate(article.excerpt, 150))}</p>
       </div>
       <div class="news-card-footer">
         <span><i class="fas fa-user"></i> ${escHtml(article.author || 'KUPPET Migori')}</span>
