@@ -442,6 +442,11 @@ function getSidebarHtml() {
       <i class="fas fa-file-alt"></i> SMS Templates
     </a>
 
+    <div class="sidebar-nav-section">Account</div>
+    <a href="/admin/security.html" class="sidebar-nav-item">
+      <i class="fas fa-user-shield"></i> Account Security
+    </a>
+
     <div class="sidebar-nav-section" data-super-only>Administration</div>
     <a href="/admin/audit-logs.html" class="sidebar-nav-item" data-super-only>
       <i class="fas fa-shield-alt"></i> Audit Logs
@@ -1004,6 +1009,12 @@ async function initAdminSettings() {
   if (!document.querySelector('.admin-settings-page')) return;
   const user = requireAdminAuth(); if (!user) return; initSidebar(user);
   loadSettings();
+}
+
+// Account Security page — 2FA + password change, available to every admin role
+async function initAdminSecurity() {
+  if (!document.querySelector('.admin-security-page')) return;
+  const user = requireAdminAuth(); if (!user) return; initSidebar(user);
   init2FASection();
 }
 
@@ -1077,6 +1088,7 @@ document.addEventListener('DOMContentLoaded', () => {
   initAdminAnnouncements();
   initAdminContacts();
   initAdminSettings();
+  initAdminSecurity();
 
   // Close modals on overlay click
   document.querySelectorAll('.portal-modal-overlay').forEach(overlay => {

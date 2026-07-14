@@ -1,6 +1,6 @@
 const router = require('express').Router();
 const { body, validationResult } = require('express-validator');
-const { authenticate, authorizeSuperAdmin, auditLog } = require('../middleware/auth');
+const { authenticate, auditLog } = require('../middleware/auth');
 const ctrl = require('../controllers/authController');
 
 const validate = (req, res, next) => {
@@ -37,7 +37,8 @@ router.put('/password', authenticate,
   ctrl.changePassword
 );
 
-// 2FA setup (generates secret + QR code — does not enable until /2fa/enable)
+// 2FA setup (generates secret + QR code — does not enable until /2fa/enable).
+// Available to every admin role (self-service on the caller's own account).
 router.post('/2fa/setup', authenticate, auditLog('auth.2fa_setup'), ctrl.setup2FA);
 
 // Enable 2FA (verify first TOTP code)
@@ -47,7 +48,8 @@ router.post('/2fa/enable', authenticate,
   ctrl.enable2FA
 );
 
-// Disable 2FA (super_admin only)
-router.delete('/2fa/disable', authenticate, authorizeSuperAdmin, auditLog('auth.2fa_disable'), ctrl.disable2FA);
+// Disable 2FA — self-service: acts only on the caller's own account (WHERE user_id = req.user.id),
+// so it is open to every admin role, not just super_admin.
+router.delete('/2fa/disable', authenticate, auditLog('auth.2fa_disable'), ctrl.disable2FA);
 
 module.exports = router;
