@@ -30,6 +30,12 @@ guidance, architecture, schema, and pending tasks see `CLAUDE.md`.
 - **Frontend:** `admin/disciplinary-cases.html` (list: search + stage + offence filters, paged table) and `admin/disciplinary-case-detail.html` (details, updates log, documents), `disciplinaryCases` block in `admin-api.js`, and a `[data-court-only]` "Disciplinary Cases" sidebar item under Legal in `admin-portal.js`.
 - **⚠ Live steps:** run `migration-disciplinary-cases.sql` in phpMyAdmin; `mkdir -p ~/uploads/disciplinary`. Sidebar link edits `admin-portal.js` (unversioned) — hard-refresh the admin portal to see the new item.
 
+**Members admin list tweaks.**
+- **Search by school** — new "Search by school" input; `buildMemberFilter` now takes `school` (`school_name LIKE`), applied to the list, count and Excel export alike.
+- **ID No column** — added `national_id` to the list query + a new "ID No" column (after TSC No); colspans 7→8. ⚠ national_id is the bulk-import default password until changed — noted in CLAUDE.md.
+- **Action-cell border alignment fix** — the Actions `<td>` had `display:flex` directly on the cell, so it left table layout and its bottom border rendered offset from the row (visible where the first column is two lines tall). Moved the flex onto an inner `<div>` (`<td><div style="display:flex…">…</div></td>`) across members / court-cases / disciplinary-cases. Documented as a convention in CLAUDE.md.
+- (A column-view/"names only" selector was prototyped on members.html then reverted at the owner's request — not shipped.)
+
 ---
 
 ### Done in the 2 July 2026 session

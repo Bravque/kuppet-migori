@@ -126,7 +126,8 @@ async function exportExcel(req, res) {
     // Honour the same filters the list is showing (status, sub_county, gender, search).
     const { where, params } = buildMemberFilter(req.query);
     const [rows] = await db.query(
-      `SELECT member_number, full_name, tsc_number, phone, email, gender, school_name,
+      `SELECT member_number, full_name, tsc_number, national_id, phone, email, gender,
+              DATE(date_of_birth) as date_of_birth, school_name,
               sub_county, school_category, status, DATE(created_at) as registered
        FROM members ${where} ORDER BY created_at DESC`,
       params
