@@ -6,6 +6,19 @@ guidance, architecture, schema, and pending tasks see `CLAUDE.md`.
 
 ---
 
+### Done in the 17 July 2026 session
+
+**Bug-fix batch (from a full project review)** — all in the working tree, cache token `20260714c → 20260717a`.
+
+- **Dynamic sitemap was dead code (SEO).** `server.js` builds `/sitemap.xml` (7 static pages + every published news/advocacy article), but `express.static` is mounted before the route and `public/sitemap.xml` existed → the static 7-page file was always served and the article URLs never reached search engines. **Deleted `public/sitemap.xml`** so the request falls through to the dynamic route. *Do not re-add a static one.*
+- **Pagination hardening (13 controllers).** Every list endpoint bound raw `parseInt(req.query.limit/offset)` to `LIMIT ? OFFSET ?` — `?limit=abc` → NaN → 500; `?limit=999999` → whole-table dump (incl. unauthenticated public `news`/`advocacy`/`events`). Added **`backend/utils/pagination.js`** (`clampLimit(v, def, max=100)` / `clampOffset(v)`) and applied it in adminMembers, adminBbf, advocacy, contact, events, memberNotif, resources, courtCases, audit, adminSchApp, scholarships, sms, news (news has two defaults: getAll 10, adminGetAll 20).
+- **Frontend rendering safety (`main.js`).** News-card + leader-card image `src` were interpolated without `escHtml()` (every other `<img>` escaped it) — now escaped. Added an **`onerror` icon fallback** to the news-card image (leader card already had one). New **`safeUrl()`** helper (http/https/mailto/tel + relative only, else `#`) now wraps the announcement-ticker `link` href — `escHtml()` alone doesn't neutralise a `javascript:` URL. News card also guards an empty excerpt (no empty `<p>`) and an invalid `published_at` (no "Invalid Date").
+- **Registration race.** `memberAuthController.register` read-then-insert uniqueness checks could be beaten by a concurrent request → DB unique-constraint error → generic 500. Now catches `ER_DUP_ENTRY` → friendly 409 naming the duplicated field (Email / National ID / TSC number).
+- **Left intentionally unchanged:** CSP `imgSrc` was *not* widened for external/hot-linked images — admin images upload to `/uploads` (same-origin, allowed by `'self'`); the guidance is upload-don't-hot-link.
+- CLAUDE.md updated (sitemap SEO note, `backend/utils/*` + pagination-clamp rule in Backend layout, `safeUrl`/escaping rule in the `main.js` note, cache token).
+
+---
+
 ### Done in the 2 July 2026 session
 
 **Hardening branch merged & deployed**

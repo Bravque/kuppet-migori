@@ -1,4 +1,5 @@
 const db = require('../config/database');
+const { clampLimit, clampOffset } = require('../utils/pagination');
 const { sanitizeRichText } = require('../utils/sanitizeHtml');
 
 const getAll = async (req, res) => {
@@ -11,7 +12,7 @@ const getAll = async (req, res) => {
     const [rows] = await db.query(
       `SELECT id, title, slug, category, is_featured, created_at FROM advocacy ${where}
        ORDER BY is_featured DESC, created_at DESC LIMIT ? OFFSET ?`,
-      [...filterParams, parseInt(limit), parseInt(offset)]
+      [...filterParams, clampLimit(limit, 20), clampOffset(offset)]
     );
     const [[{ total }]] = await db.query(`SELECT COUNT(*) as total FROM advocacy ${where}`, filterParams);
     res.json({ success: true, data: rows, total });

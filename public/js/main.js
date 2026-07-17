@@ -214,7 +214,7 @@ async function loadAnnouncements() {
     const item = (a) => {
       const text = escHtml(a.text);
       const link = a.link
-        ? ` <a href="${escHtml(a.link)}">Read more</a>`
+        ? ` <a href="${safeUrl(a.link)}">Read more</a>`
         : '';
       return `<span class="ticker-item">${text}${link}</span>`;
     };
@@ -781,21 +781,25 @@ async function initAdvocacyArticlePage() {
 // ============================================
 function renderNewsCard(article) {
   const cat = article.category || 'news';
-  const date = new Date(article.published_at).toLocaleDateString('en-KE', { day: 'numeric', month: 'short', year: 'numeric' });
+  const when = article.published_at ? new Date(article.published_at) : null;
+  const date = when && !isNaN(when)
+    ? when.toLocaleDateString('en-KE', { day: 'numeric', month: 'short', year: 'numeric' })
+    : '';
+  const teaser = truncate(article.excerpt || '', 120);
   return `
     <article class="news-card">
       <div class="news-card-image">
         ${article.featured_image
-          ? `<img src="${article.featured_image}" alt="${escHtml(article.title)}" loading="lazy">`
+          ? `<img src="${escHtml(article.featured_image)}" alt="${escHtml(article.title)}" loading="lazy" onerror="this.parentElement.innerHTML='<i class=\\'fas fa-newspaper\\'></i>'">`
           : `<i class="fas fa-newspaper"></i>`}
       </div>
       <div class="news-card-body">
         <div class="news-meta">
           <span class="badge badge-${cat}">${cat.replace(/_/g, ' ')}</span>
-          <span class="news-date"><i class="far fa-calendar-alt"></i> ${date}</span>
+          ${date ? `<span class="news-date"><i class="far fa-calendar-alt"></i> ${date}</span>` : ''}
         </div>
         <h3>${escHtml(article.title)}</h3>
-        <p>${escHtml(truncate(article.excerpt, 120))}</p>
+        ${teaser ? `<p>${escHtml(teaser)}</p>` : ''}
       </div>
       <div class="news-card-footer">
         <span><i class="fas fa-user"></i> ${escHtml(article.author || 'KUPPET Migori')}</span>
@@ -858,7 +862,7 @@ function renderLeaderCard(leader) {
     <div class="leader-card">
       <div class="leader-photo">
         ${leader.photo_url
-          ? `<img src="${leader.photo_url}" alt="${escHtml(leader.name)}" loading="lazy" onerror="this.parentElement.innerHTML='<i class=\\'fas fa-user-tie\\'></i>'">`
+          ? `<img src="${escHtml(leader.photo_url)}" alt="${escHtml(leader.name)}" loading="lazy" onerror="this.parentElement.innerHTML='<i class=\\'fas fa-user-tie\\'></i>'">`
           : `<i class="fas fa-user-tie"></i>`}
       </div>
       <div class="leader-body">
@@ -951,6 +955,17 @@ function renderPagination(containerId, total, perPage, current, onPage) {
 function escHtml(str) {
   if (!str) return '';
   return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#039;');
+}
+
+// Return an escaped href only for safe schemes (http/https/mailto/tel) or
+// site-relative paths; anything else (e.g. javascript:) collapses to '#'.
+// escHtml alone doesn't neutralise a javascript: URL, so links need this.
+function safeUrl(url) {
+  const s = String(url || '').trim();
+  if (/^(https?:|mailto:|tel:)/i.test(s) || /^\/(?!\/)/.test(s) || /^[^:]*$/.test(s)) {
+    return escHtml(s);
+  }
+  return '#';
 }
 
 function setText(id, text) {

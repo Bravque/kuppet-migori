@@ -101,6 +101,16 @@ async function register(req, res) {
       message: 'Registration submitted. Your application will be reviewed by an administrator.',
     });
   } catch (err) {
+    // A concurrent request can slip past the read-then-insert uniqueness checks
+    // above and hit the DB unique constraint. Map that to a friendly 409 rather
+    // than a generic 500.
+    if (err && err.code === 'ER_DUP_ENTRY') {
+      const field = /email/i.test(err.message) ? 'Email'
+        : /national/i.test(err.message) ? 'National ID'
+        : /tsc/i.test(err.message) ? 'TSC number'
+        : 'Account';
+      return res.status(409).json({ success: false, message: `${field} already registered` });
+    }
     return res.status(500).json({ success: false, message: 'Registration failed' });
   }
 }

@@ -1,5 +1,6 @@
 const db = require('../config/database');
 const { sanitizeRichText } = require('../utils/sanitizeHtml');
+const { clampLimit, clampOffset } = require('../utils/pagination');
 
 const getAll = async (req, res) => {
   try {
@@ -13,7 +14,7 @@ const getAll = async (req, res) => {
     if (featured === 'true') { where += ' AND is_featured = 1'; }
     if (search) { where += ' AND (title LIKE ? OR excerpt LIKE ?)'; filterParams.push(`%${search}%`, `%${search}%`); }
 
-    const rowParams = [...filterParams, parseInt(limit), parseInt(offset)];
+    const rowParams = [...filterParams, clampLimit(limit, 10), clampOffset(offset)];
     const [rows] = await db.query(
       `SELECT id, title, slug, excerpt, category, featured_image, author, is_featured, views, tags, published_at
        FROM news ${where} ORDER BY published_at DESC LIMIT ? OFFSET ?`,
@@ -21,7 +22,7 @@ const getAll = async (req, res) => {
     );
     const [[{ total }]] = await db.query(`SELECT COUNT(*) as total FROM news ${where}`, filterParams);
 
-    res.json({ success: true, data: rows, total, limit: parseInt(limit), offset: parseInt(offset) });
+    res.json({ success: true, data: rows, total, limit: clampLimit(limit, 10), offset: clampOffset(offset) });
   } catch (err) {
     res.status(500).json({ success: false, message: 'Failed to fetch news' });
   }
@@ -164,10 +165,10 @@ const adminGetAll = async (req, res) => {
     const [rows] = await db.query(
       `SELECT id, title, slug, category, author, is_featured, is_published, views, published_at
        FROM news ${where} ORDER BY created_at DESC LIMIT ? OFFSET ?`,
-      [...filterParams, parseInt(limit), parseInt(offset)]
+      [...filterParams, clampLimit(limit, 20), clampOffset(offset)]
     );
     const [[{ total }]] = await db.query(`SELECT COUNT(*) as total FROM news ${where}`, filterParams);
-    res.json({ success: true, data: rows, total, limit: parseInt(limit), offset: parseInt(offset) });
+    res.json({ success: true, data: rows, total, limit: clampLimit(limit, 20), offset: clampOffset(offset) });
   } catch (err) {
     res.status(500).json({ success: false, message: 'Failed to fetch news' });
   }

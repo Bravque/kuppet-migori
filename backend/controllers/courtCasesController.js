@@ -1,4 +1,5 @@
 const db = require('../config/database');
+const { clampLimit, clampOffset } = require('../utils/pagination');
 
 const CASE_TYPES = ['employment', 'disciplinary', 'criminal', 'civil', 'constitutional', 'appeal', 'other'];
 const STATUSES = ['open', 'ongoing', 'on_hold', 'closed'];
@@ -24,7 +25,7 @@ async function getAll(req, res) {
        ${where}
        ORDER BY (c.status = 'closed'), c.next_hearing_date IS NULL, c.next_hearing_date ASC, c.created_at DESC
        LIMIT ? OFFSET ?`,
-      [...filterParams, parseInt(limit), parseInt(offset)]
+      [...filterParams, clampLimit(limit, 25), clampOffset(offset)]
     );
     const [[{ total }]] = await db.query(`SELECT COUNT(*) as total FROM court_cases c ${where}`, filterParams);
     res.json({ success: true, data: rows, total });

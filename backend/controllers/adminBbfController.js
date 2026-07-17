@@ -1,4 +1,5 @@
 const db = require('../config/database');
+const { clampLimit, clampOffset } = require('../utils/pagination');
 const { sendXlsx } = require('../utils/excel');
 const notificationService = require('../services/notificationService');
 
@@ -34,7 +35,7 @@ async function getAll(req, res) {
       `SELECT bc.*, m.full_name, m.member_number, m.phone
        FROM bbf_claims bc JOIN members m ON bc.member_id = m.id ${where}
        ORDER BY bc.created_at DESC LIMIT ? OFFSET ?`,
-      [...filterParams, parseInt(limit), parseInt(offset)]
+      [...filterParams, clampLimit(limit, 25), clampOffset(offset)]
     );
     const [[{ total }]] = await db.query(
       `SELECT COUNT(*) as total FROM bbf_claims bc JOIN members m ON bc.member_id = m.id ${where}`,

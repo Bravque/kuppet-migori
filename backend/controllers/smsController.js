@@ -1,4 +1,5 @@
 const db = require('../config/database');
+const { clampLimit, clampOffset } = require('../utils/pagination');
 const smsService = require('../services/smsService');
 
 async function send(req, res) {
@@ -55,7 +56,7 @@ async function getLogs(req, res) {
     const params = [];
     if (status) { query += ' AND status = ?'; params.push(status); }
     query += ' ORDER BY created_at DESC LIMIT ? OFFSET ?';
-    params.push(parseInt(limit), parseInt(offset));
+    params.push(clampLimit(limit, 30), clampOffset(offset));
     const [rows] = await db.query(query, params);
     const [[{ total }]] = await db.query('SELECT COUNT(*) as total FROM sms_logs' + (status ? ' WHERE status = ?' : ''), status ? [status] : []);
     res.json({ success: true, data: rows, total });

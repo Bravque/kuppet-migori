@@ -1,4 +1,5 @@
 const db = require('../config/database');
+const { clampLimit, clampOffset } = require('../utils/pagination');
 
 const SCHOLARSHIP_TYPES = ['kcse', 'kjsea', 'dte'];
 
@@ -12,7 +13,7 @@ const getAll = async (req, res) => {
 
     const [rows] = await db.query(
       `SELECT * FROM scholarships ${where} ORDER BY is_featured DESC, application_deadline ASC LIMIT ? OFFSET ?`,
-      [...filterParams, parseInt(limit), parseInt(offset)]
+      [...filterParams, clampLimit(limit, 20), clampOffset(offset)]
     );
     const [[{ total }]] = await db.query(`SELECT COUNT(*) as total FROM scholarships ${where}`, filterParams);
     res.json({ success: true, data: rows, total });

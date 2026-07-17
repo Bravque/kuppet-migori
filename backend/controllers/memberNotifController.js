@@ -1,4 +1,5 @@
 const db = require('../config/database');
+const { clampLimit, clampOffset } = require('../utils/pagination');
 
 async function getAll(req, res) {
   try {
@@ -7,7 +8,7 @@ async function getAll(req, res) {
     const params = [req.member.id];
     if (unread === 'true') { query += ' AND is_read = 0'; }
     query += ' ORDER BY created_at DESC LIMIT ? OFFSET ?';
-    params.push(parseInt(limit), parseInt(offset));
+    params.push(clampLimit(limit, 30), clampOffset(offset));
 
     const [rows] = await db.query(query, params);
     const [[{ unreadCount }]] = await db.query(

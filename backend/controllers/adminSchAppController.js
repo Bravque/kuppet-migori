@@ -1,4 +1,5 @@
 const db = require('../config/database');
+const { clampLimit, clampOffset } = require('../utils/pagination');
 const notificationService = require('../services/notificationService');
 
 async function getAll(req, res) {
@@ -15,7 +16,7 @@ async function getAll(req, res) {
     const [rows] = await db.query(
       `SELECT sa.*, m.full_name, m.member_number, s.title as scholarship_title ${base} ${where}
        ORDER BY sa.created_at DESC LIMIT ? OFFSET ?`,
-      [...filterParams, parseInt(limit), parseInt(offset)]
+      [...filterParams, clampLimit(limit, 25), clampOffset(offset)]
     );
     const [[{ total }]] = await db.query(`SELECT COUNT(*) as total ${base} ${where}`, filterParams);
     res.json({ success: true, data: rows, total });

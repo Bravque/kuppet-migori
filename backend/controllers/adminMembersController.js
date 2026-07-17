@@ -1,4 +1,5 @@
 const db = require('../config/database');
+const { clampLimit, clampOffset } = require('../utils/pagination');
 const { sendXlsx } = require('../utils/excel');
 const notificationService = require('../services/notificationService');
 const mailerService = require('../services/mailerService');
@@ -24,7 +25,7 @@ async function getAll(req, res) {
       `SELECT id, member_number, full_name, tsc_number, phone, email, gender,
               school_name, sub_county, status, created_at, approved_at
        FROM members ${where} ORDER BY created_at DESC LIMIT ? OFFSET ?`,
-      [...filterParams, parseInt(limit), parseInt(offset)]
+      [...filterParams, clampLimit(limit, 25), clampOffset(offset)]
     );
     const [[{ total }]] = await db.query(`SELECT COUNT(*) as total FROM members ${where}`, filterParams);
     res.json({ success: true, data: rows, total });

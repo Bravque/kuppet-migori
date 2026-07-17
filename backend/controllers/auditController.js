@@ -1,4 +1,5 @@
 const db = require('../config/database');
+const { clampLimit, clampOffset } = require('../utils/pagination');
 const PDFDocument = require('pdfkit');
 
 // Build the audit filter once (actor_type, action, from, to) so the list, its
@@ -20,7 +21,7 @@ async function getAll(req, res) {
 
     const [rows] = await db.query(
       `SELECT * FROM audit_logs ${where} ORDER BY created_at DESC LIMIT ? OFFSET ?`,
-      [...filterParams, parseInt(limit), parseInt(offset)]
+      [...filterParams, clampLimit(limit, 50), clampOffset(offset)]
     );
     const [[{ total }]] = await db.query(`SELECT COUNT(*) as total FROM audit_logs ${where}`, filterParams);
     res.json({ success: true, data: rows, total });

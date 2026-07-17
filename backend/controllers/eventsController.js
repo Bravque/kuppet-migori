@@ -1,4 +1,5 @@
 const db = require('../config/database');
+const { clampLimit, clampOffset } = require('../utils/pagination');
 
 const getAll = async (req, res) => {
   try {
@@ -10,10 +11,10 @@ const getAll = async (req, res) => {
 
     const [rows] = await db.query(
       `SELECT * FROM events ${where} ORDER BY event_date DESC LIMIT ? OFFSET ?`,
-      [parseInt(limit), parseInt(offset)]
+      [clampLimit(limit, 10), clampOffset(offset)]
     );
     const [[{ total }]] = await db.query(`SELECT COUNT(*) as total FROM events ${where}`);
-    res.json({ success: true, data: rows, total, limit: parseInt(limit), offset: parseInt(offset) });
+    res.json({ success: true, data: rows, total, limit: clampLimit(limit, 10), offset: clampOffset(offset) });
   } catch (err) {
     res.status(500).json({ success: false, message: 'Failed to fetch events' });
   }

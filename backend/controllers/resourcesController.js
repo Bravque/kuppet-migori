@@ -1,4 +1,5 @@
 const db = require('../config/database');
+const { clampLimit, clampOffset } = require('../utils/pagination');
 
 const getAll = async (req, res) => {
   try {
@@ -12,7 +13,7 @@ const getAll = async (req, res) => {
     const [rows] = await db.query(
       `SELECT id, title, description, category, subject, grade_level, file_url, file_type, file_size, external_url, download_count, is_featured, uploaded_by, created_at
        FROM resources ${where} ORDER BY is_featured DESC, created_at DESC LIMIT ? OFFSET ?`,
-      [...filterParams, parseInt(limit), parseInt(offset)]
+      [...filterParams, clampLimit(limit, 20), clampOffset(offset)]
     );
     const [[{ total }]] = await db.query(`SELECT COUNT(*) as total FROM resources ${where}`, filterParams);
 

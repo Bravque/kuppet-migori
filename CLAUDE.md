@@ -146,7 +146,7 @@ Still placeholder in the codebase:
 - DONE: ✓ address ✓ email ✓ social links (WhatsApp) ✓ Google Maps embed ✓ schema.org telephone ✓ mission/vision ✓ org structure
 
 **Task 4 — SEO files**
-- ✓ `public/sitemap.xml` — 7 public pages (home + about/news/resources/advocacy/scholarships/contact); article templates excluded (need `?slug=`). Referenced by `robots.txt`. (14 July 2026)
+- ✓ **`/sitemap.xml` is generated dynamically** by a route in `server.js` — the 7 static public pages **plus** every published news + advocacy article (`?slug=…`, with `lastmod` from `updated_at`), so new content is discovered automatically. Referenced by `robots.txt`. (14 July 2026; **made live 17 July 2026** — the static `public/sitemap.xml` was deleted because `express.static` shadowed the dynamic route, so only the 7-page static file had ever been served. **Do not re-add a static `public/sitemap.xml`** or it will shadow the route again.)
 - ✓ `public/robots.txt` — allow all, disallow portals/api/private uploads, points to sitemap
 - ✓ Favicons for Google search — added 48/96/192/512px PNGs generated from `kuppetlogo.png` (Google needs ≥48px); `<link rel="icon" sizes="48x48"/"192x192">` added to all public pages. (14 July 2026)
 - Still TODO: branded `og:image` 1200×630 px (currently reuses the square logo); canonical + full `og:url` on inner pages
@@ -180,7 +180,8 @@ Code is done and correct (verified 21–22 June 2026):
 - **`backend/server.js`** — Express entry; mounts all middleware, registers all routes, bootstraps upload directories at startup
 - **`backend/config/database.js`** — exports a single `mysql2/promise` connection pool
 - **`backend/config/init.sql`** — authoritative schema (25 tables) + seed data; re-runnable
-- **`backend/controllers/*.js`** — async functions; parameterised queries; `{ success, data, message }` responses
+- **`backend/controllers/*.js`** — async functions; parameterised queries; `{ success, data, message }` responses. **All list endpoints clamp pagination** via `backend/utils/pagination.js` (`clampLimit`/`clampOffset`) — never bind raw `parseInt(req.query.limit)` to `LIMIT` (NaN → 500; unbounded → full-table dump).
+- **`backend/utils/*.js`** — shared helpers: `pagination.js` (`clampLimit(v, def, max=100)` / `clampOffset(v)` — clamp `?limit`/`?offset` to `[1,100]` / `≥0`, NaN or missing → default), `sanitizeHtml.js` (rich-text XSS allowlist), `memberProfile.js` (required-profile-field list), `excel.js` (XLSX export)
 - **`backend/routes/*.js`** — thin routers with `express-validator` on mutation routes
 - **`backend/middleware/auth.js`** — `authenticate` (admin JWT), `authenticateMember` (member JWT), `authorizeAdmin`, `authorizeSuperAdmin`, `auditLog(action)` factory
 - **`backend/middleware/csrf.js`** — double-submit cookie CSRF protection
@@ -193,7 +194,7 @@ Code is done and correct (verified 21–22 June 2026):
 
 **Public site:**
 - **`public/js/api.js`** — `window.api` with namespaced methods
-- **`public/js/main.js`** — body-class guards, `DOMContentLoaded`, `escHtml()`, render helpers
+- **`public/js/main.js`** — body-class guards, `DOMContentLoaded`, `escHtml()`, render helpers. Interpolate **all** attribute values through `escHtml()` — including image `src` and any admin-supplied URL; for `href`s use `safeUrl()` (allows only http/https/mailto/tel + relative paths, else `#`), since `escHtml()` alone doesn't neutralise a `javascript:` URL. Image tags carry an `onerror` icon fallback.
 
 **Admin portal (`/public/admin/`):**
 - **`admin/js/admin-api.js`** — `window.adminApi`; injects `adminToken` from localStorage; 401 → redirect to login
@@ -219,7 +220,7 @@ Every `<body>` tag carries a class that gates the matching `init*` function in `
 Admin and member portal pages use `admin-*-page` / `member-*-page` classes gating functions in their respective portal JS files.
 
 ### Asset cache-busting (IMPORTANT)
-Hostinger serves CSS/JS with **no `cache-control`/`etag`**, so browsers hold stale assets after a deploy. Public CSS/JS links carry a version query, e.g. `href="/css/style.css?v=20260622b"`. **When you edit `style.css`, `portal.css`, `main.js`, or `api.js`, bump the `?v=` string on every page** (sed across `public/**/*.html`) or returning visitors won't see the change. HTML files themselves aren't versioned (they revalidate). Current token: `20260714c` (bumped 14 July 2026 — news-card excerpt cap set to 120 chars in `main.js`).
+Hostinger serves CSS/JS with **no `cache-control`/`etag`**, so browsers hold stale assets after a deploy. Public CSS/JS links carry a version query, e.g. `href="/css/style.css?v=20260622b"`. **When you edit `style.css`, `portal.css`, `main.js`, or `api.js`, bump the `?v=` string on every page** (sed across `public/**/*.html`) or returning visitors won't see the change. HTML files themselves aren't versioned (they revalidate). Current token: `20260717a` (bumped 17 July 2026 — bug-fix batch in `main.js`: escaped image `src`s + news-card broken-image fallback, empty-excerpt/invalid-date guards, `safeUrl()` scheme check on announcement links).
 > ⚠ Caveat: portal JS (`member/js/member-portal.js`, `member/js/member-api.js`, `admin/js/admin-portal.js`, `admin/js/admin-api.js`) is loaded **without** a `?v=` query, so the convention above does not cover it. Editing those files relies on browser revalidation — hard-refresh after deploying portal-JS changes (e.g. member TSC login + admin export fixes live there); if stale-cache issues appear, add a `?v=` to those `<script>` tags.
 
 ### Responsive header (public pages)

@@ -1,4 +1,5 @@
 const db = require('../config/database');
+const { clampLimit, clampOffset } = require('../utils/pagination');
 const { validationResult } = require('express-validator');
 const { sendMail, templates } = require('../services/mailerService');
 
@@ -94,7 +95,7 @@ const adminGetAll = async (req, res) => {
     if (status) { query += ' AND status = ?'; params.push(status); }
     if (category) { query += ' AND category = ?'; params.push(category); }
     query += ' ORDER BY created_at DESC LIMIT ? OFFSET ?';
-    params.push(parseInt(limit), parseInt(offset));
+    params.push(clampLimit(limit, 20), clampOffset(offset));
     const [rows] = await db.query(query, params);
     const [[{ total }]] = await db.query('SELECT COUNT(*) as total FROM contacts WHERE 1=1' + advocacyFilter +
       (status ? ' AND status = ?' : '') + (category ? ' AND category = ?' : ''),
