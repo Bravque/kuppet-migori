@@ -36,7 +36,7 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 
   <!-- Styles -->
-  <link rel="stylesheet" href="/css/style.css?v=20260717a">
+  <link rel="stylesheet" href="/css/style.css?v=20260717b">
 
   <!-- Schema.org -->
   <script type="application/ld+json">
@@ -190,24 +190,15 @@
   </header>
 
   <!-- Announcement Ticker -->
-  <div class="ticker-bar" role="complementary" aria-label="Announcements">
+  <div class="ticker-bar" role="complementary" aria-label="Announcements" id="ticker-bar" style="display:none">
     <div class="container ticker-inner">
       <span class="ticker-label"><i class="fas fa-bullhorn"></i> Latest</span>
       <div class="ticker-track">
-        <!-- Populated from /api/announcements by main.js (loadAnnouncements).
-             The static items below are a no-JS / load-failure fallback. -->
-        <div class="ticker-content" id="ticker-content">
-          <span class="ticker-item">AGM 2026 scheduled for July 20 – All members must attend</span>
-          <span class="ticker-item">New TSC transfer guidelines effective June 2026 – <a href="/pages/news.html">Read more</a></span>
-          <span class="ticker-item">KUPPET National Scholarship applications open until July 31</span>
-          <span class="ticker-item">Teacher Wellness Program launching – Free medical check-ups available</span>
-          <span class="ticker-item">BBF Claim forms updated – Visit branch office for new forms</span>
-          <span class="ticker-item">AGM 2026 scheduled for July 20 – All members must attend</span>
-          <span class="ticker-item">New TSC transfer guidelines effective June 2026 – <a href="/pages/news.html">Read more</a></span>
-          <span class="ticker-item">KUPPET National Scholarship applications open until July 31</span>
-          <span class="ticker-item">Teacher Wellness Program launching – Free medical check-ups available</span>
-          <span class="ticker-item">BBF Claim forms updated – Visit branch office for new forms</span>
-        </div>
+        <!-- Admin-managed: main.js (loadAnnouncements) fills this from
+             /api/announcements and reveals the bar only when there are active
+             items. No hardcoded fallback — the admin Ticker Announcements page
+             is the single source of truth. -->
+        <div class="ticker-content" id="ticker-content"></div>
       </div>
     </div>
   </div>
@@ -830,8 +821,8 @@
     </div>
   </footer>
 
-  <script src="/js/api.js?v=20260717a"></script>
-  <script src="/js/main.js?v=20260717a"></script>
+  <script src="/js/api.js?v=20260717b"></script>
+  <script src="/js/main.js?v=20260717b"></script>
   <script>
     // Calendar widget
     (function initCalendar() {

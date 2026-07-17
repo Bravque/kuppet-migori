@@ -17,6 +17,11 @@ guidance, architecture, schema, and pending tasks see `CLAUDE.md`.
 - **Left intentionally unchanged:** CSP `imgSrc` was *not* widened for external/hot-linked images — admin images upload to `/uploads` (same-origin, allowed by `'self'`); the guidance is upload-don't-hot-link.
 - CLAUDE.md updated (sitemap SEO note, `backend/utils/*` + pagination-clamp rule in Backend layout, `safeUrl`/escaping rule in the `main.js` note, cache token).
 
+**Ticker announcements — stale hardcoded items on live + 24h HTML cache (cache token `20260717a → 20260717b`).** Report: the homepage still showed the old hardcoded ticker items even though the ticker is admin-managed and the live `/api/announcements` returns `[]`. Two root causes:
+- **HTML was cached for a day.** `express.static` was mounted with `maxAge: '1d'` over the *whole* public dir, so the homepage came back with `Cache-Control: public, max-age=86400` — browsers held the old HTML (hardcoded ticker + old `?v=` refs) for 24h and never re-fetched, silently defeating the asset-versioning too. Fixed with a `setHeaders` on the static mount that sends `Cache-Control: no-cache` for `*.html` (revalidate → 304 when unchanged); versioned CSS/JS/images keep the 1-day cache. This matches CLAUDE.md's long-stated intent that HTML revalidates.
+- **Hardcoded fallback existed.** `index.html` had 10 hardcoded `<span class="ticker-item">` items as a "no-JS / load-failure" fallback — dead/confusing now that admin owns the ticker. Removed them: `#ticker-bar` now starts `display:none` with an empty `#ticker-content`, and `loadAnnouncements()` reveals the bar only when there are active items (hides on empty **or** error). Admin "Ticker Announcements" page is now the single source of truth; nothing stale can render.
+- Verified end-to-end beforehand: admin CRUD (`content-announcements.html` + `announcementsController` + `/announcements/all`), public `GET /api/announcements`, and homepage render were all already correctly wired — the live DB simply has 0 active announcements, so the bar is (now correctly) hidden until items are added via admin.
+
 ---
 
 ### Done in the 2 July 2026 session

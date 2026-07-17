@@ -169,6 +169,16 @@ app.use('/uploads', (req, res) => res.status(404).json({ success: false, message
 // Static files (CSS/JS/images). Sensitive upload dirs blocked above; /uploads served above.
 app.use(express.static(path.join(__dirname, '../public'), {
   maxAge: isProd ? '1d' : 0,
+  setHeaders: (res, filePath) => {
+    // HTML must always revalidate (304 when unchanged via ETag) so a deploy —
+    // and the bumped `?v=` asset refs it contains — is visible immediately
+    // instead of being cached for a day. Versioned CSS/JS/images keep the long
+    // max-age above. Without this, browsers held the homepage (incl. the ticker
+    // markup) for 24h and never re-fetched to pick up admin changes.
+    if (filePath.endsWith('.html')) {
+      res.setHeader('Cache-Control', 'no-cache');
+    }
+  },
 }));
 
 // ============================================

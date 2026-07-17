@@ -203,14 +203,14 @@ function renderHomeScholarshipCard(s) {
 async function loadAnnouncements() {
   const track = document.getElementById('ticker-content');
   if (!track) return;
+  const bar = track.closest('.ticker-bar');
+  const hideBar = () => { if (bar) bar.style.display = 'none'; };
   try {
     const { data } = await api.announcements.getActive();
-    if (!Array.isArray(data)) return;
-    if (!data.length) {
-      const bar = track.closest('.ticker-bar');
-      if (bar) bar.style.display = 'none';
-      return;
-    }
+    // The admin "Ticker Announcements" page is the single source of truth.
+    // No active items (or any failure) → keep the bar hidden. There is no
+    // hardcoded fallback, so stale/placeholder items can never appear.
+    if (!Array.isArray(data) || !data.length) return hideBar();
     const item = (a) => {
       const text = escHtml(a.text);
       const link = a.link
@@ -225,6 +225,7 @@ async function loadAnnouncements() {
     // when a lone/short announcement is repeated back-to-back.
     track.classList.remove('ticker-static');
     track.innerHTML = html;
+    if (bar) bar.style.display = '';   // reveal now that there is content
     const visible = track.parentElement ? track.parentElement.clientWidth : 0;
     if (track.scrollWidth > visible + 4) {
       track.innerHTML = html + html;
@@ -232,7 +233,7 @@ async function loadAnnouncements() {
       track.classList.add('ticker-static');
     }
   } catch {
-    /* leave the static fallback items in place */
+    hideBar();
   }
 }
 
