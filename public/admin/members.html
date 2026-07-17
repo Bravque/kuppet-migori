@@ -48,8 +48,8 @@
       <div class="data-card">
         <div class="data-table-wrap">
           <table class="data-table">
-            <thead><tr><th>Member</th><th>TSC No</th><th>School</th><th>Sub-County</th><th>Status</th><th>Registered</th><th>Actions</th></tr></thead>
-            <tbody id="members-tbody"><tr><td colspan="7" class="portal-loading"><i class="fas fa-spinner fa-spin"></i> Loading...</td></tr></tbody>
+            <thead><tr><th>Member</th><th>TSC No</th><th>ID No</th><th>School</th><th>Sub-County</th><th>Status</th><th>Registered</th><th>Actions</th></tr></thead>
+            <tbody id="members-tbody"><tr><td colspan="8" class="portal-loading"><i class="fas fa-spinner fa-spin"></i> Loading...</td></tr></tbody>
           </table>
         </div>
         <div id="members-pager"></div>
@@ -82,24 +82,25 @@
   const MEMBER_LIMIT=25;
   async function loadMembers() {
     const tbody = document.getElementById('members-tbody');
-    tbody.innerHTML = '<tr><td colspan="7">'+renderLoading()+'</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="8">'+renderLoading()+'</td></tr>';
     try {
       const res = await adminApi.members.getAll({status:currentStatus,search:currentSearch,sub_county:currentSubCounty,gender:currentGender,school:currentSchool,limit:MEMBER_LIMIT,offset:memberOffset});
-      if(!res.data.length){tbody.innerHTML='<tr><td colspan="7">'+renderEmpty()+'</td></tr>';renderAdminPager('members-pager',{total:res.total||0,offset:memberOffset,limit:MEMBER_LIMIT,onPage:o=>{memberOffset=o;loadMembers();}});return;}
+      if(!res.data.length){tbody.innerHTML='<tr><td colspan="8">'+renderEmpty()+'</td></tr>';renderAdminPager('members-pager',{total:res.total||0,offset:memberOffset,limit:MEMBER_LIMIT,onPage:o=>{memberOffset=o;loadMembers();}});return;}
       tbody.innerHTML = res.data.map(m=>`<tr>
         <td><strong>${escHtml(m.full_name)}</strong><br><small>${escHtml(m.member_number)}</small></td>
         <td>${escHtml(m.tsc_number)}</td>
+        <td>${escHtml(m.national_id||'—')}</td>
         <td>${escHtml(m.school_name)}</td>
         <td>${escHtml(m.sub_county)}</td>
         <td>${statusBadge(m.status)}</td>
         <td>${formatDate(m.created_at)}</td>
-        <td style="display:flex;gap:0.3rem;flex-wrap:wrap">
+        <td><div style="display:flex;gap:0.3rem;flex-wrap:wrap">
           <a href="/admin/member-detail.html?id=${m.id}" class="btn btn-outline btn-xs"><i class="fas fa-eye"></i></a>
           ${canDecide && m.status!=='approved'?`<button class="btn btn-xs" style="background:#DCFCE7;color:#166534" onclick="approveMember(${m.id})"><i class="fas fa-check"></i></button>`:''}
           ${canDecide && m.status!=='rejected'?`<button class="btn btn-xs" style="background:#FEE2E2;color:#991B1B" onclick="openReject(${m.id})"><i class="fas fa-times"></i></button>`:''}
-        </td></tr>`).join('');
+        </div></td></tr>`).join('');
       renderAdminPager('members-pager',{total:res.total||0,offset:memberOffset,limit:MEMBER_LIMIT,onPage:o=>{memberOffset=o;loadMembers();}});
-    } catch(err){tbody.innerHTML='<tr><td colspan="7">'+escHtml(err.message)+'</td></tr>';}
+    } catch(err){tbody.innerHTML='<tr><td colspan="8">'+escHtml(err.message)+'</td></tr>';}
   }
   async function approveMember(id){if(!confirm('Approve?'))return;try{await adminApi.members.approve(id);loadMembers();}catch(e){alert(e.message);}}
   function openReject(id){rejectingId=id;document.getElementById('reject-reason').value='';document.getElementById('reject-modal').classList.add('open');}

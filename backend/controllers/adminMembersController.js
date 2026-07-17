@@ -23,7 +23,7 @@ async function getAll(req, res) {
     const { where, params: filterParams } = buildMemberFilter(req.query);
 
     const [rows] = await db.query(
-      `SELECT id, member_number, full_name, tsc_number, phone, email, gender,
+      `SELECT id, member_number, full_name, tsc_number, national_id, phone, email, gender,
               school_name, sub_county, status, created_at, approved_at
        FROM members ${where} ORDER BY created_at DESC LIMIT ? OFFSET ?`,
       [...filterParams, clampLimit(limit, 25), clampOffset(offset)]
