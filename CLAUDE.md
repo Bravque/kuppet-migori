@@ -8,7 +8,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 # First-time setup
 cp .env.example .env          # Fill in DB credentials + set JWT secrets
 npm install                   # Install all dependencies
-npm run init-db               # Create MySQL schema (25 tables) and seed data
+npm run init-db               # Create MySQL schema (28 tables) and seed data
 
 # Development
 npm run dev                   # Start with nodemon auto-reload (port 3000)
@@ -42,7 +42,7 @@ There are no tests or linting scripts configured yet.
 | Layer | Status |
 |-------|--------|
 | Express server + all REST API routes | ✓ Complete |
-| MySQL schema (25 tables) + seed data | ✓ Complete |
+| MySQL schema (28 tables) + seed data | ✓ Complete |
 | Homepage (`index.html`) | ✓ Complete |
 | About Us page | ✓ Complete |
 | Teachers Notice Board (news.html) | ✓ Complete |
@@ -59,8 +59,9 @@ There are no tests or linting scripts configured yet.
 | **Member login (by TSC number) + JWT auth + account lockout + forgot/reset password** | ✓ Complete |
 | **Member portal — dashboard, profile, BBF claims, scholarships, notifications, history** | ✓ Complete |
 | **Admin login with optional TOTP 2FA** | ✓ Complete |
-| **Admin portal — 24 pages (all CRUD/actions wired)** | ✓ Complete |
+| **Admin portal — 26 pages (all CRUD/actions wired)** | ✓ Complete |
 | **Court cases tracker (branch officers) — list, detail, updates log, dashboard summary** | ✓ Complete |
+| **Disciplinary cases tracker (branch officers) — teacher discipline: list, detail, updates log, documents** | ✓ Complete (17 Jul 2026; ⚠ needs migration #13 on live) |
 | **Admin member management — approve / reject / suspend** | ✓ Complete |
 | **BBF claims workflow (draft→submitted→under_review→approved→rejected→paid)** | ✓ Complete |
 | **Scholarship applications workflow (applied→under_review→approved→rejected)** | ✓ Complete |
@@ -123,8 +124,8 @@ Dated development logs (2 July back to 17 June 2026) live in **`docs/SESSION-NOT
 
 **Task 1 — Article detail pages** — ✓ DONE (21 June 2026).
 
-**✓ DB migrations — all applied on live (3 July 2026)**
-The following one-time scripts have been run on the live Hostinger DB; no pending DB migrations remain. Fresh installs already include all of this via `init.sql` / `init-hostinger.sql`. (Kept for reference / re-provisioning a new environment.)
+**DB migrations — #1–12 applied on live; ⚠ #13 PENDING (17 July 2026)**
+Scripts #1–12 have been run on the live Hostinger DB. **#13 (disciplinary cases) must be run once on live** (see below). Fresh installs already include all of this via `init.sql` / `init-hostinger.sql`. (Kept for reference / re-provisioning a new environment.)
 1. `backend/config/migration-bbf-claim-fields.sql` — two-type `bbf_claims` model + claim-particular columns, `members.school_category`, remaps `scholarships.scholarship_type` to kcse/kjsea/dte.
 2. `backend/config/update-leadership.sql` — clears placeholder leaders, inserts the 14 real officials.
 3. `backend/config/migration-news-media.sql` — `sport_entertainment` category on `news.category` + `image_2`/`document_url`/`document_name`.
@@ -137,6 +138,7 @@ The following one-time scripts have been run on the live Hostinger DB; no pendin
 10. `backend/config/migration-drop-dead-roles.sql` — prunes the unused `editor`/`viewer` roles from `users.role` (reassigns any such rows → branch_officer, contracts ENUM to `super_admin`/`branch_officer`). **⚠ Run once on the live Hostinger DB** (phpMyAdmin → SQL). *Superseded by #11 — you can skip this and run #11 instead.*
 11. `backend/config/migration-add-branch-secretary.sql` — adds the `branch_secretary` role (ENUM → `super_admin`/`branch_officer`/`branch_secretary`); self-contained (also reassigns any leftover editor/viewer). **⚠ Run once on the live Hostinger DB** (phpMyAdmin → SQL).
 12. `backend/config/migration-member-import.sql` — bulk-member-import support: relaxes NOT NULL on `phone`/`email`/`gender`/`date_of_birth`/`school_name`/`sub_county` (fill-later), adds `members.must_change_password` + `members.onboarding_complete`. **⚠ Run once on the live Hostinger DB BEFORE deploying the first-login/onboarding code or importing** (the login/getMe queries read the new columns). See the bulk-import flow below.
+13. `backend/config/migration-disciplinary-cases.sql` — `disciplinary_cases` + `disciplinary_case_updates` + `disciplinary_case_documents` (teacher disciplinary-matter tracker under Legal). **⚠ Run once on the live Hostinger DB** (phpMyAdmin → SQL) — the Disciplinary Cases admin page 500s until the tables exist. Also `mkdir -p ~/uploads/disciplinary` on live (the app auto-creates it at startup, but ensure it exists for the persistent UPLOAD_DIR).
 
 **Task 3 — Real content (owner must supply)**
 Still placeholder in the codebase:
@@ -179,7 +181,7 @@ Code is done and correct (verified 21–22 June 2026):
 ### Backend layout
 - **`backend/server.js`** — Express entry; mounts all middleware, registers all routes, bootstraps upload directories at startup
 - **`backend/config/database.js`** — exports a single `mysql2/promise` connection pool
-- **`backend/config/init.sql`** — authoritative schema (25 tables) + seed data; re-runnable
+- **`backend/config/init.sql`** — authoritative schema (28 tables) + seed data; re-runnable
 - **`backend/controllers/*.js`** — async functions; parameterised queries; `{ success, data, message }` responses. **All list endpoints clamp pagination** via `backend/utils/pagination.js` (`clampLimit`/`clampOffset`) — never bind raw `parseInt(req.query.limit)` to `LIMIT` (NaN → 500; unbounded → full-table dump).
 - **`backend/utils/*.js`** — shared helpers: `pagination.js` (`clampLimit(v, def, max=100)` / `clampOffset(v)` — clamp `?limit`/`?offset` to `[1,100]` / `≥0`, NaN or missing → default), `sanitizeHtml.js` (rich-text XSS allowlist), `memberProfile.js` (required-profile-field list), `excel.js` (XLSX export)
 - **`backend/routes/*.js`** — thin routers with `express-validator` on mutation routes
@@ -220,7 +222,7 @@ Every `<body>` tag carries a class that gates the matching `init*` function in `
 Admin and member portal pages use `admin-*-page` / `member-*-page` classes gating functions in their respective portal JS files.
 
 ### Asset cache-busting (IMPORTANT)
-Public CSS/JS links carry a version query, e.g. `href="/css/style.css?v=20260622b"`. **When you edit `style.css`, `portal.css`, `main.js`, or `api.js`, bump the `?v=` string on every page** (sed across `public/**/*.html`) or returning visitors won't see the change. **HTML is served with `Cache-Control: no-cache` so it always revalidates** (ETag → 304 when unchanged) — set via `setHeaders` on the `express.static` mount in `server.js`, so a deploy (and the bumped `?v=` refs the HTML contains) is visible immediately. *(Before 17 July 2026 the whole static mount had `max-age=1d`, so browsers cached the homepage — incl. the ticker markup — for 24h and never re-fetched to see admin changes; that's fixed.)* Current token: `20260717d` (bumped 17 July 2026 — cap hero text column to 55% between 961–1200px so the BBF card doesn't overlap the text; `20260717c`: hero BBF card aligned to the content container instead of the viewport edge in `style.css`; earlier `20260717b`: `main.js` `loadAnnouncements` reveal-on-content/hide-on-empty-or-error; `20260717a`: escaped image `src`s, news-card broken-image fallback, empty-excerpt/invalid-date guards, `safeUrl()` on announcement links).
+Public CSS/JS links carry a version query, e.g. `href="/css/style.css?v=20260622b"`. **When you edit `style.css`, `portal.css`, `main.js`, or `api.js`, bump the `?v=` string on every page** (sed across `public/**/*.html`) or returning visitors won't see the change. **HTML is served with `Cache-Control: no-cache` so it always revalidates** (ETag → 304 when unchanged) — set via `setHeaders` on the `express.static` mount in `server.js`, so a deploy (and the bumped `?v=` refs the HTML contains) is visible immediately. *(Before 17 July 2026 the whole static mount had `max-age=1d`, so browsers cached the homepage — incl. the ticker markup — for 24h and never re-fetched to see admin changes; that's fixed.)* Current token: `20260717e` (bumped 17 July 2026 — status-badge colour classes for court + disciplinary stages in `portal.css` (Disciplinary Cases feature); `20260717d`: cap hero text column to 55% between 961–1200px so the BBF card doesn't overlap the text; `20260717c`: hero BBF card aligned to the content container instead of the viewport edge in `style.css`; earlier `20260717b`: `main.js` `loadAnnouncements` reveal-on-content/hide-on-empty-or-error; `20260717a`: escaped image `src`s, news-card broken-image fallback, empty-excerpt/invalid-date guards, `safeUrl()` on announcement links).
 > ⚠ Caveat: portal JS (`member/js/member-portal.js`, `member/js/member-api.js`, `admin/js/admin-portal.js`, `admin/js/admin-api.js`) is loaded **without** a `?v=` query, so the convention above does not cover it. Editing those files relies on browser revalidation — hard-refresh after deploying portal-JS changes (e.g. member TSC login + admin export fixes live there); if stale-cache issues appear, add a `?v=` to those `<script>` tags.
 
 ### Responsive header (public pages)
@@ -276,7 +278,7 @@ Rosters are imported as **active** members via an offline script → SQL for php
 
 > ⚠ **Rate-limit scoping (10 July 2026):** `contactLimiter` (5/hr) is now applied only to `POST /api/contact` (the public form) — previously `app.use('/api/contact', contactLimiter)` covered the whole path, so admins loading the Contact Inbox (`GET /api/contact`) a handful of times hit the limit and saw the public "Too many contact submissions" message. The admin reads/replies/status are no longer rate-limited by it.
 
-### Database schema (25 tables)
+### Database schema (28 tables)
 **Core (public site):** `users`, `leadership`, `news`, `events`, `resources`, `scholarships`, `advocacy`, `contacts`, `settings`, `announcements`
 
 > `announcements` — the homepage scrolling ticker items (`text`, optional `link`, `sort_order`, `is_active`). Public `GET /api/announcements` returns active items in order; admin CRUD at `POST/PUT/DELETE /api/announcements` (both roles) via the **Ticker Announcements** content page (`content-announcements.html`). The homepage renders them in `main.js` `loadAnnouncements()` (items duplicated for the -50% CSS marquee loop). **The admin page is the single source of truth — there is no hardcoded fallback:** `#ticker-bar` in `index.html` starts `display:none` with an empty `#ticker-content`; `loadAnnouncements()` reveals the bar only when there are active items and keeps it hidden on empty/failed fetch. (Removed the old hardcoded `<span class="ticker-item">` fallback on 17 July 2026 — combined with the HTML no-cache fix, it was showing stale placeholder items on the live homepage.)
@@ -288,6 +290,8 @@ Rosters are imported as **active** members via an offline script → SQL for php
 **Security & audit:** `audit_logs`, `login_history`, `admin_2fa`
 
 **Legal:** `court_cases`, `court_case_updates`, `court_case_documents` (court-case tracker for branch officers; shared branch-wide, each case has a responsible `officer_id`, a dated updates/hearings log, and file attachments. Attachments live in the access-controlled `court/` upload dir, 404-blocked from static and served only via `GET /api/admin/documents/:filename` — its ownership UNION includes `court_case_documents`. Admin API at `/api/admin/court-cases`; pages `court-cases.html` + `court-case-detail.html`; dashboard summary via `getStats`. **Access restricted to `branch_officer` + `super_admin`** via `authorizeRoles('branch_officer')` in `courtCases.js`; `branch_secretary` is excluded — the shared `/api/admin/documents/:filename` endpoint also drops the `court_case_documents` UNION branch for non-court roles, and the sidebar/dashboard `[data-court-only]` items are hidden from them.)
+
+**Legal (disciplinary):** `disciplinary_cases`, `disciplinary_case_updates`, `disciplinary_case_documents` (teacher **disciplinary-matter** tracker — the TSC/employer disciplinary process, distinct from court litigation. Added 17 July 2026, migration #13). Each case records the teacher (`teacher_name`, `tsc_number`, `school`, `sub_county`), `offence_category`, `description`, a disciplinary `status` (stage) + `outcome`, key dates (`reported_date`/`interdiction_date`/`hearing_date`/`resolved_date`), a responsible `officer_id`, plus a dated updates log and document attachments (access-controlled `disciplinary/` upload dir, served only via `GET /api/admin/documents/:filename` — same `canViewLegal` gate as court docs). Admin API at `/api/admin/disciplinary-cases` (`disciplinaryCases.js` → `disciplinaryCasesController.js`); pages `disciplinary-cases.html` + `disciplinary-case-detail.html`; **same access as Court Cases** — `branch_officer` + `super_admin` via `authorizeRoles('branch_officer')`; `branch_secretary` excluded; sidebar item is `[data-court-only]` under the Legal section.)
 
 Key ENUM values:
 - `users.role`: `super_admin | branch_officer | branch_secretary` (default `branch_officer`)
@@ -301,6 +305,8 @@ Key ENUM values:
 - `scholarship_applications.status`: `applied | under_review | approved | rejected`
 - `scholarship_application_documents.doc_type`: `letter_of_application | tsc_slip | kcse_cert | admission_letter | fee_structure | recommendation | other` (the first two are the mandatory member uploads added 3 July 2026)
 - `court_cases.case_type`: `employment | disciplinary | criminal | civil | constitutional | appeal | other`
+- `disciplinary_cases.offence_category`: `misconduct | absenteeism | exam_irregularity | financial | insubordination | negligence | criminal | other`
+- `disciplinary_cases.status` (stage): `reported | query_issued | interdicted | hearing | determined | appealed | closed` · `disciplinary_cases.outcome`: `pending | warning | suspension | dismissal | reinstated | cleared | other`
 - `court_cases.status`: `open | ongoing | on_hold | closed` · `court_cases.outcome`: `pending | won | lost | settled | withdrawn | dismissed` (added 3 July 2026)
 - `news.category`: `news | announcement | circular | press_release | event | sport_entertainment` (sport_entertainment added 26 June 2026; news rows also carry `image_2`, `document_url`, `document_name`)
 - `resources.category`: `curriculum | circular | moe_document | tsc_resource | professional_dev | teaching_material | legal | policy | sport_entertainment` (sport_entertainment added 26 June 2026)
@@ -321,7 +327,7 @@ The new-claim form (`member/bbf-claims.html`) shows the member's identity in a r
 Member numbers (`MBR-YYYY-NNNNNN`), BBF claim numbers (`BBF-YYYY-NNNNNN`), and scholarship application numbers (`SAPP-YYYY-NNNNNN`) use atomic MySQL counters stored in the `settings` table (`member_seq`, `bbf_seq`, `schapp_seq`). Never use `COUNT(*)+1`.
 
 ### File uploads
-Files are stored under the upload root with UUID filenames (multer **2.x**), in subdirs `photos/`, `documents/`, `bbf/`, `scholarships/`, `members/`, `news/`, `court/`. The sensitive subdirs — `members/`, `bbf/`, `scholarships/`, `court/` — are **404-blocked from static serving** in `server.js` (before the `/uploads` static); only `photos/`, `documents/`, `news/` are public. Sensitive files are streamed only through ownership/role-checked endpoints:
+Files are stored under the upload root with UUID filenames (multer **2.x**), in subdirs `photos/`, `documents/`, `bbf/`, `scholarships/`, `members/`, `news/`, `court/`, `disciplinary/`. The sensitive subdirs — `members/`, `bbf/`, `scholarships/`, `court/`, `disciplinary/` — are **404-blocked from static serving** in `server.js` (before the `/uploads` static); only `photos/`, `documents/`, `news/` are public. Sensitive files are streamed only through ownership/role-checked endpoints:
 - **Members:** `GET /api/member/documents/:filename` — verifies the file belongs to the logged-in member.
 - **Admins:** `GET /api/admin/documents/:filename` (`backend/routes/adminDocuments.js`) — `authenticate` + `authorizeAdmin`; admin detail pages fetch these as a blob via `viewDoc()` in `admin-portal.js` (a plain link can't send the Bearer token).
 

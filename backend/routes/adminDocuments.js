@@ -5,7 +5,7 @@ const { authenticate, authorizeAdmin } = require('../middleware/auth');
 const db = require('../config/database');
 const { UPLOAD_ROOT } = require('../config/paths');
 
-const SUBDIRS = ['members', 'bbf', 'scholarships', 'court'];
+const SUBDIRS = ['members', 'bbf', 'scholarships', 'court', 'disciplinary'];
 
 // Serve sensitive member/claim/scholarship documents to authenticated admins.
 // Mirrors the member-side ownership gate, but admins may view any member's file.
@@ -13,9 +13,10 @@ const SUBDIRS = ['members', 'bbf', 'scholarships', 'court'];
 router.get('/:filename', authenticate, authorizeAdmin, async (req, res) => {
   const filename = path.basename(req.params.filename); // prevent path traversal
 
-  // Court documents are restricted to branch officers + super_admin (see courtCases.js);
-  // for other roles, omit that branch so court files aren't resolvable/served to them.
-  const canViewCourt = ['super_admin', 'branch_officer'].includes(req.user && req.user.role);
+  // Legal (court + disciplinary) documents are restricted to branch officers +
+  // super_admin (see courtCases.js / disciplinaryCases.js); for other roles omit
+  // those branches so the files aren't resolvable/served to them.
+  const canViewLegal = ['super_admin', 'branch_officer'].includes(req.user && req.user.role);
 
   // Confirm the filename belongs to a known document/PII record before serving.
   const params = [`%${filename}`, `%${filename}`, `%${filename}`, `%${filename}`];
@@ -24,9 +25,9 @@ router.get('/:filename', authenticate, authorizeAdmin, async (req, res) => {
      UNION SELECT 1 FROM scholarship_application_documents WHERE file_url LIKE ?
      UNION SELECT 1 FROM members WHERE passport_photo_url LIKE ?
      UNION SELECT 1 FROM members WHERE national_id_url LIKE ?
-     ${canViewCourt ? 'UNION SELECT 1 FROM court_case_documents WHERE file_url LIKE ?' : ''}
+     ${canViewLegal ? 'UNION SELECT 1 FROM court_case_documents WHERE file_url LIKE ? UNION SELECT 1 FROM disciplinary_case_documents WHERE file_url LIKE ?' : ''}
      LIMIT 1`,
-    canViewCourt ? [...params, `%${filename}`] : params
+    canViewLegal ? [...params, `%${filename}`, `%${filename}`] : params
   );
   if (!doc) return res.status(404).json({ success: false, message: 'Document not found' });
 

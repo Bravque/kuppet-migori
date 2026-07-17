@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<script>(function(){var t=sessionStorage.getItem("adminToken"),la=parseInt(sessionStorage.getItem("adminLastActivity")||"0",10);if(!t||(la&&Date.now()-la>1800000)){sessionStorage.removeItem("adminToken");sessionStorage.removeItem("adminUser");sessionStorage.removeItem("adminLastActivity");location.replace("/admin/login.html");}})();</script>
+  <link rel="icon" href="/favicon.ico" sizes="any">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16.png">
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Disciplinary Cases — KUPPET Migori Admin</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <link rel="stylesheet" href="/css/style.css?v=20260717e"><link rel="stylesheet" href="/css/portal.css?v=20260717e">
+</head>
+<body class="portal-body admin-disciplinary-cases-page">
+<div class="portal-layout">
+  <div id="sidebar-placeholder"></div>
+  <main class="portal-main">
+    <div id="topbar-placeholder"></div>
+    <div class="portal-content">
+      <div class="page-heading">
+        <div class="page-heading-text"><h1>Disciplinary Cases</h1><p>Monitor teacher disciplinary matters — offence, stage, hearings and outcomes.</p></div>
+        <button class="btn btn-gold btn-sm" onclick="openCaseModal(null)"><i class="fas fa-plus"></i> New Case</button>
+      </div>
+      <div id="alert" class="hidden" style="margin-bottom:1rem"></div>
+      <div class="filter-bar">
+        <input type="search" class="form-control" id="case-search" placeholder="Search teacher, TSC no, school…">
+        <select class="form-control" id="status-filter">
+          <option value="">All Stages</option>
+          <option value="reported">Reported</option>
+          <option value="query_issued">Query Issued</option>
+          <option value="interdicted">Interdicted</option>
+          <option value="hearing">Hearing</option>
+          <option value="determined">Determined</option>
+          <option value="appealed">Appealed</option>
+          <option value="closed">Closed</option>
+        </select>
+        <select class="form-control" id="offence-filter">
+          <option value="">All Offences</option>
+          <option value="misconduct">Misconduct</option>
+          <option value="absenteeism">Absenteeism</option>
+          <option value="exam_irregularity">Exam Irregularity</option>
+          <option value="financial">Financial</option>
+          <option value="insubordination">Insubordination</option>
+          <option value="negligence">Negligence</option>
+          <option value="criminal">Criminal</option>
+          <option value="other">Other</option>
+        </select>
+      </div>
+      <div class="data-card">
+        <div class="data-table-wrap">
+          <table class="data-table">
+            <thead><tr><th>Teacher</th><th>School</th><th>Offence</th><th>Stage</th><th>Hearing</th><th>Officer</th><th>Actions</th></tr></thead>
+            <tbody id="cases-tbody"><tr><td colspan="7" class="portal-loading"><i class="fas fa-spinner fa-spin"></i> Loading…</td></tr></tbody>
+          </table>
+        </div>
+        <div id="cases-pager"></div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- Create / edit modal -->
+<div class="portal-modal-overlay" id="case-modal">
+  <div class="portal-modal" style="max-width:640px">
+    <div class="portal-modal-header"><h3 id="case-modal-title">New Disciplinary Case</h3><button class="modal-close-btn"><i class="fas fa-times"></i></button></div>
+    <div class="portal-modal-body">
+      <div id="case-form-alert" class="hidden"></div>
+      <form id="case-form">
+        <div class="form-group"><label>Teacher Name <span class="required">*</span></label><input type="text" name="teacher_name" class="form-control" required placeholder="e.g. Jane W. Otieno"></div>
+        <div class="form-row">
+          <div class="form-group"><label>TSC Number</label><input type="text" name="tsc_number" class="form-control" placeholder="e.g. 826408"></div>
+          <div class="form-group"><label>Internal Ref.</label><input type="text" name="case_ref" class="form-control" placeholder="e.g. DISC/2026/014"></div>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label>School</label><input type="text" name="school" class="form-control"></div>
+          <div class="form-group"><label>Sub-county</label><input type="text" name="sub_county" class="form-control"></div>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label>Offence Category</label>
+            <select name="offence_category" class="form-control">
+              <option value="misconduct">Misconduct</option>
+              <option value="absenteeism">Absenteeism</option>
+              <option value="exam_irregularity">Exam Irregularity</option>
+              <option value="financial">Financial</option>
+              <option value="insubordination">Insubordination</option>
+              <option value="negligence">Negligence</option>
+              <option value="criminal">Criminal</option>
+              <option value="other">Other</option>
+            </select>
+          </div>
+          <div class="form-group"><label>Stage</label>
+            <select name="status" class="form-control">
+              <option value="reported">Reported</option>
+              <option value="query_issued">Query Issued</option>
+              <option value="interdicted">Interdicted</option>
+              <option value="hearing">Hearing</option>
+              <option value="determined">Determined</option>
+              <option value="appealed">Appealed</option>
+              <option value="closed">Closed</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label>Reported Date</label><input type="date" name="reported_date" class="form-control"></div>
+          <div class="form-group"><label>Interdiction Date</label><input type="date" name="interdiction_date" class="form-control"></div>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label>Hearing Date</label><input type="date" name="hearing_date" class="form-control"></div>
+          <div class="form-group"><label>Resolved Date</label><input type="date" name="resolved_date" class="form-control"></div>
+        </div>
+        <div class="form-group"><label>Outcome / Sanction</label>
+          <select name="outcome" class="form-control">
+            <option value="pending">Pending</option>
+            <option value="warning">Warning</option>
+            <option value="suspension">Suspension</option>
+            <option value="dismissal">Dismissal</option>
+            <option value="reinstated">Reinstated</option>
+            <option value="cleared">Cleared</option>
+            <option value="other">Other</option>
+          </select>
+        </div>
+        <div class="form-group"><label>Allegation / Description</label><textarea name="description" class="form-control" rows="4"></textarea></div>
+      </form>
+    </div>
+    <div class="portal-modal-footer">
+      <button class="btn btn-outline btn-sm modal-close-btn">Cancel</button>
+      <button class="btn btn-gold btn-sm" onclick="submitOnce(this, saveCase)"><i class="fas fa-save"></i> Save Case</button>
+    </div>
+  </div>
+</div>
+
+<script src="/admin/js/admin-api.js"></script><script src="/admin/js/admin-portal.js"></script>
+<script>
+  document.getElementById('sidebar-placeholder').outerHTML = getSidebarHtml();
+  document.getElementById('topbar-placeholder').outerHTML = getTopbarHtml('Disciplinary Cases');
+  const user = requireAdminAuth(); if(user) initSidebar(user);
+
+  const OFFENCE_LABELS = {misconduct:'Misconduct',absenteeism:'Absenteeism',exam_irregularity:'Exam Irregularity',financial:'Financial',insubordination:'Insubordination',negligence:'Negligence',criminal:'Criminal',other:'Other'};
+  let editingCaseId=null, currentStatus='', currentOffence='', currentSearch='', caseOffset=0;
+  const CASE_LIMIT=25;
+  const f = sel => document.getElementById('case-form').querySelector(`[name=${sel}]`);
+
+  async function loadCases(){
+    const tb=document.getElementById('cases-tbody');
+    tb.innerHTML='<tr><td colspan="7">'+renderLoading()+'</td></tr>';
+    try{
+      const res=await adminApi.disciplinaryCases.getAll({status:currentStatus,offence_category:currentOffence,search:currentSearch,limit:CASE_LIMIT,offset:caseOffset});
+      const pager=()=>renderAdminPager('cases-pager',{total:res.total||0,offset:caseOffset,limit:CASE_LIMIT,onPage:o=>{caseOffset=o;loadCases();}});
+      if(!res.data.length){tb.innerHTML='<tr><td colspan="7">'+renderEmpty('No disciplinary cases yet')+'</td></tr>';pager();return;}
+      tb.innerHTML=res.data.map(c=>`<tr>
+        <td><strong>${escHtml(c.teacher_name)}</strong>${c.tsc_number?`<br><small>TSC ${escHtml(c.tsc_number)}</small>`:''}</td>
+        <td style="font-size:0.8rem">${escHtml(c.school||'—')}${c.sub_county?`<br><small style="color:var(--text-muted)">${escHtml(c.sub_county)}</small>`:''}</td>
+        <td>${escHtml(OFFENCE_LABELS[c.offence_category]||c.offence_category||'—')}</td>
+        <td>${statusBadge(c.status)}${c.status==='closed'&&c.outcome&&c.outcome!=='pending'?`<br><small>${escHtml(c.outcome)}</small>`:''}</td>
+        <td>${c.hearing_date?formatDate(c.hearing_date):'—'}</td>
+        <td style="font-size:0.8rem">${escHtml(c.officer_name||'—')}</td>
+        <td style="display:flex;gap:0.3rem;flex-wrap:wrap">
+          <a href="/admin/disciplinary-case-detail.html?id=${c.id}" class="btn btn-outline btn-xs" title="Open"><i class="fas fa-eye"></i></a>
+          <button class="btn btn-outline btn-xs" title="Edit" onclick='editCase(${JSON.stringify(c).replace(/'/g,"&#39;")})'><i class="fas fa-edit"></i></button>
+          <button class="btn btn-xs" style="background:#FEE2E2;color:#991B1B" title="Delete" onclick="delCase(${c.id})"><i class="fas fa-trash"></i></button>
+        </td>
+      </tr>`).join('');
+      pager();
+    }catch(err){tb.innerHTML='<tr><td colspan="7">'+escHtml(err.message)+'</td></tr>';}
+  }
+
+  function openCaseModal(){
+    editingCaseId=null;
+    document.getElementById('case-form').reset();
+    document.getElementById('case-modal-title').textContent='New Disciplinary Case';
+    document.getElementById('case-form-alert').className='hidden';
+    document.getElementById('case-modal').classList.add('open');
+  }
+  function editCase(c){
+    editingCaseId=c.id;
+    document.getElementById('case-form').reset();
+    ['teacher_name','tsc_number','case_ref','school','sub_county','offence_category','status','outcome','description'].forEach(k=>{ if(f(k)) f(k).value=c[k]||''; });
+    ['reported_date','interdiction_date','hearing_date','resolved_date'].forEach(k=>{ if(f(k)) f(k).value = c[k] ? c[k].substring(0,10) : ''; });
+    document.getElementById('case-modal-title').textContent='Edit Disciplinary Case';
+    document.getElementById('case-form-alert').className='hidden';
+    document.getElementById('case-modal').classList.add('open');
+  }
+  async function saveCase(){
+    if(!f('teacher_name').value.trim()){showAlert('case-form-alert','Teacher name is required');return;}
+    const payload={
+      teacher_name:f('teacher_name').value.trim(), tsc_number:f('tsc_number').value.trim(), case_ref:f('case_ref').value.trim(),
+      school:f('school').value.trim(), sub_county:f('sub_county').value.trim(),
+      offence_category:f('offence_category').value, status:f('status').value, outcome:f('outcome').value,
+      reported_date:f('reported_date').value||null, interdiction_date:f('interdiction_date').value||null,
+      hearing_date:f('hearing_date').value||null, resolved_date:f('resolved_date').value||null,
+      description:f('description').value.trim(),
+    };
+    try{
+      editingCaseId ? await adminApi.disciplinaryCases.update(editingCaseId,payload) : await adminApi.disciplinaryCases.create(payload);
+      document.getElementById('case-modal').classList.remove('open');
+      loadCases();
+    }catch(err){showAlert('case-form-alert',err.message);}
+  }
+  async function delCase(id){
+    if(!confirm('Delete this disciplinary case and its updates? This cannot be undone.'))return;
+    try{await adminApi.disciplinaryCases.remove(id);loadCases();}catch(e){alert(e.message);}
+  }
+
+  document.querySelectorAll('.modal-close-btn').forEach(b=>b.addEventListener('click',()=>document.getElementById('case-modal').classList.remove('open')));
+  document.getElementById('status-filter').addEventListener('change',function(){currentStatus=this.value;caseOffset=0;loadCases();});
+  document.getElementById('offence-filter').addEventListener('change',function(){currentOffence=this.value;caseOffset=0;loadCases();});
+  let st;document.getElementById('case-search').addEventListener('input',function(){clearTimeout(st);st=setTimeout(()=>{currentSearch=this.value;caseOffset=0;loadCases();},400);});
+  loadCases();
+</script>
+</body>
+</html>

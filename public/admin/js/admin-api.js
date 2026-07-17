@@ -216,5 +216,17 @@ const adminApi = (() => {
       uploadDocs: (id, form) => request(`/admin/court-cases/${id}/documents`, { method: 'POST', body: form }),
       removeDoc: (id, docId) => request(`/admin/court-cases/${id}/documents/${docId}`, { method: 'DELETE' }),
     },
+
+    disciplinaryCases: {
+      getAll: (p = {}) => request('/admin/disciplinary-cases?' + new URLSearchParams(p)),
+      getStats: () => request('/admin/disciplinary-cases/stats'),
+      getOne: (id) => request(`/admin/disciplinary-cases/${id}`),
+      create: (d) => request('/admin/disciplinary-cases', { method: 'POST', body: JSON.stringify(d) }),
+      update: (id, d) => request(`/admin/disciplinary-cases/${id}`, { method: 'PUT', body: JSON.stringify(d) }),
+      remove: (id) => request(`/admin/disciplinary-cases/${id}`, { method: 'DELETE' }),
+      addUpdate: (id, d) => request(`/admin/disciplinary-cases/${id}/updates`, { method: 'POST', body: JSON.stringify(d) }),
+      uploadDocs: (id, form) => request(`/admin/disciplinary-cases/${id}/documents`, { method: 'POST', body: form }),
+      removeDoc: (id, docId) => request(`/admin/disciplinary-cases/${id}/documents/${docId}`, { method: 'DELETE' }),
+    },
   };
 })();

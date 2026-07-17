@@ -438,6 +438,9 @@ function getSidebarHtml() {
     <a href="/admin/court-cases.html" class="sidebar-nav-item" data-court-only>
       <i class="fas fa-scale-balanced"></i> Court Cases
     </a>
+    <a href="/admin/disciplinary-cases.html" class="sidebar-nav-item" data-court-only>
+      <i class="fas fa-user-shield"></i> Disciplinary Cases
+    </a>
 
     <div class="sidebar-nav-section">Communications</div>
     <a href="/admin/sms.html" class="sidebar-nav-item">

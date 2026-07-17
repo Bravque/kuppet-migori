@@ -65,6 +65,15 @@ module.exports = {
     fileFilter: fileFilter(DOC_MIMES),
   }),
 
+  // Disciplinary-case documents (query letters, interdiction letters, hearing
+  // minutes, determinations). Access-controlled like court docs; served only
+  // via /api/admin/documents/:filename.
+  disciplinaryDocs: multer({
+    storage: storage('disciplinary'),
+    limits: { fileSize: 10 * MB },
+    fileFilter: fileFilter(DOC_MIMES),
+  }),
+
   memberDocs: multer({
     storage: storage('members'),
     limits: { fileSize: 5 * MB },

@@ -155,7 +155,7 @@ app.use('/api/member/auth/forgot-password', forgotPwLimiter);
 // ownership/role-checked endpoints:
 //   members:   GET /api/member/documents/:filename   (owning member)
 //   admin:     GET /api/admin/documents/:filename     (authenticated admin)
-app.use(['/uploads/members', '/uploads/bbf', '/uploads/scholarships', '/uploads/court'], (req, res) => {
+app.use(['/uploads/members', '/uploads/bbf', '/uploads/scholarships', '/uploads/court', '/uploads/disciplinary'], (req, res) => {
   res.status(404).json({ success: false, message: 'Not found' });
 });
 
@@ -236,6 +236,7 @@ app.use('/api/admin/email',            (req, res, next) => {
 app.use('/api/admin/analytics',        require('./routes/adminAnalytics'));
 app.use('/api/admin/audit',            require('./routes/adminAudit'));
 app.use('/api/admin/court-cases',      require('./routes/courtCases'));
+app.use('/api/admin/disciplinary-cases', require('./routes/disciplinaryCases'));
 app.use('/api/sms/webhook',            require('./routes/smsWebhook'));
 
 // Health check — pings the DB so uptime monitors detect a DB outage (503, not a false 200).
