@@ -492,7 +492,10 @@ h1,h2,h3,h4,h5,h6 { line-height: 1.25; font-weight: 700; }
   border-radius: var(--radius-xl);
   padding: 2rem;
   width: 340px;
-  margin-right: 2rem;
+  /* Align the card's right edge with the content container (max-width 1200px +
+     1.5rem gutter) instead of hugging the raw viewport edge, so on wide screens
+     it doesn't overhang far to the right. Falls back to 2rem below ~1200px. */
+  margin-right: max(2rem, calc((100vw - var(--max-width)) / 2 + 1.5rem));
 }
 .hero-cta-card { text-align: center; }
 .hero-cta-card h3 { color: #fff; font-size: 1.1rem; margin-bottom: 0.5rem; }
