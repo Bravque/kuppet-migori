@@ -143,11 +143,11 @@
         <td>${statusBadge(c.status)}${c.status==='closed'&&c.outcome&&c.outcome!=='pending'?`<br><small>${escHtml(c.outcome)}</small>`:''}</td>
         <td>${c.next_hearing_date?formatDate(c.next_hearing_date):'—'}</td>
         <td style="font-size:0.8rem">${escHtml(c.officer_name||'—')}</td>
-        <td style="display:flex;gap:0.3rem;flex-wrap:wrap">
+        <td><div style="display:flex;gap:0.3rem;flex-wrap:wrap">
           <a href="/admin/court-case-detail.html?id=${c.id}" class="btn btn-outline btn-xs" title="Open"><i class="fas fa-eye"></i></a>
           <button class="btn btn-outline btn-xs" title="Edit" onclick='editCase(${JSON.stringify(c).replace(/'/g,"&#39;")})'><i class="fas fa-edit"></i></button>
           <button class="btn btn-xs" style="background:#FEE2E2;color:#991B1B" title="Delete" onclick="delCase(${c.id})"><i class="fas fa-trash"></i></button>
-        </td>
+        </div></td>
       </tr>`).join('');
       pager();
     }catch(err){tb.innerHTML='<tr><td colspan="8">'+escHtml(err.message)+'</td></tr>';}
