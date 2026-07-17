@@ -31,6 +31,7 @@
       </div>
       <div class="filter-bar">
         <input type="search" class="form-control" id="member-search" placeholder="Search by name, TSC, email...">
+        <input type="search" class="form-control" id="school-search" placeholder="Search by school...">
         <select class="form-control" id="subcounty-filter">
           <option value="">All Sub-Counties</option>
           <option>Rongo</option><option>Awendo</option><option>Uriri</option><option>Suna East</option>
@@ -77,13 +78,13 @@
   // Approve/reject are branch_officer + super_admin decisions; branch_secretary
   // is view-only (backend enforces). Hide the inline action buttons for them.
   const canDecide = !!user && ['super_admin','branch_officer'].includes(user.role);
-  let currentStatus='', currentSearch='', currentSubCounty='', currentGender='', memberOffset=0, rejectingId=null;
+  let currentStatus='', currentSearch='', currentSubCounty='', currentGender='', currentSchool='', memberOffset=0, rejectingId=null;
   const MEMBER_LIMIT=25;
   async function loadMembers() {
     const tbody = document.getElementById('members-tbody');
     tbody.innerHTML = '<tr><td colspan="7">'+renderLoading()+'</td></tr>';
     try {
-      const res = await adminApi.members.getAll({status:currentStatus,search:currentSearch,sub_county:currentSubCounty,gender:currentGender,limit:MEMBER_LIMIT,offset:memberOffset});
+      const res = await adminApi.members.getAll({status:currentStatus,search:currentSearch,sub_county:currentSubCounty,gender:currentGender,school:currentSchool,limit:MEMBER_LIMIT,offset:memberOffset});
       if(!res.data.length){tbody.innerHTML='<tr><td colspan="7">'+renderEmpty()+'</td></tr>';renderAdminPager('members-pager',{total:res.total||0,offset:memberOffset,limit:MEMBER_LIMIT,onPage:o=>{memberOffset=o;loadMembers();}});return;}
       tbody.innerHTML = res.data.map(m=>`<tr>
         <td><strong>${escHtml(m.full_name)}</strong><br><small>${escHtml(m.member_number)}</small></td>
@@ -110,10 +111,11 @@
     t.classList.add('active');currentStatus=t.dataset.status;memberOffset=0;loadMembers();
   }));
   let st;document.getElementById('member-search').addEventListener('input',function(){clearTimeout(st);st=setTimeout(()=>{currentSearch=this.value;memberOffset=0;loadMembers();},400);});
+  let sst;document.getElementById('school-search').addEventListener('input',function(){clearTimeout(sst);sst=setTimeout(()=>{currentSchool=this.value;memberOffset=0;loadMembers();},400);});
   document.getElementById('subcounty-filter').addEventListener('change',function(){currentSubCounty=this.value;memberOffset=0;loadMembers();});
   document.getElementById('gender-filter').addEventListener('change',function(){currentGender=this.value;memberOffset=0;loadMembers();});
   // Export mirrors the active filters (status/search/sub-county/gender), not the whole table.
-  document.getElementById('btn-export').addEventListener('click',function(){adminApi.members.exportExcel({status:currentStatus,search:currentSearch,sub_county:currentSubCounty,gender:currentGender}).catch(e=>alert(e.message));});
+  document.getElementById('btn-export').addEventListener('click',function(){adminApi.members.exportExcel({status:currentStatus,search:currentSearch,sub_county:currentSubCounty,gender:currentGender,school:currentSchool}).catch(e=>alert(e.message));});
   const urlTab=new URLSearchParams(window.location.search).get('tab');
   if(urlTab==='pending'){document.querySelector('[data-status="pending_approval"]').click();}else{loadMembers();}
 </script>

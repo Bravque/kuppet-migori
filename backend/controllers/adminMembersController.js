@@ -4,14 +4,15 @@ const { sendXlsx } = require('../utils/excel');
 const notificationService = require('../services/notificationService');
 const mailerService = require('../services/mailerService');
 
-// Build the members filter once (status, sub_county, gender, search) so the list,
-// its count and the Excel export all stay in sync. Returns { where, params }.
-function buildMemberFilter({ status, sub_county, gender, search } = {}) {
+// Build the members filter once (status, sub_county, gender, search, school) so the
+// list, its count and the Excel export all stay in sync. Returns { where, params }.
+function buildMemberFilter({ status, sub_county, gender, search, school } = {}) {
   let where = 'WHERE 1=1';
   const params = [];
   if (status) { where += ' AND status = ?'; params.push(status); }
   if (sub_county) { where += ' AND sub_county = ?'; params.push(sub_county); }
   if (gender) { where += ' AND gender = ?'; params.push(gender); }
+  if (school) { where += ' AND school_name LIKE ?'; params.push(`%${school}%`); }
   if (search) { where += ' AND (full_name LIKE ? OR tsc_number LIKE ? OR email LIKE ?)'; params.push(`%${search}%`, `%${search}%`, `%${search}%`); }
   return { where, params };
 }
