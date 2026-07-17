@@ -502,6 +502,15 @@ h1,h2,h3,h4,h5,h6 { line-height: 1.25; font-weight: 700; }
 .hero-cta-card p { color: rgba(255,255,255,0.7); font-size: 0.875rem; margin-bottom: 1.5rem; }
 .hero-cta-card .btn { width: 100%; }
 
+/* Between the mobile breakpoint (where .hero-visual hides) and the container
+   width, the absolute right-aligned BBF card sits close to the viewport edge
+   while the 750px text column runs under it — cap the text column so the
+   heading/buttons/stats clear the card. Above 1200px the card is pushed left
+   with the content gutter and already clears the text, so no cap is needed. */
+@media (min-width: 961px) and (max-width: 1200px) {
+  .hero-content { max-width: 55%; }
+}
+
 /* ============================================
    ANNOUNCEMENT TICKER
    ============================================ */
