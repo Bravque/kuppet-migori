@@ -1123,6 +1123,54 @@ textarea.form-control { resize: vertical; min-height: 100px; }
   white-space: nowrap;
 }
 
+/* ── Button busy / loading state ─────────────────────────────────────────────
+   Added automatically by setButtonBusy() (admin-api.js) whenever a button
+   triggers an API request, and by submitOnce(). The button is disabled +
+   pointer-events:none (blocks the re-clicks that cause duplicate submissions)
+   and its label/icon are hidden behind a centred spinner. The spinner colour is
+   captured from the button's own text colour into --btn-spinner before the label
+   is hidden, so it stays legible on every variant (primary, outline, red, gold).
+   Because a spinner replaces the label in place, the button keeps its exact size
+   — no layout shift. Works for <button>, <a class="btn"> and .btn-xs. */
+.btn.is-loading,
+.btn-xs.is-loading {
+  color: transparent !important;
+  position: relative;
+  pointer-events: none;
+  cursor: progress;
+}
+/* Hide any nested icons/images too (font glyphs go transparent with the text). */
+.btn.is-loading > img,
+.btn-xs.is-loading > img { visibility: hidden; }
+
+.btn.is-loading::after,
+.btn-xs.is-loading::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 1.05em;
+  height: 1.05em;
+  margin: -0.55em 0 0 -0.55em;
+  border-radius: 50%;
+  border: 2px solid var(--btn-spinner, currentColor);
+  border-top-color: transparent;
+  animation: btn-spin 0.6s linear infinite;
+}
+
+@keyframes btn-spin { to { transform: rotate(360deg); } }
+
+/* Disabled buttons (busy or otherwise) should read as unavailable. */
+.btn:disabled,
+.btn-xs:disabled { opacity: 0.65; cursor: not-allowed; }
+.btn.is-loading:disabled,
+.btn-xs.is-loading:disabled { opacity: 1; }  /* spinner already signals state */
+
+@media (prefers-reduced-motion: reduce) {
+  .btn.is-loading::after,
+  .btn-xs.is-loading::after { animation-duration: 1.4s; }
+}
+
 .flex { display: flex; }
 .items-center { align-items: center; }
 .gap-2 { gap: 0.5rem; }

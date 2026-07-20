@@ -5,6 +5,61 @@
 const adminApi = (() => {
   const BASE = '/api';
 
+  // ── Button busy-state (loading animation + re-click lockout) ────────────────
+  // Every mutating/loading admin action ultimately calls request() or download()
+  // below. We track the button the user last clicked and, for the duration of the
+  // resulting network call, mark it busy: a spinner replaces its label and the
+  // button is disabled + pointer-events:none, so a double-click can't fire the
+  // request twice (the classic cause of duplicate rows). Zero per-button wiring —
+  // any <button>/<a class="btn"> that triggers an API call gets it automatically.
+  // A button can opt out with the data-no-busy attribute.
+  let _clickedBtn = null, _clickedAt = 0;
+  if (typeof document !== 'undefined') {
+    document.addEventListener('click', (e) => {
+      const t = e.target.closest && e.target.closest('button, .btn');
+      if (!t || t.disabled || t.hasAttribute('data-no-busy')) return;
+      _clickedBtn = t; _clickedAt = Date.now();
+    }, true);
+  }
+  // The button is consumed by the FIRST request of a click (so a handler that
+  // fires several calls only spins its trigger, not later background reloads),
+  // and only counts if the click was recent (guards against a stale reference
+  // being grabbed by an unrelated background request).
+  function takePendingButton() {
+    if (_clickedBtn && Date.now() - _clickedAt < 1500) {
+      const b = _clickedBtn; _clickedBtn = null; return b;
+    }
+    return null;
+  }
+  // Ref-counted so nested owners (e.g. submitOnce + the request it fires) compose
+  // safely — the button only clears once the last holder releases it.
+  function setButtonBusy(btn) {
+    if (!btn) return;
+    btn._busyCount = (btn._busyCount || 0) + 1;
+    if (btn._busyCount === 1) {
+      try { btn.style.setProperty('--btn-spinner', getComputedStyle(btn).color); } catch (_) {}
+      btn.classList.add('is-loading');
+      if ('disabled' in btn) btn.disabled = true;
+      btn.setAttribute('aria-busy', 'true');
+    }
+  }
+  function clearButtonBusy(btn) {
+    if (!btn || !btn._busyCount) return;
+    btn._busyCount -= 1;
+    if (btn._busyCount === 0) {
+      btn.classList.remove('is-loading');
+      if ('disabled' in btn) btn.disabled = false;
+      btn.removeAttribute('aria-busy');
+      btn.style.removeProperty('--btn-spinner');
+    }
+  }
+  // Shared with admin-portal.js (submitOnce) and available to any page handler
+  // that wants to drive the state manually, e.g. setButtonBusy(myBtn).
+  if (typeof window !== 'undefined') {
+    window.setButtonBusy = setButtonBusy;
+    window.clearButtonBusy = clearButtonBusy;
+  }
+
   // Token lives in sessionStorage (cleared when the browser/last tab closes), and
   // an idle timestamp forces logout after ADMIN_IDLE_MS of inactivity. See the
   // inline guard in each admin page's <head> and touchActivity() in admin-portal.js.
@@ -26,48 +81,60 @@ const adminApi = (() => {
     if (options.method && options.method !== 'GET') headers['X-CSRF-Token'] = getCsrfToken();
     if (options.body instanceof FormData) delete headers['Content-Type'];
 
-    const res = await fetch(BASE + path, { ...options, headers });
-    const data = await res.json().catch(() => ({}));
-    // 401 = not authenticated (missing/expired token) → session is dead, log out.
-    // 403 = authenticated but not authorized (e.g. branch_secretary hitting a
-    // super_admin route) → keep the session and surface the message below.
-    if (res.status === 401 && token) {
-      clearAuth();
-      window.location.href = '/admin/login.html';
-      return;
-    }
-    if (!res.ok) {
-      let msg = data.message || `Error ${res.status}`;
-      if (Array.isArray(data.errors) && data.errors.length) {
-        msg += ': ' + data.errors.map(e => e.message).join('; ');
+    const busyBtn = takePendingButton();
+    setButtonBusy(busyBtn);
+    try {
+      const res = await fetch(BASE + path, { ...options, headers });
+      const data = await res.json().catch(() => ({}));
+      // 401 = not authenticated (missing/expired token) → session is dead, log out.
+      // 403 = authenticated but not authorized (e.g. branch_secretary hitting a
+      // super_admin route) → keep the session and surface the message below.
+      if (res.status === 401 && token) {
+        clearAuth();
+        window.location.href = '/admin/login.html';
+        return;
       }
-      throw new Error(msg);
+      if (!res.ok) {
+        let msg = data.message || `Error ${res.status}`;
+        if (Array.isArray(data.errors) && data.errors.length) {
+          msg += ': ' + data.errors.map(e => e.message).join('; ');
+        }
+        throw new Error(msg);
+      }
+      return data;
+    } finally {
+      clearButtonBusy(busyBtn);
     }
-    return data;
   }
 
   // Authenticated file download. A plain window.open() can't send the
   // Authorization header, so exports must be fetched as a blob with the token.
   async function download(path, fallbackName) {
     const token = getToken();
-    const res = await fetch(BASE + path, { headers: token ? { Authorization: `Bearer ${token}` } : {} });
-    if (res.status === 401 && token) {
-      clearAuth(); window.location.href = '/admin/login.html'; return;
+    const busyBtn = takePendingButton();
+    setButtonBusy(busyBtn);
+    try {
+      const res = await fetch(BASE + path, { headers: token ? { Authorization: `Bearer ${token}` } : {} });
+      if (res.status === 401 && token) {
+        clearAuth(); window.location.href = '/admin/login.html'; return;
+      }
+      if (!res.ok) {
+        let msg = `Export failed (${res.status})`;
+        try { msg = (await res.json()).message || msg; } catch {}
+        throw new Error(msg);
+      }
+      const blob = await res.blob();
+      let name = fallbackName;
+      const cd = res.headers.get('Content-Disposition');
+      const m = cd && cd.match(/filename="?([^"]+)"?/);
+      if (m) name = m[1];
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = name; document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    } finally {
+      clearButtonBusy(busyBtn);
     }
-    if (!res.ok) {
-      let msg = `Export failed (${res.status})`;
-      try { msg = (await res.json()).message || msg; } catch {}
-      throw new Error(msg);
-    }
-    const blob = await res.blob();
-    let name = fallbackName;
-    const cd = res.headers.get('Content-Disposition');
-    const m = cd && cd.match(/filename="?([^"]+)"?/);
-    if (m) name = m[1];
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url; a.download = name; document.body.appendChild(a); a.click(); a.remove();
-    setTimeout(() => URL.revokeObjectURL(url), 1000);
   }
 
   return {

@@ -8,14 +8,22 @@ function escHtml(s) {
     .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
 }
 
-// Run a save/submit handler once, disabling its button until it resolves so a
-// fast double-click can't fire the request twice (which creates duplicate rows).
-// Wire modal save buttons as: onclick="submitOnce(this, saveThing)".
+// Run a save/submit handler once, showing a spinner on its button and disabling
+// it until the handler resolves, so a fast double-click can't fire the request
+// twice (which creates duplicate rows). Uses the shared ref-counted busy helpers
+// from admin-api.js (setButtonBusy/clearButtonBusy) — the same ones the API
+// client applies automatically — so the two compose cleanly when the handler
+// makes its own API call. Wire modal save buttons as:
+//   onclick="submitOnce(this, saveThing)".
 async function submitOnce(btn, fn) {
-  if (btn && btn.disabled) return;      // already in flight — ignore repeat clicks
-  if (btn) btn.disabled = true;
+  if (btn && (btn.disabled || btn._busyCount)) return;  // already in flight — ignore repeats
+  if (typeof setButtonBusy === 'function') setButtonBusy(btn);
+  else if (btn) btn.disabled = true;
   try { await fn(); }
-  finally { if (btn) btn.disabled = false; }
+  finally {
+    if (typeof clearButtonBusy === 'function') clearButtonBusy(btn);
+    else if (btn) btn.disabled = false;
+  }
 }
 window.submitOnce = submitOnce;
 
