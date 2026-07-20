@@ -318,6 +318,24 @@ CREATE TABLE IF NOT EXISTS sms_logs (
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+-- Email delivery log (progress/history for individual, bulk & group email sends)
+CREATE TABLE IF NOT EXISTS email_logs (
+  id INT PRIMARY KEY AUTO_INCREMENT,
+  recipient_email VARCHAR(254) NOT NULL,
+  recipient_name VARCHAR(200),
+  member_id INT,
+  subject VARCHAR(255) NOT NULL,
+  message TEXT,
+  message_type ENUM('individual','bulk','group') DEFAULT 'individual',
+  status ENUM('sent','failed','skipped') DEFAULT 'sent',
+  error_message TEXT,
+  sent_by INT NOT NULL,
+  sent_at TIMESTAMP NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  INDEX idx_email_logs_status (status),
+  INDEX idx_email_logs_created (created_at)
+);
+
 -- Reusable SMS templates
 CREATE TABLE IF NOT EXISTS sms_templates (
   id INT PRIMARY KEY AUTO_INCREMENT,

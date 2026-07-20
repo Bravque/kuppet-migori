@@ -8,7 +8,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 # First-time setup
 cp .env.example .env          # Fill in DB credentials + set JWT secrets
 npm install                   # Install all dependencies
-npm run init-db               # Create MySQL schema (28 tables) and seed data
+npm run init-db               # Create MySQL schema (29 tables) and seed data
 
 # Development
 npm run dev                   # Start with nodemon auto-reload (port 3000)
@@ -42,7 +42,7 @@ There are no tests or linting scripts configured yet.
 | Layer | Status |
 |-------|--------|
 | Express server + all REST API routes | ✓ Complete |
-| MySQL schema (28 tables) + seed data | ✓ Complete |
+| MySQL schema (29 tables) + seed data | ✓ Complete |
 | Homepage (`index.html`) | ✓ Complete |
 | About Us page | ✓ Complete |
 | Teachers Notice Board (news.html) | ✓ Complete |
@@ -124,11 +124,12 @@ Dated development logs (2 July back to 17 June 2026) live in **`docs/SESSION-NOT
 
 **Task 1 — Article detail pages** — ✓ DONE (21 June 2026).
 
-**DB migrations — #1–15 ALL applied on live (20 July 2026)**
-All migration scripts have been run on the live Hostinger DB and are folded into `init.sql` / `init-hostinger.sql` for fresh installs — their individual `backend/config/migration-*.sql` files are kept for re-provisioning reference (see `docs/SESSION-NOTES.md` for what each changed). Nothing pending. Reference of the most recent:
+**DB migrations — #1–15 applied on live; ⚠ #16 PENDING (20 July 2026)**
+Scripts #1–15 have been run on the live Hostinger DB and are folded into `init.sql` / `init-hostinger.sql` for fresh installs — their individual `backend/config/migration-*.sql` files are kept for re-provisioning reference (see `docs/SESSION-NOTES.md` for what each changed). **Only #16 (email_logs) is pending** — run it once. Reference of the most recent:
 13. `backend/config/migration-disciplinary-cases.sql` — `disciplinary_cases` + `disciplinary_case_updates` + `disciplinary_case_documents` (teacher disciplinary-matter tracker under Legal). ✓ Applied 20 July 2026. Needs `~/uploads/disciplinary` on live (app auto-creates at startup; ensure it exists for the persistent UPLOAD_DIR).
 14. `backend/config/migration-member-job-group.sql` — adds `members.job_group` (TSC grade ENUM `B5`,`C1`–`C5`,`D1`–`D5`, nullable). ✓ Applied 20 July 2026. Required at new registration + part of first-login onboarding (`REQUIRED_PROFILE_FIELDS`); existing/imported members are null until they set it in their profile.
 15. `backend/config/migration-content-admin-role.sql` — extends `users.role` ENUM with `content_admin`. ✓ Applied 20 July 2026.
+16. `backend/config/migration-email-logs.sql` — `email_logs` table (email send history; status `sent`/`failed`/`skipped`, no DLR). **⚠ Run once on live** before the Email Logs page loads (`getLogs` SELECTs it).
 
 **Task 3 — Real content (owner must supply)**
 Still placeholder in the codebase:
@@ -171,7 +172,7 @@ Code is done and correct (verified 21–22 June 2026):
 ### Backend layout
 - **`backend/server.js`** — Express entry; mounts all middleware, registers all routes, bootstraps upload directories at startup
 - **`backend/config/database.js`** — exports a single `mysql2/promise` connection pool
-- **`backend/config/init.sql`** — authoritative schema (28 tables) + seed data; re-runnable
+- **`backend/config/init.sql`** — authoritative schema (29 tables) + seed data; re-runnable
 - **`backend/controllers/*.js`** — async functions; parameterised queries; `{ success, data, message }` responses. **All list endpoints clamp pagination** via `backend/utils/pagination.js` (`clampLimit`/`clampOffset`) — never bind raw `parseInt(req.query.limit)` to `LIMIT` (NaN → 500; unbounded → full-table dump).
 - **`backend/utils/*.js`** — shared helpers: `pagination.js` (`clampLimit(v, def, max=100)` / `clampOffset(v)` — clamp `?limit`/`?offset` to `[1,100]` / `≥0`, NaN or missing → default), `sanitizeHtml.js` (rich-text XSS allowlist), `memberProfile.js` (required-profile-field list), `excel.js` (XLSX export)
 - **`backend/routes/*.js`** — thin routers with `express-validator` on mutation routes
@@ -272,14 +273,14 @@ Rosters are imported as **active** members via an offline script → SQL for php
 
 > ⚠ **Rate-limit scoping (10 July 2026):** `contactLimiter` (5/hr) is now applied only to `POST /api/contact` (the public form) — previously `app.use('/api/contact', contactLimiter)` covered the whole path, so admins loading the Contact Inbox (`GET /api/contact`) a handful of times hit the limit and saw the public "Too many contact submissions" message. The admin reads/replies/status are no longer rate-limited by it.
 
-### Database schema (28 tables)
+### Database schema (29 tables)
 **Core (public site):** `users`, `leadership`, `news`, `events`, `resources`, `scholarships`, `advocacy`, `contacts`, `settings`, `announcements`
 
 > `announcements` — the homepage scrolling ticker items (`text`, optional `link`, `sort_order`, `is_active`). Public `GET /api/announcements` returns active items in order; admin CRUD at `POST/PUT/DELETE /api/announcements` (both roles) via the **Ticker Announcements** content page (`content-announcements.html`). The homepage renders them in `main.js` `loadAnnouncements()` (items duplicated for the -50% CSS marquee loop). **The admin page is the single source of truth — there is no hardcoded fallback:** `#ticker-bar` in `index.html` starts `display:none` with an empty `#ticker-content`; `loadAnnouncements()` reveals the bar only when there are active items and keeps it hidden on empty/failed fetch. (Removed the old hardcoded `<span class="ticker-item">` fallback on 17 July 2026 — combined with the HTML no-cache fix, it was showing stale placeholder items on the live homepage.)
 
 **Membership:** `members`, `bbf_claims`, `bbf_claim_documents`, `bbf_claim_timeline`, `scholarship_applications`, `scholarship_application_documents`, `notifications`
 
-**SMS & comms:** `sms_logs`, `sms_templates`
+**SMS & comms:** `sms_logs`, `sms_templates`, `email_logs` (email send history/progress, mirrors `sms_logs`; admin Email Logs page)
 
 **Security & audit:** `audit_logs`, `login_history`, `admin_2fa`
 

@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<script>(function(){var t=sessionStorage.getItem("adminToken"),la=parseInt(sessionStorage.getItem("adminLastActivity")||"0",10);if(!t||(la&&Date.now()-la>1800000)){sessionStorage.removeItem("adminToken");sessionStorage.removeItem("adminUser");sessionStorage.removeItem("adminLastActivity");location.replace("/admin/login.html");}})();</script>
+  <link rel="icon" href="/favicon.ico" sizes="any">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16.png">
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Email Logs — KUPPET Migori Admin</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <link rel="stylesheet" href="/css/style.css?v=20260717e"><link rel="stylesheet" href="/css/portal.css?v=20260717e">
+</head>
+<body class="portal-body admin-email-logs-page">
+<div class="portal-layout">
+  <div id="sidebar-placeholder"></div>
+  <main class="portal-main">
+    <div id="topbar-placeholder"></div>
+    <div class="portal-content">
+      <div class="page-heading">
+        <div class="page-heading-text"><h1>Email Logs</h1><p>History and status of all emails sent from the portal, including background bulk/group sends.</p></div>
+      </div>
+      <div class="filter-tabs" id="tabs">
+        <button class="filter-tab active" data-status="">All</button>
+        <button class="filter-tab" data-status="sent">Sent</button>
+        <button class="filter-tab" data-status="failed">Failed</button>
+        <button class="filter-tab" data-status="skipped">Skipped</button>
+      </div>
+      <div id="alert" class="hidden" style="margin-bottom:1rem"></div>
+      <div class="data-card">
+        <div class="data-table-wrap">
+          <table class="data-table">
+            <thead><tr><th>Date</th><th>Recipient</th><th>Type</th><th>Status</th><th>Subject</th></tr></thead>
+            <tbody id="tbody"><tr><td colspan="5" class="portal-loading"><i class="fas fa-spinner fa-spin"></i> Loading…</td></tr></tbody>
+          </table>
+        </div>
+        <div id="pager" style="display:flex;justify-content:space-between;align-items:center;padding:0.75rem 1rem;font-size:0.82rem;color:var(--text-muted)"></div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script src="/admin/js/admin-api.js"></script><script src="/admin/js/admin-portal.js"></script>
+<script>
+  document.getElementById('sidebar-placeholder').outerHTML = getSidebarHtml();
+  document.getElementById('topbar-placeholder').outerHTML = getTopbarHtml('Email Logs');
+  const user = requireAdminAuth(); if(user) initSidebar(user);
+  let status = '', offset = 0; const limit = 30;
+
+  async function load(){
+    const tb=document.getElementById('tbody');
+    tb.innerHTML='<tr><td colspan="5">'+renderLoading()+'</td></tr>';
+    try{
+      const res=await adminApi.email.getLogs({ status, limit, offset });
+      const rows=res.data||[];
+      if(!rows.length){tb.innerHTML='<tr><td colspan="5">'+renderEmpty('No emails found')+'</td></tr>';}
+      else tb.innerHTML=rows.map(l=>`<tr>
+        <td>${formatDateTime(l.sent_at||l.created_at)}</td>
+        <td>${escHtml(l.recipient_name||'')}${l.recipient_name?'<br>':''}<small>${escHtml(l.recipient_email||'')}</small></td>
+        <td>${escHtml((l.message_type||'').replace(/_/g,' '))}</td>
+        <td>${statusBadge(l.status)}${l.status!=='sent'&&l.error_message?`<br><small style="color:#991B1B">${escHtml(l.error_message)}</small>`:''}</td>
+        <td style="max-width:340px;color:var(--text-muted);font-size:0.82rem">${escHtml((l.subject||'').slice(0,120))}${(l.subject||'').length>120?'…':''}</td>
+      </tr>`).join('');
+      const total=res.total||0;
+      const from=total?offset+1:0, to=Math.min(offset+limit,total);
+      document.getElementById('pager').innerHTML=`
+        <span>${from}–${to} of ${total}</span>
+        <span>
+          <button class="btn btn-outline btn-xs" ${offset===0?'disabled':''} onclick="prev()"><i class="fas fa-chevron-left"></i> Prev</button>
+          <button class="btn btn-outline btn-xs" ${to>=total?'disabled':''} onclick="next()">Next <i class="fas fa-chevron-right"></i></button>
+        </span>`;
+    }catch(err){showAlert('alert',err.message);}
+  }
+  function prev(){ if(offset>0){offset=Math.max(0,offset-limit);load();} }
+  function next(){ offset+=limit; load(); }
+
+  document.querySelectorAll('#tabs .filter-tab').forEach(t=>{
+    t.addEventListener('click',()=>{
+      document.querySelectorAll('#tabs .filter-tab').forEach(x=>x.classList.remove('active'));
+      t.classList.add('active'); status=t.dataset.status; offset=0; load();
+    });
+  });
+  load();
+</script>
+</body>
+</html>

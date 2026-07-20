@@ -481,6 +481,9 @@ function getSidebarHtml() {
     <a href="/admin/sms-logs.html" class="sidebar-nav-item">
       <i class="fas fa-list-alt"></i> SMS Logs
     </a>
+    <a href="/admin/email-logs.html" class="sidebar-nav-item">
+      <i class="fas fa-envelope-open-text"></i> Email Logs
+    </a>
     <a href="/admin/sms-templates.html" class="sidebar-nav-item">
       <i class="fas fa-file-alt"></i> SMS Templates
     </a>

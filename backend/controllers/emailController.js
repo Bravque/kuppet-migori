@@ -1,4 +1,5 @@
 const db = require('../config/database');
+const { clampLimit, clampOffset } = require('../utils/pagination');
 const mailerService = require('../services/mailerService');
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -14,18 +15,41 @@ function build(name, subject, message) {
   return mailerService.templates.adminEmail(name, subject, message);
 }
 
+// Record one email attempt to email_logs. Never throws — logging must never
+// break a send. Called once per recipient so the Email Logs page can show
+// progress/status of backgrounded blasts.
+async function logEmail({ recipientEmail, recipientName = null, memberId = null, subject, message, type, status, error = null, sentBy }) {
+  try {
+    await db.query(
+      `INSERT INTO email_logs
+         (recipient_email, recipient_name, member_id, subject, message, message_type, status, error_message, sent_by, sent_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [recipientEmail, recipientName, memberId, subject, message, type, status, error, sentBy, status === 'sent' ? new Date() : null]
+    );
+  } catch (_) { /* swallow — a logging failure must not abort the send loop */ }
+}
+
+// Map a mailerService result to an email_logs status + error string.
+function classify(result) {
+  if (result.skipped) return { status: 'skipped', error: 'SMTP not configured' };
+  if (result.success) return { status: 'sent', error: null };
+  return { status: 'failed', error: 'Send failed' };
+}
+
 // Send a batch **sequentially with a pause between messages** so we don't burst
 // past the SMTP provider's rate limit (Hostinger throttles/caps per hour).
 // Pace via EMAIL_SEND_DELAY_MS (default 200ms). mailerService never throws and
 // returns { skipped } when SMTP is unconfigured — in that case stop early, since
-// no further send can succeed. Returns counts.
-async function sendBatch(recipients, subject, message) {
+// no further send can succeed. Every attempt is written to email_logs. Returns counts.
+async function sendBatch(recipients, subject, message, { sentBy, type }) {
   const delay = Math.max(0, intEnv(process.env.EMAIL_SEND_DELAY_MS, 200));
   let sent = 0, failed = 0, skipped = false;
   for (let i = 0; i < recipients.length; i++) {
     const r = recipients[i];
     if (!r.email) continue;
     const result = await mailerService.sendMail({ to: r.email, ...build(r.name, subject, message) });
+    const { status, error } = classify(result);
+    await logEmail({ recipientEmail: r.email, recipientName: r.name || null, memberId: r.member_id || null, subject, message, type, status, error, sentBy });
     if (result.skipped) { skipped = true; break; }   // SMTP unconfigured — no point continuing
     if (result.success) sent++; else failed++;
     if (delay && i + 1 < recipients.length) await sleep(delay);
@@ -34,14 +58,14 @@ async function sendBatch(recipients, subject, message) {
 }
 
 // Fire-and-forget paced batch. Returns the queued count immediately so the
-// admin's request doesn't hang; the sends then drain in the background. Never
-// throws — the background promise is .catch-guarded. Caveat: no per-email log
-// table exists, so progress isn't visible in the UI, and a process restart
-// mid-run stops the remainder (already-sent emails are unaffected).
-function queueBatch(recipients, subject, message) {
+// admin's request doesn't hang; the sends then drain in the background, each
+// landing in email_logs as it completes (watch the Email Logs page for
+// progress). Never throws — the background promise is .catch-guarded. Caveat: a
+// process restart mid-run stops the remainder (already-sent rows are unaffected).
+function queueBatch(recipients, subject, message, meta) {
   const queued = recipients.length;
   Promise.resolve()
-    .then(() => sendBatch(recipients, subject, message))
+    .then(() => sendBatch(recipients, subject, message, meta))
     .then(({ sent, skipped }) => console.log(`[bulk-email] background send complete: ${sent}/${queued}${skipped ? ' (SMTP unconfigured)' : ''}`))
     .catch((err) => console.error('[bulk-email] background send failed:', err));
   return { queued };
@@ -49,11 +73,13 @@ function queueBatch(recipients, subject, message) {
 
 async function send(req, res) {
   try {
-    const { email, subject, message, name } = req.body;
+    const { email, subject, message, name, member_id } = req.body;
     if (!email || !subject || !message) {
       return res.status(400).json({ success: false, message: 'Email, subject and message are required' });
     }
     const result = await mailerService.sendMail({ to: email, ...build(name, subject, message) });
+    const { status, error } = classify(result);
+    await logEmail({ recipientEmail: email, recipientName: name || null, memberId: member_id || null, subject, message, type: 'individual', status, error, sentBy: req.user.id });
     if (result.skipped) {
       return res.json({ success: false, message: 'Email not sent — SMTP is not configured on the server' });
     }
@@ -69,11 +95,12 @@ async function bulk(req, res) {
     if (!recipients?.length || !subject || !message) {
       return res.status(400).json({ success: false, message: 'Recipients, subject and message are required' });
     }
+    const meta = { sentBy: req.user.id, type: 'bulk' };
     if (recipients.length > BG_THRESHOLD) {
-      const { queued } = queueBatch(recipients, subject, message);
-      return res.json({ success: true, background: true, queued, message: `Queued ${queued} emails — sending in the background. Large sends can take a while and are subject to the mail provider's hourly limit.` });
+      const { queued } = queueBatch(recipients, subject, message, meta);
+      return res.json({ success: true, background: true, queued, message: `Queued ${queued} emails — sending in the background. Large sends can take a while and are subject to the mail provider's hourly limit. Watch Email Logs for progress.` });
     }
-    const { sent, skipped } = await sendBatch(recipients, subject, message);
+    const { sent, skipped } = await sendBatch(recipients, subject, message, meta);
     if (skipped && sent === 0) {
       return res.json({ success: false, message: 'Emails not sent — SMTP is not configured on the server' });
     }
@@ -89,17 +116,19 @@ async function sendToGroup(req, res) {
     if (!group || !subject || !message) {
       return res.status(400).json({ success: false, message: 'Group, subject and message are required' });
     }
-    let query = 'SELECT full_name AS name, email FROM members WHERE status = "approved" AND email IS NOT NULL AND email <> ""';
+    let query = 'SELECT id, full_name AS name, email FROM members WHERE status = "approved" AND email IS NOT NULL AND email <> ""';
     if (group === 'sub_county') query += ' AND sub_county = ?';
-    const [members] = await db.query(query, group === 'sub_county' ? [sub_county] : []);
-    if (!members.length) {
+    const [rows] = await db.query(query, group === 'sub_county' ? [sub_county] : []);
+    if (!rows.length) {
       return res.json({ success: true, message: 'No approved members with an email address in that group' });
     }
+    const members = rows.map((m) => ({ email: m.email, name: m.name, member_id: m.id }));
+    const meta = { sentBy: req.user.id, type: 'group' };
     if (members.length > BG_THRESHOLD) {
-      const { queued } = queueBatch(members, subject, message);
-      return res.json({ success: true, background: true, queued, message: `Queued ${queued} emails to the ${group} group — sending in the background. Large sends can take a while and are subject to the mail provider's hourly limit.` });
+      const { queued } = queueBatch(members, subject, message, meta);
+      return res.json({ success: true, background: true, queued, message: `Queued ${queued} emails to the ${group} group — sending in the background. Large sends can take a while and are subject to the mail provider's hourly limit. Watch Email Logs for progress.` });
     }
-    const { sent, skipped } = await sendBatch(members, subject, message);
+    const { sent, skipped } = await sendBatch(members, subject, message, meta);
     if (skipped && sent === 0) {
       return res.json({ success: false, message: 'Emails not sent — SMTP is not configured on the server' });
     }
@@ -109,4 +138,20 @@ async function sendToGroup(req, res) {
   }
 }
 
-module.exports = { send, bulk, sendToGroup };
+async function getLogs(req, res) {
+  try {
+    const { status, limit = 30, offset = 0 } = req.query;
+    let query = 'SELECT * FROM email_logs WHERE 1=1';
+    const params = [];
+    if (status) { query += ' AND status = ?'; params.push(status); }
+    query += ' ORDER BY created_at DESC LIMIT ? OFFSET ?';
+    params.push(clampLimit(limit, 30), clampOffset(offset));
+    const [rows] = await db.query(query, params);
+    const [[{ total }]] = await db.query('SELECT COUNT(*) as total FROM email_logs' + (status ? ' WHERE status = ?' : ''), status ? [status] : []);
+    res.json({ success: true, data: rows, total });
+  } catch (err) {
+    res.status(500).json({ success: false, message: 'Failed to fetch logs' });
+  }
+}
+
+module.exports = { send, bulk, sendToGroup, getLogs };

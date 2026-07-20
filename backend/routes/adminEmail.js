@@ -25,5 +25,6 @@ const groupRules = [
 router.post('/send',  authenticate, authorizeAdmin, sendRules,  handleValidation, auditLog('email.send'),  ctrl.send);
 router.post('/bulk',  authenticate, authorizeAdmin, bulkRules,  handleValidation, auditLog('email.bulk'),  ctrl.bulk);
 router.post('/group', authenticate, authorizeAdmin, groupRules, handleValidation, auditLog('email.group'), ctrl.sendToGroup);
+router.get('/logs',   authenticate, authorizeAdmin, ctrl.getLogs);
 
 module.exports = router;

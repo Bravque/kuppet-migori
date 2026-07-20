@@ -185,6 +185,7 @@ const adminApi = (() => {
       send: (d) => request('/admin/email/send', { method: 'POST', body: JSON.stringify(d) }),
       bulk: (d) => request('/admin/email/bulk', { method: 'POST', body: JSON.stringify(d) }),
       group: (d) => request('/admin/email/group', { method: 'POST', body: JSON.stringify(d) }),
+      getLogs: (p = {}) => request('/admin/email/logs?' + new URLSearchParams(p)),
     },
 
     analytics: {
