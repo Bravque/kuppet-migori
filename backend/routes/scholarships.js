@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { body } = require('express-validator');
 const { getAll, adminCreate, adminUpdate, adminRemove } = require('../controllers/scholarshipsController');
-const { authenticate, authorizeAdmin, auditLog } = require('../middleware/auth');
+const { authenticate, authorizeContent, auditLog } = require('../middleware/auth');
 const { handleValidation } = require('../middleware/validate');
 
 const SCHOLARSHIP_TYPES = ['kcse', 'kjsea', 'dte'];
@@ -21,8 +21,8 @@ const scholarshipRules = [
 
 router.get('/', getAll);
 
-router.post('/', authenticate, authorizeAdmin, scholarshipRules, handleValidation, auditLog('scholarships.create'), adminCreate);
-router.put('/:id', authenticate, authorizeAdmin, scholarshipRules, handleValidation, auditLog('scholarships.update'), adminUpdate);
-router.delete('/:id', authenticate, authorizeAdmin, auditLog('scholarships.delete'), adminRemove);
+router.post('/', authenticate, authorizeContent, scholarshipRules, handleValidation, auditLog('scholarships.create'), adminCreate);
+router.put('/:id', authenticate, authorizeContent, scholarshipRules, handleValidation, auditLog('scholarships.update'), adminUpdate);
+router.delete('/:id', authenticate, authorizeContent, auditLog('scholarships.delete'), adminRemove);
 
 module.exports = router;

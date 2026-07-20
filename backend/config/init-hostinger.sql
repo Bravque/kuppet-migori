@@ -11,7 +11,7 @@ CREATE TABLE IF NOT EXISTS users (
   name VARCHAR(150) NOT NULL,
   email VARCHAR(255) UNIQUE NOT NULL,
   password VARCHAR(255) NOT NULL,
-  role ENUM('super_admin','branch_officer','branch_secretary') NOT NULL DEFAULT 'branch_officer',
+  role ENUM('super_admin','branch_officer','branch_secretary','content_admin') NOT NULL DEFAULT 'branch_officer',
   is_active BOOLEAN DEFAULT TRUE,
   failed_login_attempts INT DEFAULT 0,
   locked_until TIMESTAMP NULL,

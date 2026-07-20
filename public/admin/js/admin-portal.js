@@ -289,6 +289,18 @@ function initIdleTimeout() {
   }, 30 * 1000);
 }
 
+// Pages a content_admin may open (the Content section + their Account Security).
+// Everything else redirects to content-news.html. Keep in sync with the
+// data-content-ok nav items and the backend authorizeContent routes.
+const CONTENT_ADMIN_PATHS = [
+  '/admin/content-news.html', '/admin/content-events.html', '/admin/content-resources.html',
+  '/admin/content-leadership.html', '/admin/content-scholarships.html', '/admin/content-advocacy.html',
+  '/admin/content-announcements.html', '/admin/security.html',
+];
+function isContentAdminPathAllowed(path) {
+  return CONTENT_ADMIN_PATHS.includes(path);
+}
+
 // ── Sidebar ───────────────────────────────────────────────────────────────────
 function initSidebar(user) {
   if (!user) return;
@@ -316,6 +328,21 @@ function initSidebar(user) {
     document.querySelectorAll('[data-court-only]').forEach(el => {
       el.style.display = 'none';
     });
+  }
+
+  // content_admin: a content-only role. Hide every nav section/item except the
+  // ones tagged data-content-ok (the Content pages + Account Security), and bounce
+  // them off any page outside that allowlist. Cosmetic + navigational only — the
+  // backend authorizeContent gate is what actually enforces access.
+  if (user.role === 'content_admin') {
+    document.querySelectorAll('.sidebar-nav-section, .sidebar-nav-item').forEach(el => {
+      if (el.classList.contains('logout-btn')) return;      // keep Sign Out
+      if (!el.hasAttribute('data-content-ok')) el.style.display = 'none';
+    });
+    if (!isContentAdminPathAllowed(window.location.pathname)) {
+      window.location.replace('/admin/content-news.html');
+      return;
+    }
   }
 
   // Mark active nav item
@@ -349,7 +376,9 @@ function initSidebar(user) {
   });
 
   // Show the count of members awaiting approval on the sidebar nav badge.
-  loadPendingBadge();
+  // content_admin has no member access (and the badge is hidden), so skip the
+  // call to avoid a guaranteed 403 + audit-log noise.
+  if (user.role !== 'content_admin') loadPendingBadge();
 }
 
 // Populate the "Pending Approval" sidebar badge (all admin roles can view members).
@@ -407,26 +436,26 @@ function getSidebarHtml() {
       <i class="fas fa-award"></i> Scholarship Applications
     </a>
 
-    <div class="sidebar-nav-section">Content</div>
-    <a href="/admin/content-news.html" class="sidebar-nav-item">
+    <div class="sidebar-nav-section" data-content-ok>Content</div>
+    <a href="/admin/content-news.html" class="sidebar-nav-item" data-content-ok>
       <i class="fas fa-newspaper"></i> News & Circulars
     </a>
-    <a href="/admin/content-events.html" class="sidebar-nav-item">
+    <a href="/admin/content-events.html" class="sidebar-nav-item" data-content-ok>
       <i class="fas fa-calendar-alt"></i> Events
     </a>
-    <a href="/admin/content-resources.html" class="sidebar-nav-item">
+    <a href="/admin/content-resources.html" class="sidebar-nav-item" data-content-ok>
       <i class="fas fa-folder-open"></i> Resources
     </a>
-    <a href="/admin/content-leadership.html" class="sidebar-nav-item">
+    <a href="/admin/content-leadership.html" class="sidebar-nav-item" data-content-ok>
       <i class="fas fa-user-tie"></i> Leadership
     </a>
-    <a href="/admin/content-scholarships.html" class="sidebar-nav-item">
+    <a href="/admin/content-scholarships.html" class="sidebar-nav-item" data-content-ok>
       <i class="fas fa-graduation-cap"></i> Scholarships
     </a>
-    <a href="/admin/content-advocacy.html" class="sidebar-nav-item">
+    <a href="/admin/content-advocacy.html" class="sidebar-nav-item" data-content-ok>
       <i class="fas fa-gavel"></i> Advocacy
     </a>
-    <a href="/admin/content-announcements.html" class="sidebar-nav-item">
+    <a href="/admin/content-announcements.html" class="sidebar-nav-item" data-content-ok>
       <i class="fas fa-bullhorn"></i> Ticker Announcements
     </a>
     <a href="/admin/contacts.html" class="sidebar-nav-item">
@@ -456,8 +485,8 @@ function getSidebarHtml() {
       <i class="fas fa-file-alt"></i> SMS Templates
     </a>
 
-    <div class="sidebar-nav-section">Account</div>
-    <a href="/admin/security.html" class="sidebar-nav-item">
+    <div class="sidebar-nav-section" data-content-ok>Account</div>
+    <a href="/admin/security.html" class="sidebar-nav-item" data-content-ok>
       <i class="fas fa-user-shield"></i> Account Security
     </a>
 

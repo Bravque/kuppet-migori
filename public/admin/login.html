@@ -81,9 +81,15 @@
 
 <script src="/admin/js/admin-api.js"></script>
 <script>
+  // Where to send an admin after login. content_admin has no dashboard access,
+  // so land it on its first Content page instead.
+  function adminLanding(user) {
+    return user && user.role === 'content_admin' ? '/admin/content-news.html' : '/admin/dashboard.html';
+  }
+
   // If already logged in (active session), redirect
   if (adminApi.getUser() && sessionStorage.getItem('adminToken')) {
-    window.location.href = '/admin/dashboard.html';
+    window.location.href = adminLanding(adminApi.getUser());
   }
 
   const emailEl = document.getElementById('email');
@@ -119,7 +125,7 @@
       }
       adminApi.saveToken(res.token);
       adminApi.saveUser(res.user);
-      window.location.href = '/admin/dashboard.html';
+      window.location.href = adminLanding(res.user);
     } catch (err) {
       loginAlert.className = 'alert alert-danger';
       loginAlert.textContent = err.message || 'Login failed';
@@ -147,7 +153,7 @@
       const res = await adminApi.auth.confirmTotp(tempToken, totpInput.value.trim());
       adminApi.saveToken(res.token);
       adminApi.saveUser(res.user);
-      window.location.href = '/admin/dashboard.html';
+      window.location.href = adminLanding(res.user);
     } catch (err) {
       totpAlert.className = 'alert alert-danger';
       totpAlert.textContent = err.message || 'Invalid code';

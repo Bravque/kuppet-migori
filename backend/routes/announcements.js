@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { body } = require('express-validator');
 const { getActive, adminGetAll, adminCreate, adminUpdate, adminRemove } = require('../controllers/announcementsController');
-const { authenticate, authorizeAdmin, auditLog } = require('../middleware/auth');
+const { authenticate, authorizeContent, auditLog } = require('../middleware/auth');
 const { handleValidation } = require('../middleware/validate');
 
 const announcementRules = [
@@ -15,9 +15,9 @@ const announcementRules = [
 router.get('/', getActive);
 
 // Admin — full CRUD (both admin roles)
-router.get('/all', authenticate, authorizeAdmin, adminGetAll);
-router.post('/', authenticate, authorizeAdmin, announcementRules, handleValidation, auditLog('announcements.create'), adminCreate);
-router.put('/:id', authenticate, authorizeAdmin, announcementRules, handleValidation, auditLog('announcements.update'), adminUpdate);
-router.delete('/:id', authenticate, authorizeAdmin, auditLog('announcements.delete'), adminRemove);
+router.get('/all', authenticate, authorizeContent, adminGetAll);
+router.post('/', authenticate, authorizeContent, announcementRules, handleValidation, auditLog('announcements.create'), adminCreate);
+router.put('/:id', authenticate, authorizeContent, announcementRules, handleValidation, auditLog('announcements.update'), adminUpdate);
+router.delete('/:id', authenticate, authorizeContent, auditLog('announcements.delete'), adminRemove);
 
 module.exports = router;

@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { body } = require('express-validator');
 const { getAll, adminCreate, adminUpdate, adminRemove } = require('../controllers/leadershipController');
-const { authenticate, authorizeAdmin, auditLog } = require('../middleware/auth');
+const { authenticate, authorizeContent, auditLog } = require('../middleware/auth');
 const { handleValidation } = require('../middleware/validate');
 const upload = require('../middleware/upload');
 
@@ -20,8 +20,8 @@ const leadershipRules = [
 
 router.get('/', getAll);
 
-router.post('/', authenticate, authorizeAdmin, upload.photo.single('photo'), leadershipRules, handleValidation, auditLog('leadership.create'), adminCreate);
-router.put('/:id', authenticate, authorizeAdmin, upload.photo.single('photo'), leadershipRules, handleValidation, auditLog('leadership.update'), adminUpdate);
-router.delete('/:id', authenticate, authorizeAdmin, auditLog('leadership.delete'), adminRemove);
+router.post('/', authenticate, authorizeContent, upload.photo.single('photo'), leadershipRules, handleValidation, auditLog('leadership.create'), adminCreate);
+router.put('/:id', authenticate, authorizeContent, upload.photo.single('photo'), leadershipRules, handleValidation, auditLog('leadership.update'), adminUpdate);
+router.delete('/:id', authenticate, authorizeContent, auditLog('leadership.delete'), adminRemove);
 
 module.exports = router;

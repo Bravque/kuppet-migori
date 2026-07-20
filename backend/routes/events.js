@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { body } = require('express-validator');
 const { getAll, getUpcoming, adminCreate, adminUpdate, adminRemove } = require('../controllers/eventsController');
-const { authenticate, authorizeAdmin, auditLog } = require('../middleware/auth');
+const { authenticate, authorizeContent, auditLog } = require('../middleware/auth');
 const { handleValidation } = require('../middleware/validate');
 
 const EVENT_TYPES = ['meeting', 'workshop', 'seminar', 'agm', 'strike', 'other'];
@@ -20,8 +20,8 @@ const eventRules = [
 router.get('/', getAll);
 router.get('/upcoming', getUpcoming);
 
-router.post('/', authenticate, authorizeAdmin, eventRules, handleValidation, auditLog('events.create'), adminCreate);
-router.put('/:id', authenticate, authorizeAdmin, eventRules, handleValidation, auditLog('events.update'), adminUpdate);
-router.delete('/:id', authenticate, authorizeAdmin, auditLog('events.delete'), adminRemove);
+router.post('/', authenticate, authorizeContent, eventRules, handleValidation, auditLog('events.create'), adminCreate);
+router.put('/:id', authenticate, authorizeContent, eventRules, handleValidation, auditLog('events.update'), adminUpdate);
+router.delete('/:id', authenticate, authorizeContent, auditLog('events.delete'), adminRemove);
 
 module.exports = router;

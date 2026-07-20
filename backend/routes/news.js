@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { body } = require('express-validator');
 const { getAll, getOne, getFeatured, adminCreate, adminUpdate, adminRemove, adminGetAll, adminGetOne } = require('../controllers/newsController');
-const { authenticate, authorizeAdmin, auditLog } = require('../middleware/auth');
+const { authenticate, authorizeContent, auditLog } = require('../middleware/auth');
 const { handleValidation } = require('../middleware/validate');
 const upload = require('../middleware/upload');
 
@@ -30,11 +30,11 @@ router.get('/featured', getFeatured);
 router.get('/', getAll);
 
 // Admin (declared before '/:slug' so 'admin' isn't swallowed as a slug)
-router.get('/admin/all', authenticate, authorizeAdmin, adminGetAll);
-router.get('/admin/:id', authenticate, authorizeAdmin, adminGetOne);
-router.post('/', authenticate, authorizeAdmin, newsUpload, newsRules, handleValidation, auditLog('news.create'), adminCreate);
-router.put('/:id', authenticate, authorizeAdmin, newsUpload, newsRules, handleValidation, auditLog('news.update'), adminUpdate);
-router.delete('/:id', authenticate, authorizeAdmin, auditLog('news.delete'), adminRemove);
+router.get('/admin/all', authenticate, authorizeContent, adminGetAll);
+router.get('/admin/:id', authenticate, authorizeContent, adminGetOne);
+router.post('/', authenticate, authorizeContent, newsUpload, newsRules, handleValidation, auditLog('news.create'), adminCreate);
+router.put('/:id', authenticate, authorizeContent, newsUpload, newsRules, handleValidation, auditLog('news.update'), adminUpdate);
+router.delete('/:id', authenticate, authorizeContent, auditLog('news.delete'), adminRemove);
 
 // Public single article (slug) — last, so it doesn't catch the admin routes
 router.get('/:slug', getOne);

@@ -1,6 +1,9 @@
 const bcrypt = require('bcryptjs');
 const db = require('../config/database');
 
+// Assignable admin roles. content_admin is the content-only role (see auth.js).
+const VALID_ROLES = ['super_admin', 'branch_officer', 'branch_secretary', 'content_admin'];
+
 async function getAll(req, res) {
   try {
     const [rows] = await db.query('SELECT id, name, email, role, is_active, last_login, created_at FROM users ORDER BY created_at DESC');
@@ -14,8 +17,7 @@ async function create(req, res) {
   try {
     const { name, email, password, role } = req.body;
     if (!name || !email || !password) return res.status(400).json({ success: false, message: 'Name, email, and password required' });
-    const validRoles = ['super_admin', 'branch_officer', 'branch_secretary'];
-    if (role && !validRoles.includes(role)) return res.status(400).json({ success: false, message: 'Invalid role' });
+    if (role && !VALID_ROLES.includes(role)) return res.status(400).json({ success: false, message: 'Invalid role' });
 
     const [[existing]] = await db.query('SELECT id FROM users WHERE email = ?', [email.toLowerCase()]);
     if (existing) return res.status(409).json({ success: false, message: 'Email already in use' });
@@ -35,6 +37,9 @@ async function create(req, res) {
 async function update(req, res) {
   try {
     const { name, role, is_active } = req.body;
+    if (role !== undefined && !VALID_ROLES.includes(role)) {
+      return res.status(400).json({ success: false, message: 'Invalid role' });
+    }
     // Prevent self-demotion
     if (req.params.id == req.user.id && role && role !== req.user.role) {
       return res.status(400).json({ success: false, message: 'Cannot change your own role' });

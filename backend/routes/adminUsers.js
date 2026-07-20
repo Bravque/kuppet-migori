@@ -4,7 +4,7 @@ const { authenticate, authorizeSuperAdmin, auditLog } = require('../middleware/a
 const { handleValidation } = require('../middleware/validate');
 const ctrl = require('../controllers/adminUsersController');
 
-const ADMIN_ROLES = ['super_admin', 'branch_officer', 'branch_secretary'];
+const ADMIN_ROLES = ['super_admin', 'branch_officer', 'branch_secretary', 'content_admin'];
 const createRules = [
   body('name').trim().notEmpty().withMessage('Name required').isLength({ max: 200 }),
   body('email').trim().isEmail().withMessage('Valid email required').normalizeEmail(),

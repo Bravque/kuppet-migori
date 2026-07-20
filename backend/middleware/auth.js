@@ -46,6 +46,10 @@ const authenticateMember = (req, res, next) => {
 // Roles allowed through authorizeAdmin. super_admin additionally passes every
 // authorizeSuperAdmin gate; branch_officer and branch_secretary are peers with
 // identical (review/recommend + content) access.
+// NOTE: content_admin is intentionally NOT in this list — it is a content-only
+// role and must be blocked from every authorizeAdmin route (members, welfare,
+// legal, communications, contacts, administration). It is granted access only
+// through authorizeContent below.
 const ADMIN_ROLES = ['super_admin', 'branch_officer', 'branch_secretary'];
 
 // Allow any admin role
@@ -94,6 +98,14 @@ const authorizeSuperAdmin = (req, res, next) => {
   next();
 };
 
+// Content-management routes (the website Content section: news, events,
+// resources, leadership, scholarship listings, advocacy, announcements).
+// Allowed to the three full admin roles PLUS the content-only role
+// (content_admin). content_admin passes ONLY these routes — it is excluded from
+// ADMIN_ROLES, so authorizeAdmin / authorizeSuperAdmin / authorizeRoles(...) all
+// deny it everywhere else.
+const authorizeContent = authorizeRoles('branch_officer', 'branch_secretary', 'content_admin');
+
 // Audit log middleware factory — call after authenticate/authorizeAdmin
 // Records the action to audit_logs after the response is sent
 const auditLog = (action) => (req, res, next) => {
@@ -122,4 +134,4 @@ function extractBearer(req) {
   return h && h.startsWith('Bearer ') ? h.slice(7) : null;
 }
 
-module.exports = { authenticate, authenticateMember, authorizeAdmin, authorizeRoles, authorizeSuperAdmin, auditLog };
+module.exports = { authenticate, authenticateMember, authorizeAdmin, authorizeRoles, authorizeSuperAdmin, authorizeContent, auditLog };

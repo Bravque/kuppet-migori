@@ -15,7 +15,7 @@ CREATE TABLE IF NOT EXISTS users (
   name VARCHAR(150) NOT NULL,
   email VARCHAR(255) UNIQUE NOT NULL,
   password VARCHAR(255) NOT NULL,
-  role ENUM('super_admin','branch_officer','branch_secretary') NOT NULL DEFAULT 'branch_officer',
+  role ENUM('super_admin','branch_officer','branch_secretary','content_admin') NOT NULL DEFAULT 'branch_officer',
   is_active BOOLEAN DEFAULT TRUE,
   failed_login_attempts INT DEFAULT 0,
   locked_until TIMESTAMP NULL,
@@ -481,7 +481,7 @@ ALTER TABLE users ADD COLUMN IF NOT EXISTS last_login TIMESTAMP NULL;
 ALTER TABLE users MODIFY COLUMN role ENUM('super_admin','branch_officer','admin','editor','viewer') DEFAULT 'branch_officer';
 UPDATE users SET role = 'super_admin' WHERE role = 'admin';
 UPDATE users SET role = 'branch_officer' WHERE role IN ('editor','viewer');
-ALTER TABLE users MODIFY COLUMN role ENUM('super_admin','branch_officer','branch_secretary') NOT NULL DEFAULT 'branch_officer';
+ALTER TABLE users MODIFY COLUMN role ENUM('super_admin','branch_officer','branch_secretary','content_admin') NOT NULL DEFAULT 'branch_officer';
 
 -- Update BBF claim document types to official required attachments
 ALTER TABLE bbf_claim_documents MODIFY COLUMN doc_type ENUM('tsc_slip','burial_permit','birth_notification','letter_from_principal','other') NOT NULL;
