@@ -124,11 +124,11 @@ Dated development logs (2 July back to 17 June 2026) live in **`docs/SESSION-NOT
 
 **Task 1 — Article detail pages** — ✓ DONE (21 June 2026).
 
-**DB migrations — #1–12 & #14 applied on live; ⚠ #13 & #15 PENDING (20 July 2026)**
-Scripts #1–12 have been run on the live Hostinger DB and are all folded into `init.sql` / `init-hostinger.sql` for fresh installs — their individual `backend/config/migration-*.sql` files are kept for re-provisioning reference (see `docs/SESSION-NOTES.md` for what each changed). **#13 (disciplinary cases) and #15 (content_admin role) are still pending on live** — run each once (see below).
-13. `backend/config/migration-disciplinary-cases.sql` — `disciplinary_cases` + `disciplinary_case_updates` + `disciplinary_case_documents` (teacher disciplinary-matter tracker under Legal). **⚠ Run once on the live Hostinger DB** (phpMyAdmin → SQL) — the Disciplinary Cases admin page 500s until the tables exist. Also `mkdir -p ~/uploads/disciplinary` on live (the app auto-creates it at startup, but ensure it exists for the persistent UPLOAD_DIR).
-14. `backend/config/migration-member-job-group.sql` — adds `members.job_group` (TSC grade ENUM `B5`,`C1`–`C5`,`D1`–`D5`, nullable). ✓ Applied on live 20 July 2026. Required at new registration + part of first-login onboarding (`REQUIRED_PROFILE_FIELDS`); existing/imported members are null until they set it in their profile.
-15. `backend/config/migration-content-admin-role.sql` — extends `users.role` ENUM with `content_admin`. **⚠ Run once on the live Hostinger DB** (phpMyAdmin → SQL) before creating any content_admin user.
+**DB migrations — #1–15 ALL applied on live (20 July 2026)**
+All migration scripts have been run on the live Hostinger DB and are folded into `init.sql` / `init-hostinger.sql` for fresh installs — their individual `backend/config/migration-*.sql` files are kept for re-provisioning reference (see `docs/SESSION-NOTES.md` for what each changed). Nothing pending. Reference of the most recent:
+13. `backend/config/migration-disciplinary-cases.sql` — `disciplinary_cases` + `disciplinary_case_updates` + `disciplinary_case_documents` (teacher disciplinary-matter tracker under Legal). ✓ Applied 20 July 2026. Needs `~/uploads/disciplinary` on live (app auto-creates at startup; ensure it exists for the persistent UPLOAD_DIR).
+14. `backend/config/migration-member-job-group.sql` — adds `members.job_group` (TSC grade ENUM `B5`,`C1`–`C5`,`D1`–`D5`, nullable). ✓ Applied 20 July 2026. Required at new registration + part of first-login onboarding (`REQUIRED_PROFILE_FIELDS`); existing/imported members are null until they set it in their profile.
+15. `backend/config/migration-content-admin-role.sql` — extends `users.role` ENUM with `content_admin`. ✓ Applied 20 July 2026.
 
 **Task 3 — Real content (owner must supply)**
 Still placeholder in the codebase:
