@@ -22,7 +22,7 @@ router.post('/register',
     body('tsc_number').trim().notEmpty().withMessage('TSC number required').isLength({ max: 50 }),
     body('national_id').trim().notEmpty().withMessage('National ID required').isLength({ max: 30 }),
     body('phone').trim().notEmpty().withMessage('Phone required').isLength({ max: 30 }),
-    body('email').trim().isEmail().normalizeEmail().withMessage('Valid email required'),
+    body('email').trim().isEmail().normalizeEmail({ gmail_remove_dots: false }).withMessage('Valid email required'),
     body('password').isLength({ min: 8 }).matches(/^(?=.*[A-Za-z])(?=.*\d).{8,}$/)
       .withMessage('Password must be at least 8 characters and include a letter and a number'),
     body('gender').isIn(['male','female','other']).withMessage('Gender required'),

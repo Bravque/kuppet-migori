@@ -15,7 +15,7 @@ const scholarshipRules = [
   body('scholarship_type').optional().isIn(SCHOLARSHIP_TYPES).withMessage('Invalid scholarship type'),
   body('application_deadline').optional({ nullable: true, checkFalsy: true }).isISO8601().withMessage('Deadline must be a valid date'),
   body('application_link').optional({ nullable: true, checkFalsy: true }).trim().isURL().withMessage('Application link must be a URL'),
-  body('contact_email').optional({ nullable: true, checkFalsy: true }).trim().isEmail().withMessage('Invalid contact email').normalizeEmail(),
+  body('contact_email').optional({ nullable: true, checkFalsy: true }).trim().isEmail().withMessage('Invalid contact email').normalizeEmail({ gmail_remove_dots: false }),
   body('contact_phone').optional({ nullable: true }).trim().isLength({ max: 30 }),
 ];
 

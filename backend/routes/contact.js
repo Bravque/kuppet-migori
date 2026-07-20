@@ -6,7 +6,7 @@ const { authenticate, authorizeAdmin, auditLog } = require('../middleware/auth')
 
 router.post('/', [
   body('name').trim().notEmpty().withMessage('Name is required').isLength({ max: 200 }),
-  body('email').trim().isEmail().withMessage('Valid email is required').normalizeEmail(),
+  body('email').trim().isEmail().withMessage('Valid email is required').normalizeEmail({ gmail_remove_dots: false }),
   body('message').trim().notEmpty().withMessage('Message is required').isLength({ max: 5000 }),
   body('phone').optional().trim().isLength({ max: 30 }),
   body('subject').optional().trim().isLength({ max: 300 }),

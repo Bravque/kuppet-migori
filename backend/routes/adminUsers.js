@@ -7,7 +7,7 @@ const ctrl = require('../controllers/adminUsersController');
 const ADMIN_ROLES = ['super_admin', 'branch_officer', 'branch_secretary', 'content_admin'];
 const createRules = [
   body('name').trim().notEmpty().withMessage('Name required').isLength({ max: 200 }),
-  body('email').trim().isEmail().withMessage('Valid email required').normalizeEmail(),
+  body('email').trim().isEmail().withMessage('Valid email required').normalizeEmail({ gmail_remove_dots: false }),
   body('password').isLength({ min: 8 }).matches(/^(?=.*[A-Za-z])(?=.*\d).{8,}$/)
     .withMessage('Password must be at least 8 characters and include a letter and a number'),
   body('role').isIn(ADMIN_ROLES).withMessage('Invalid role'),
