@@ -65,21 +65,57 @@ async function sendSms({ phone, message, memberId = null, sentBy, templateId = n
   return { success: status === 'sent', status, talksasaRef, error: errorMessage };
 }
 
-// Send bulk SMS to an array of recipients. Returns array of results.
-async function sendBulk({ recipients, message, sentBy, templateId = null }) {
-  const results = await Promise.allSettled(
-    recipients.map(r => sendSms({
-      phone: r.phone,
-      message: resolveTemplate(message, r.vars || {}),
-      memberId: r.memberId || null,
-      sentBy,
-      templateId,
-    }))
-  );
-  return results.map((r, i) => ({
-    phone: recipients[i].phone,
-    ...(r.status === 'fulfilled' ? r.value : { success: false, error: r.reason?.message }),
-  }));
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+const intEnv = (v, dflt) => { const n = parseInt(v, 10); return Number.isFinite(n) ? n : dflt; };
+
+// Send bulk SMS to an array of recipients — **batched and throttled** so we never
+// fire thousands of concurrent fetches/DB inserts at once (which would exhaust
+// sockets, the 10-connection pool, and TalkSasa, and hang the request).
+// Processes `batchSize` at a time (default 10, matching the DB pool) with a
+// `batchDelayMs` pause between batches. Awaitable; returns an array of results.
+// Each send still logs its own row to sms_logs as it completes.
+async function sendBulk({ recipients, message, sentBy, templateId = null, batchSize, batchDelayMs } = {}) {
+  const size  = Math.max(1, batchSize    != null ? batchSize    : intEnv(process.env.SMS_BATCH_SIZE, 10));
+  const delay = Math.max(0, batchDelayMs != null ? batchDelayMs : intEnv(process.env.SMS_BATCH_DELAY_MS, 1000));
+  const out = [];
+  for (let i = 0; i < recipients.length; i += size) {
+    const chunk = recipients.slice(i, i + size);
+    const settled = await Promise.allSettled(
+      chunk.map((r) => sendSms({
+        phone: r.phone,
+        message: resolveTemplate(message, r.vars || {}),
+        memberId: r.memberId || null,
+        sentBy,
+        templateId,
+      }))
+    );
+    settled.forEach((r, j) => out.push({
+      phone: chunk[j].phone,
+      ...(r.status === 'fulfilled' ? r.value : { success: false, error: r.reason?.message }),
+    }));
+    if (delay && i + size < recipients.length) await sleep(delay);
+  }
+  return out;
+}
+
+// Fire-and-forget batched bulk send. Returns the queued count **immediately** so
+// the admin's HTTP request doesn't hang while thousands of messages go out; the
+// batches then drain on the event loop and each row lands in sms_logs as it
+// completes (watch the SMS Logs page for progress). Never throws — the
+// background promise is `.catch`-guarded so it can't become an unhandled
+// rejection. Caveat: if the Node process restarts mid-run, un-sent recipients
+// are simply not sent (already-sent rows are safe in sms_logs) — resend to the
+// remainder from SMS Logs if needed.
+function queueBulk({ recipients, message, sentBy, templateId = null }) {
+  const queued = recipients.length;
+  Promise.resolve()
+    .then(() => sendBulk({ recipients, message, sentBy, templateId }))
+    .then((results) => {
+      const sent = results.filter((r) => r.success).length;
+      console.log(`[bulk-sms] background send complete: ${sent}/${results.length}`);
+    })
+    .catch((err) => console.error('[bulk-sms] background send failed:', err));
+  return { queued };
 }
 
 // Map a raw TalkSasa delivery-report status word to our sms_logs enum.
@@ -148,4 +184,4 @@ function normalizePhone(phone) {
   return digits;
 }
 
-module.exports = { sendSms, sendBulk, resolveTemplate, updateDeliveryStatus, checkDelivery };
+module.exports = { sendSms, sendBulk, queueBulk, resolveTemplate, updateDeliveryStatus, checkDelivery };

@@ -2,6 +2,12 @@ const db = require('../config/database');
 const { clampLimit, clampOffset } = require('../utils/pagination');
 const smsService = require('../services/smsService');
 
+// Above this many recipients, a bulk/group send is processed in the background
+// (respond immediately, drain in batches) instead of making the admin wait for
+// every message. Small sends stay inline so the response still carries a
+// sent/total count. Configurable via SMS_BACKGROUND_THRESHOLD.
+const BG_THRESHOLD = (() => { const n = parseInt(process.env.SMS_BACKGROUND_THRESHOLD, 10); return Number.isFinite(n) ? n : 25; })();
+
 async function send(req, res) {
   try {
     const { phone, message, member_id, template_id } = req.body;
@@ -22,6 +28,10 @@ async function bulk(req, res) {
   try {
     const { recipients, message } = req.body;
     if (!recipients?.length || !message) return res.status(400).json({ success: false, message: 'Recipients and message required' });
+    if (recipients.length > BG_THRESHOLD) {
+      const { queued } = smsService.queueBulk({ recipients, message, sentBy: req.user.id });
+      return res.json({ success: true, background: true, queued, message: `Queued ${queued} messages — sending in the background. Watch SMS Logs for delivery status.` });
+    }
     const results = await smsService.sendBulk({ recipients, message, sentBy: req.user.id });
     const sent = results.filter(r => r.success).length;
     res.json({ success: true, data: results, message: `${sent}/${results.length} messages sent` });
@@ -41,6 +51,11 @@ async function sendToGroup(req, res) {
 
     const [members] = await db.query(query, group === 'sub_county' ? [req.body.sub_county] : []);
     const recipients = members.map(m => ({ phone: m.phone, memberId: m.id, vars: { member_name: m.full_name } }));
+    if (!recipients.length) return res.json({ success: true, message: 'No approved members in that group' });
+    if (recipients.length > BG_THRESHOLD) {
+      const { queued } = smsService.queueBulk({ recipients, message, sentBy: req.user.id, templateId: template_id });
+      return res.json({ success: true, background: true, queued, message: `Queued ${queued} messages to the ${group} group — sending in the background. Watch SMS Logs for delivery status.` });
+    }
     const results = await smsService.sendBulk({ recipients, message, sentBy: req.user.id, templateId: template_id });
     const sent = results.filter(r => r.success).length;
     res.json({ success: true, message: `${sent}/${results.length} messages sent to ${group} group` });
