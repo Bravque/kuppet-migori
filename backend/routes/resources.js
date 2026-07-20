@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { body } = require('express-validator');
-const { getAll, download, adminCreate, adminUpdate, adminRemove } = require('../controllers/resourcesController');
+const { getAll, download, adminCreate, adminUpdate, adminRemove, adminGetAll } = require('../controllers/resourcesController');
 const { authenticate, authorizeAdmin, auditLog } = require('../middleware/auth');
 const { handleValidation } = require('../middleware/validate');
 const upload = require('../middleware/upload');
@@ -18,6 +18,8 @@ const resourceRules = [
 ];
 
 router.get('/', getAll);
+// Admin listing (all statuses incl. drafts) — declared before '/:id/download'.
+router.get('/admin/all', authenticate, authorizeAdmin, adminGetAll);
 router.get('/:id/download', download);
 
 router.post('/', authenticate, authorizeAdmin, upload.document.single('file'), resourceRules, handleValidation, auditLog('resources.create'), adminCreate);

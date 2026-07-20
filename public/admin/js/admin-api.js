@@ -100,7 +100,7 @@ const adminApi = (() => {
     },
 
     resources: {
-      getAll: (p = {}) => request('/resources?' + new URLSearchParams(p)),
+      getAll: (p = {}) => request('/resources/admin/all?' + new URLSearchParams(p)),
       create: (form) => request('/resources', { method: 'POST', body: form }),
       update: (id, form) => request(`/resources/${id}`, { method: 'PUT', body: form }),
       remove: (id) => request(`/resources/${id}`, { method: 'DELETE' }),

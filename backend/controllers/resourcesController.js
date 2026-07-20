@@ -1,6 +1,13 @@
 const db = require('../config/database');
 const { clampLimit, clampOffset } = require('../utils/pagination');
 
+// Form/multipart checkboxes arrive as the strings '1'/'0' (or true/false/1/0).
+// Treat '0'/'false'/0/false as unset; everything else present as set.
+const toBit = (v, dflt = 0) => {
+  if (v === undefined || v === null || v === '') return dflt;
+  return (v === true || v === 1 || v === '1' || v === 'true') ? 1 : 0;
+};
+
 const getAll = async (req, res) => {
   try {
     const { category, search, limit = 20, offset = 0 } = req.query;
@@ -43,8 +50,8 @@ const adminCreate = async (req, res) => {
       `INSERT INTO resources (title, description, category, subject, grade_level, file_url, file_type, file_size, external_url, is_featured, is_published, uploaded_by)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [title, description || null, category || 'teaching_material', subject || null, grade_level || null,
-       fileUrl, file_type || null, file_size || null, external_url || null, is_featured ? 1 : 0,
-       is_published !== false ? 1 : 0, uploaded_by || 'KUPPET Migori']
+       fileUrl, file_type || null, file_size || null, external_url || null, toBit(is_featured, 0),
+       toBit(is_published, 1), uploaded_by || 'KUPPET Migori']
     );
     const [[row]] = await db.query('SELECT * FROM resources WHERE id = ?', [result.insertId]);
     res.status(201).json({ success: true, data: row });
@@ -84,4 +91,25 @@ const adminRemove = async (req, res) => {
   }
 };
 
-module.exports = { getAll, download, adminCreate, adminUpdate, adminRemove };
+// Admin listing — returns ALL resources (published + draft) and includes
+// is_published/is_featured so the admin table can show the real status.
+const adminGetAll = async (req, res) => {
+  try {
+    const { category, search, limit = 20, offset = 0 } = req.query;
+    let where = 'WHERE 1=1';
+    const filterParams = [];
+    if (category) { where += ' AND category = ?'; filterParams.push(category); }
+    if (search) { where += ' AND (title LIKE ? OR description LIKE ? OR subject LIKE ?)'; filterParams.push(`%${search}%`, `%${search}%`, `%${search}%`); }
+    const [rows] = await db.query(
+      `SELECT id, title, description, category, subject, grade_level, file_url, file_type, file_size, external_url, download_count, is_featured, is_published, uploaded_by, created_at
+       FROM resources ${where} ORDER BY created_at DESC LIMIT ? OFFSET ?`,
+      [...filterParams, clampLimit(limit, 20), clampOffset(offset)]
+    );
+    const [[{ total }]] = await db.query(`SELECT COUNT(*) as total FROM resources ${where}`, filterParams);
+    res.json({ success: true, data: rows, total });
+  } catch (err) {
+    res.status(500).json({ success: false, message: 'Failed to fetch resources' });
+  }
+};
+
+module.exports = { getAll, download, adminCreate, adminUpdate, adminRemove, adminGetAll };
