@@ -30,6 +30,7 @@ router.post('/register',
     body('school_name').trim().notEmpty().withMessage('School name required').isLength({ max: 300 }),
     body('sub_county').trim().notEmpty().withMessage('Sub-county required').isLength({ max: 150 }),
     body('school_category').isIn(['senior_school','junior_school']).withMessage('Category (senior or junior school) required'),
+    body('job_group').isIn(['B5','C1','C2','C3','C4','C5','D1','D2','D3','D4','D5']).withMessage('Job group required'),
   ],
   validate,
   ctrl.register

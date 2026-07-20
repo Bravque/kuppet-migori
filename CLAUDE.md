@@ -124,9 +124,10 @@ Dated development logs (2 July back to 17 June 2026) live in **`docs/SESSION-NOT
 
 **Task 1 — Article detail pages** — ✓ DONE (21 June 2026).
 
-**DB migrations — #1–12 applied on live; ⚠ #13 PENDING (17 July 2026)**
-Scripts #1–12 have been run on the live Hostinger DB and are all folded into `init.sql` / `init-hostinger.sql` for fresh installs — their individual `backend/config/migration-*.sql` files are kept for re-provisioning reference (see `docs/SESSION-NOTES.md` for what each changed). **Only #13 (disciplinary cases) is still pending on live** — run it once (see below).
+**DB migrations — #1–12 applied on live; ⚠ #13 & #14 PENDING (20 July 2026)**
+Scripts #1–12 have been run on the live Hostinger DB and are all folded into `init.sql` / `init-hostinger.sql` for fresh installs — their individual `backend/config/migration-*.sql` files are kept for re-provisioning reference (see `docs/SESSION-NOTES.md` for what each changed). **#13 and #14 are still pending on live** — run each once (see below).
 13. `backend/config/migration-disciplinary-cases.sql` — `disciplinary_cases` + `disciplinary_case_updates` + `disciplinary_case_documents` (teacher disciplinary-matter tracker under Legal). **⚠ Run once on the live Hostinger DB** (phpMyAdmin → SQL) — the Disciplinary Cases admin page 500s until the tables exist. Also `mkdir -p ~/uploads/disciplinary` on live (the app auto-creates it at startup, but ensure it exists for the persistent UPLOAD_DIR).
+14. `backend/config/migration-member-job-group.sql` — adds `members.job_group` (TSC grade ENUM `B5`,`C1`–`C5`,`D1`–`D5`, nullable). **⚠ Run once on the live Hostinger DB** (phpMyAdmin → SQL) before deploying — `getProfile`/member-detail/export SELECT the column. Required at new registration + part of first-login onboarding (`REQUIRED_PROFILE_FIELDS`); existing/imported members are null until they set it in their profile.
 
 **Task 3 — Real content (owner must supply)**
 Still placeholder in the codebase:
@@ -289,6 +290,7 @@ Key ENUM values:
 - `members.status`: `pending_approval | approved | rejected | suspended`
 - `members.gender`: `male | female | other`
 - `members.school_category`: `senior_school | junior_school` (nullable; captured at registration, editable in profile)
+- `members.job_group`: TSC grade `B5 | C1 | C2 | C3 | C4 | C5 | D1 | D2 | D3 | D4 | D5` (nullable; required at new registration + first-login onboarding, editable in profile; existing/imported members null until set — migration #14)
 - `bbf_claims.status`: `draft | submitted | under_review | approved | rejected | paid`
 - `bbf_claims.claim_type`: `death | retirement` (was `death_benefit/disability/medical_emergency/other` before 21 June 2026)
 - `bbf_claims.school_category`: `senior_school | junior_school`

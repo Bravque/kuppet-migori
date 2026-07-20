@@ -76,7 +76,7 @@
       document.getElementById('member-status').innerHTML = statusBadge(m.status);
       const rows = [
         ['Member No', m.member_number],['TSC Number',m.tsc_number],['National ID',m.national_id],
-        ['Employment No',m.employment_number||'—'],['Phone',m.phone],['Email',m.email],
+        ['Employment No',m.employment_number||'—'],['Job Group',m.job_group||'—'],['Phone',m.phone],['Email',m.email],
         ['Gender',m.gender],['Date of Birth',formatDate(m.date_of_birth)],
         ['School',m.school_name],['Sub-County',m.sub_county],['Category',bbfSchoolCatLabel(m.school_category)],
         ['Status',statusBadge(m.status)],['Registered',formatDate(m.created_at)],

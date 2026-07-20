@@ -5,7 +5,7 @@ async function getProfile(req, res) {
   try {
     const [[m]] = await db.query(
       `SELECT id, member_number, full_name, tsc_number, national_id, employment_number,
-              phone, email, gender, date_of_birth, school_name, sub_county, school_category,
+              phone, email, gender, date_of_birth, school_name, sub_county, school_category, job_group,
               passport_photo_url, status, created_at, approved_at,
               must_change_password, onboarding_complete
        FROM members WHERE id = ?`,
@@ -32,7 +32,8 @@ async function updateProfile(req, res) {
   try {
     // Members may complete/correct these fields themselves (email/gender/DOB are
     // needed for first-login onboarding of imported members).
-    const allowed = ['phone','school_name','sub_county','employment_number','school_category','email','gender','date_of_birth'];
+    const allowed = ['phone','school_name','sub_county','employment_number','school_category','job_group','email','gender','date_of_birth'];
+    const JOB_GROUPS = ['B5','C1','C2','C3','C4','C5','D1','D2','D3','D4','D5'];
     const fields = [], params = [];
     for (const key of allowed) {
       if (req.body[key] === undefined) continue;
@@ -40,6 +41,9 @@ async function updateProfile(req, res) {
 
       if (key === 'school_category' && value && !['senior_school','junior_school'].includes(value)) {
         return res.status(400).json({ success: false, message: 'Invalid school category' });
+      }
+      if (key === 'job_group' && value && !JOB_GROUPS.includes(value)) {
+        return res.status(400).json({ success: false, message: 'Invalid job group' });
       }
       if (key === 'gender' && value && !['male','female','other'].includes(value)) {
         return res.status(400).json({ success: false, message: 'Invalid gender' });
@@ -65,7 +69,7 @@ async function updateProfile(req, res) {
     // flip the flag so the first-login gate lets them into the portal.
     const [[m]] = await db.query(
       `SELECT full_name, tsc_number, national_id, phone, email, gender, date_of_birth,
-              school_name, sub_county, school_category, onboarding_complete
+              school_name, sub_county, school_category, job_group, onboarding_complete
        FROM members WHERE id = ?`,
       [req.member.id]
     );

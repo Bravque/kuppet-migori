@@ -232,6 +232,7 @@ function renderRecentNotifications(notifs) {
 const PROFILE_FIELD_LABELS = {
   phone: 'Phone number', email: 'Email', gender: 'Gender', date_of_birth: 'Date of birth',
   school_name: 'School name', sub_county: 'Sub-county', school_category: 'Category (senior/junior)',
+  job_group: 'Job group',
 };
 function showOnboardingBanner(missing) {
   const banner = document.getElementById('onboarding-banner');
@@ -252,7 +253,7 @@ async function initMemberProfile() {
   try {
     const res = await memberApi.profile.get();
     const m = res.data;
-    const fields = ['full_name','tsc_number','national_id','employment_number','phone','email','gender','date_of_birth','school_name','sub_county','school_category'];
+    const fields = ['full_name','tsc_number','national_id','employment_number','phone','email','gender','date_of_birth','school_name','sub_county','school_category','job_group'];
     fields.forEach(f => {
       const el = document.getElementById(`p-${f.replace(/_/g,'-')}`);
       if (el) el.value = m[f] || '';
@@ -287,6 +288,7 @@ async function initMemberProfile() {
         school_name: document.getElementById('p-school-name').value.trim(),
         sub_county: document.getElementById('p-sub-county').value,
         school_category: document.getElementById('p-school-category').value,
+        job_group: document.getElementById('p-job-group').value,
         employment_number: document.getElementById('p-employment-number').value.trim(),
       });
       if (res.onboarding_complete) {

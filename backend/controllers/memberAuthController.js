@@ -44,7 +44,7 @@ async function register(req, res) {
     const {
       full_name, tsc_number, national_id, employment_number,
       phone, email, password, gender, date_of_birth,
-      school_name, sub_county, school_category,
+      school_name, sub_county, school_category, job_group,
     } = req.body;
 
     // Already a member (e.g. bulk-imported) with this exact TSC + national ID?
@@ -85,11 +85,11 @@ async function register(req, res) {
     await db.query(
       `INSERT INTO members
          (member_number, full_name, tsc_number, national_id, employment_number, phone, email,
-          password, gender, date_of_birth, school_name, sub_county, school_category, passport_photo_url, national_id_url)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          password, gender, date_of_birth, school_name, sub_county, school_category, job_group, passport_photo_url, national_id_url)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [memberNumber, full_name, tsc_number, national_id, employment_number || null,
        phone, email.toLowerCase(), hashedPassword, gender, date_of_birth,
-       school_name, sub_county, school_category, passportPhotoUrl, nationalIdUrl]
+       school_name, sub_county, school_category, job_group || null, passportPhotoUrl, nationalIdUrl]
     );
 
     // Send confirmation email (non-blocking)

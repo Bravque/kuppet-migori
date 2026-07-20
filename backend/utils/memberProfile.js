@@ -5,7 +5,7 @@
 const REQUIRED_PROFILE_FIELDS = [
   'full_name', 'tsc_number', 'national_id',
   'phone', 'email', 'gender', 'date_of_birth',
-  'school_name', 'sub_county', 'school_category',
+  'school_name', 'sub_county', 'school_category', 'job_group',
 ];
 
 function missingProfileFields(member) {

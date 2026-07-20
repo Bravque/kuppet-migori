@@ -187,6 +187,7 @@ CREATE TABLE IF NOT EXISTS members (
   school_name VARCHAR(300) NOT NULL,
   sub_county VARCHAR(150) NOT NULL,
   school_category ENUM('senior_school','junior_school'),
+  job_group ENUM('B5','C1','C2','C3','C4','C5','D1','D2','D3','D4','D5'),
   passport_photo_url VARCHAR(500),
   national_id_url VARCHAR(500),
   status ENUM('pending_approval','approved','rejected','suspended') DEFAULT 'pending_approval',
