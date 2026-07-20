@@ -271,7 +271,8 @@ CREATE TABLE IF NOT EXISTS scholarship_applications (
   reviewed_by INT,
   reviewed_at TIMESTAMP NULL,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  UNIQUE KEY uq_member_scholarship (member_id, scholarship_id)
 );
 
 -- Supporting documents for scholarship applications

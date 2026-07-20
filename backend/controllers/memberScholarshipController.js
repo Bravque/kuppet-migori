@@ -76,6 +76,12 @@ async function apply(req, res) {
 
     res.status(201).json({ success: true, message: 'Application submitted successfully', data: { application_number: appNumber } });
   } catch (err) {
+    // Race guard: two concurrent submissions can both pass the "already applied" check
+    // above and reach the INSERT. The UNIQUE(member_id, scholarship_id) key (migration #17)
+    // makes the DB reject the loser here.
+    if (err.code === 'ER_DUP_ENTRY' && /uq_member_scholarship/.test(err.message || '')) {
+      return res.status(409).json({ success: false, message: 'You have already applied for this scholarship' });
+    }
     res.status(500).json({ success: false, message: 'Application failed' });
   }
 }

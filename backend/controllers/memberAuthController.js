@@ -6,14 +6,23 @@ const mailerService = require('../services/mailerService');
 const { missingProfileFields } = require('../utils/memberProfile');
 
 // ── Sequence number generator (atomic) ───────────────────────────────────────
+// LAST_INSERT_ID() is connection-scoped, so the UPDATE and the read-back MUST run
+// on the SAME pooled connection — otherwise, under concurrent requests, the SELECT
+// can land on a different connection and return another request's value (or 0),
+// producing duplicate/wrong sequence numbers.
 async function nextSeq(key, prefix) {
-  await db.query(
-    `UPDATE settings SET setting_value = LAST_INSERT_ID(CAST(setting_value AS UNSIGNED) + 1) WHERE setting_key = ?`,
-    [key]
-  );
-  const [[{ n }]] = await db.query('SELECT LAST_INSERT_ID() AS n');
-  const year = new Date().getFullYear();
-  return `${prefix}-${year}-${String(n).padStart(6, '0')}`;
+  const conn = await db.getConnection();
+  try {
+    await conn.query(
+      `UPDATE settings SET setting_value = LAST_INSERT_ID(CAST(setting_value AS UNSIGNED) + 1) WHERE setting_key = ?`,
+      [key]
+    );
+    const [[{ n }]] = await conn.query('SELECT LAST_INSERT_ID() AS n');
+    const year = new Date().getFullYear();
+    return `${prefix}-${year}-${String(n).padStart(6, '0')}`;
+  } finally {
+    conn.release();
+  }
 }
 
 function signMemberToken(member) {
