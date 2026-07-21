@@ -71,7 +71,16 @@ const adminApi = (() => {
 
   function getCsrfToken() {
     const m = document.cookie.match(/__csrf=([^;]+)/);
-    return m ? m[1] : '';
+    if (m) return m[1];
+    // No server-issued CSRF cookie yet — mint one client-side so a POST made
+    // before any GET still carries a matching double-submit pair (the server
+    // only compares cookie === header). See member-api.js getCsrf() for why
+    // a self-issued token is equally safe.
+    const bytes = crypto.getRandomValues(new Uint8Array(32));
+    const token = Array.from(bytes, b => b.toString(16).padStart(2, '0')).join('');
+    const secure = location.protocol === 'https:' ? '; Secure' : '';
+    document.cookie = `__csrf=${token}; Path=/; SameSite=Strict${secure}`;
+    return token;
   }
 
   async function request(path, options = {}) {

@@ -14,7 +14,17 @@ const memberApi = (() => {
 
   function getCsrf() {
     const m = document.cookie.match(/__csrf=([^;]+)/);
-    return m ? m[1] : '';
+    if (m) return m[1];
+    // No server-issued CSRF cookie yet — this happens on entry pages that POST
+    // before making any GET (e.g. registration on a fresh browser), so the
+    // double-submit check would 403. Mint one client-side: the server only
+    // compares cookie === header, and a self-issued token is equally safe (a
+    // cross-origin attacker can neither read this cookie nor set the header).
+    const bytes = crypto.getRandomValues(new Uint8Array(32));
+    const token = Array.from(bytes, b => b.toString(16).padStart(2, '0')).join('');
+    const secure = location.protocol === 'https:' ? '; Secure' : '';
+    document.cookie = `__csrf=${token}; Path=/; SameSite=Strict${secure}`;
+    return token;
   }
 
   async function request(path, options = {}) {
