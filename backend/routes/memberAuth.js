@@ -11,12 +11,9 @@ const validate = (req, res, next) => {
   next();
 };
 
-// Register (multer processes files before controller)
+// Register (multer parses the multipart text fields; no document uploads at registration)
 router.post('/register',
-  upload.memberDocs.fields([
-    { name: 'passport_photo', maxCount: 1 },
-    { name: 'national_id_scan', maxCount: 1 },
-  ]),
+  upload.memberDocs.none(),
   [
     body('full_name').trim().notEmpty().withMessage('Full name required').isLength({ max: 200 }),
     body('tsc_number').trim().notEmpty().withMessage('TSC number required').isLength({ max: 50 }),

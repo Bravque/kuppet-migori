@@ -31,12 +31,11 @@
   <div class="step-indicator" id="step-indicator">
     <div class="step-item active" data-step="1"><div class="step-num"><span>1</span></div><div class="step-label">Personal Info</div></div>
     <div class="step-item" data-step="2"><div class="step-num"><span>2</span></div><div class="step-label">Employment</div></div>
-    <div class="step-item" data-step="3"><div class="step-num"><span>3</span></div><div class="step-label">Documents</div></div>
   </div>
 
   <div id="reg-alert" class="hidden" style="margin-bottom:1rem"></div>
 
-  <form id="reg-form" enctype="multipart/form-data">
+  <form id="reg-form">
 
     <!-- Step 1: Personal Info -->
     <div class="step-panel active" id="panel-1">
@@ -148,43 +147,6 @@
       </div>
     </div>
 
-    <!-- Step 3: Documents -->
-    <div class="step-panel" id="panel-3">
-      <p style="font-size:0.85rem;color:var(--text-muted);margin-bottom:1.25rem">
-        Upload clear, legible copies of your documents. Accepted formats: JPG, PNG, PDF (max 5 MB each).
-      </p>
-      <div class="form-group">
-        <label>Passport Photo <span class="required">*</span></label>
-        <div class="file-dropzone" id="drop-passport" onclick="document.getElementById('inp-passport').click()">
-          <div class="dropzone-icon"><i class="fas fa-camera"></i></div>
-          <div class="dropzone-text">Click to upload passport photo</div>
-          <div class="dropzone-hint">JPG, PNG — max 5 MB</div>
-        </div>
-        <input type="file" id="inp-passport" name="passport_photo" accept="image/jpeg,image/png,.jpg,.jpeg,.png" style="display:none">
-        <div id="prev-passport" style="display:none" class="file-preview">
-          <i class="fas fa-image file-icon"></i>
-          <span class="file-name" id="name-passport"></span>
-        </div>
-      </div>
-      <div class="form-group">
-        <label>National ID Copy <span class="required">*</span></label>
-        <div class="file-dropzone" id="drop-nid" onclick="document.getElementById('inp-nid').click()">
-          <div class="dropzone-icon"><i class="fas fa-id-card"></i></div>
-          <div class="dropzone-text">Click to upload National ID copy</div>
-          <div class="dropzone-hint">JPG, PNG, PDF — max 5 MB</div>
-        </div>
-        <input type="file" id="inp-nid" name="national_id_scan" accept="image/jpeg,image/png,application/pdf,.jpg,.jpeg,.png,.pdf" style="display:none">
-        <div id="prev-nid" style="display:none" class="file-preview">
-          <i class="fas fa-file file-icon"></i>
-          <span class="file-name" id="name-nid"></span>
-        </div>
-      </div>
-      <div style="padding:1rem;background:var(--bg);border-radius:8px;font-size:0.8rem;color:var(--text-muted)">
-        <i class="fas fa-lock" style="color:var(--primary)"></i>
-        Your documents are stored securely and only accessible to authorised administrators for verification purposes.
-      </div>
-    </div>
-
   </form>
 
   <!-- Navigation buttons -->
@@ -204,7 +166,7 @@
 <script src="/member/js/member-api.js?v=20260721a"></script>
 <script>
   let currentStep = 1;
-  const totalSteps = 3;
+  const totalSteps = 2;
 
   function updateStepUI() {
     for (let i = 1; i <= totalSteps; i++) {
@@ -258,20 +220,8 @@
     updateStepUI();
   });
 
-  // File upload previews
-  function setupFilePreview(inputId, previewId, nameId) {
-    document.getElementById(inputId).addEventListener('change', function() {
-      const file = this.files[0];
-      if (!file) return;
-      document.getElementById(previewId).style.display = 'flex';
-      document.getElementById(nameId).textContent = file.name;
-    });
-  }
-  setupFilePreview('inp-passport', 'prev-passport', 'name-passport');
-  setupFilePreview('inp-nid', 'prev-nid', 'name-nid');
-
   document.getElementById('btn-submit').addEventListener('click', async () => {
-    if (!validateStep(3)) return;
+    if (!validateStep(totalSteps)) return;
     const btn = document.getElementById('btn-submit');
     btn.disabled = true;
     btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Submitting…';

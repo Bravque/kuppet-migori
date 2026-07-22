@@ -35,7 +35,7 @@
             <table style="width:100%;font-size:0.85rem;border-collapse:collapse" id="info-table"></table>
           </div>
         </div>
-        <div class="data-card">
+        <div class="data-card" id="doc-card" style="display:none">
           <div class="data-card-header"><div class="data-card-title">Documents</div></div>
           <div style="padding:1.25rem" id="doc-section"></div>
         </div>
@@ -83,10 +83,16 @@
         ['Approved',formatDate(m.approved_at)],
       ];
       document.getElementById('info-table').innerHTML = rows.map(([k,v])=>`<tr><td style="padding:0.4rem 0;color:var(--text-muted);width:45%">${k}</td><td style="font-weight:500">${v||'—'}</td></tr>`).join('');
-      document.getElementById('doc-section').innerHTML = [
+      // Documents are no longer collected at registration; show this card only for
+      // legacy/imported members that still have uploaded files on record.
+      const docsHtml = [
         m.passport_photo_url ? `<div class="doc-item"><i class="fas fa-camera doc-icon"></i><span class="doc-name">Passport Photo</span><button type="button" onclick="viewDoc('${escHtml(m.passport_photo_url)}')" class="btn btn-outline btn-xs">View</button></div>` : '',
         m.national_id_url ? `<div class="doc-item"><i class="fas fa-id-card doc-icon"></i><span class="doc-name">National ID Copy</span><button type="button" onclick="viewDoc('${escHtml(m.national_id_url)}')" class="btn btn-outline btn-xs">View</button></div>` : '',
-      ].join('') || '<p style="font-size:0.85rem;color:var(--text-muted)">No documents uploaded</p>';
+      ].join('');
+      if(docsHtml){
+        document.getElementById('doc-section').innerHTML = docsHtml;
+        document.getElementById('doc-card').style.display = '';
+      }
       if(canDecide){
         if(m.status!=='approved'){document.getElementById('btn-approve').style.display='';}
         if(m.status!=='rejected'){document.getElementById('btn-reject').style.display='';}

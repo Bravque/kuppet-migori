@@ -83,22 +83,14 @@ async function register(req, res) {
     const hashedPassword = await bcrypt.hash(password, 10);
     const memberNumber = await nextSeq('member_seq', 'MBR');
 
-    // Handle uploaded files
-    const passportPhotoUrl = req.files?.passport_photo?.[0]
-      ? `/uploads/members/${req.files.passport_photo[0].filename}`
-      : null;
-    const nationalIdUrl = req.files?.national_id_scan?.[0]
-      ? `/uploads/members/${req.files.national_id_scan[0].filename}`
-      : null;
-
     await db.query(
       `INSERT INTO members
          (member_number, full_name, tsc_number, national_id, employment_number, phone, email,
-          password, gender, date_of_birth, school_name, sub_county, school_category, job_group, passport_photo_url, national_id_url)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          password, gender, date_of_birth, school_name, sub_county, school_category, job_group)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [memberNumber, full_name, tsc_number, national_id, employment_number || null,
        phone, email.toLowerCase(), hashedPassword, gender, date_of_birth,
-       school_name, sub_county, school_category, job_group || null, passportPhotoUrl, nationalIdUrl]
+       school_name, sub_county, school_category, job_group || null]
     );
 
     // Send confirmation email (non-blocking)
