@@ -150,7 +150,7 @@ async function login(req, res) {
     );
 
     if (!member) {
-      return res.status(401).json({ success: false, message: 'Invalid TSC number or password' });
+      return res.status(401).json({ success: false, code: 'USER_NOT_FOUND', message: 'No account found for that TSC number. Kindly register to join.' });
     }
 
     // Lock check
@@ -179,7 +179,7 @@ async function login(req, res) {
       const lockedUntil = attempts >= maxAttempts ? new Date(Date.now() + lockMins * 60000) : null;
       await db.query('UPDATE members SET failed_login_attempts = ?, locked_until = ? WHERE id = ?', [attempts, lockedUntil, member.id]);
       await logLogin(member.id, ip, ua, 'failed');
-      return res.status(401).json({ success: false, message: 'Invalid TSC number or password' });
+      return res.status(401).json({ success: false, code: 'WRONG_PASSWORD', message: 'Incorrect password. Please try again.' });
     }
 
     await db.query('UPDATE members SET failed_login_attempts = 0, locked_until = NULL, last_login = NOW() WHERE id = ?', [member.id]);
