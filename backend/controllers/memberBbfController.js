@@ -107,7 +107,9 @@ async function submitClaim(req, res) {
       [claim.id, 'draft', 'submitted', 'Claim submitted by member', req.member.id]
     );
 
-    await notificationService.createNotification({
+    // Fire-and-forget: the SMS + SMTP round-trip must not hold the response open.
+    // The in-app notification/SMS/email still send in the background.
+    notificationService.createNotification({
       memberId: req.member.id,
       type: 'bbf_claim',
       title: 'BBF Claim Submitted',
@@ -115,7 +117,7 @@ async function submitClaim(req, res) {
       referenceId: claim.id,
       email: true,
       smsMessage: `Dear member, your BBF claim ${claim.claim_number} has been submitted for review. - KUPPET Migori`,
-    });
+    }).catch(() => {});
 
     res.json({ success: true, message: 'Claim submitted successfully' });
   } catch (err) {

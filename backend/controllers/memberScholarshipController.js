@@ -64,7 +64,10 @@ async function apply(req, res) {
       );
     }
 
-    await notificationService.createNotification({
+    // Fire-and-forget: the SMS + SMTP round-trip must not hold the response open —
+    // under a scholarship-announcement rush that inline wait dominates per-request
+    // latency. The in-app notification/SMS/email still send in the background.
+    notificationService.createNotification({
       memberId: req.member.id,
       type: 'scholarship',
       title: 'Scholarship Application Submitted',
@@ -72,7 +75,7 @@ async function apply(req, res) {
       referenceId: result.insertId,
       email: true,
       smsMessage: `Dear member, your scholarship application ${appNumber} has been submitted for review. - KUPPET Migori`,
-    });
+    }).catch(() => {});
 
     res.status(201).json({ success: true, message: 'Application submitted successfully', data: { application_number: appNumber } });
   } catch (err) {
