@@ -70,15 +70,25 @@ async function register(req, res) {
       });
     }
 
-    // Uniqueness checks
+    // Uniqueness checks. A TSC number or national ID already on file means the
+    // person already has an account — send them to log in (ACCOUNT_EXISTS makes
+    // the register page redirect), rather than showing a dead-end error.
     const [[byTsc]] = await db.query('SELECT id FROM members WHERE tsc_number = ?', [tsc_number]);
-    if (byTsc) return res.status(409).json({ success: false, message: 'TSC number already registered' });
+    if (byTsc) return res.status(409).json({
+      success: false,
+      code: 'ACCOUNT_EXISTS',
+      message: 'An account with this TSC number already exists. Please log in instead.',
+    });
+
+    const [[byNatId]] = await db.query('SELECT id FROM members WHERE national_id = ?', [national_id]);
+    if (byNatId) return res.status(409).json({
+      success: false,
+      code: 'ACCOUNT_EXISTS',
+      message: 'An account with this ID number already exists. Please log in instead.',
+    });
 
     const [[byEmail]] = await db.query('SELECT id FROM members WHERE email = ?', [email.toLowerCase()]);
     if (byEmail) return res.status(409).json({ success: false, message: 'Email already registered' });
-
-    const [[byNatId]] = await db.query('SELECT id FROM members WHERE national_id = ?', [national_id]);
-    if (byNatId) return res.status(409).json({ success: false, message: 'National ID already registered' });
 
     const hashedPassword = await bcrypt.hash(password, 10);
     const memberNumber = await nextSeq('member_seq', 'MBR');
@@ -106,10 +116,14 @@ async function register(req, res) {
     // above and hit the DB unique constraint. Map that to a friendly 409 rather
     // than a generic 500.
     if (err && err.code === 'ER_DUP_ENTRY') {
-      const field = /email/i.test(err.message) ? 'Email'
-        : /national/i.test(err.message) ? 'National ID'
-        : /tsc/i.test(err.message) ? 'TSC number'
-        : 'Account';
+      // TSC / national ID clashes mean an existing account → redirect to login.
+      if (/national/i.test(err.message)) {
+        return res.status(409).json({ success: false, code: 'ACCOUNT_EXISTS', message: 'An account with this ID number already exists. Please log in instead.' });
+      }
+      if (/tsc/i.test(err.message)) {
+        return res.status(409).json({ success: false, code: 'ACCOUNT_EXISTS', message: 'An account with this TSC number already exists. Please log in instead.' });
+      }
+      const field = /email/i.test(err.message) ? 'Email' : 'Account';
       return res.status(409).json({ success: false, message: `${field} already registered` });
     }
     return res.status(500).json({ success: false, message: 'Registration failed' });
