@@ -102,7 +102,11 @@ const authLimiter = rateLimit({
 
 const regLimiter = rateLimit({
   windowMs: 60 * 60 * 1000,
-  max: 3,
+  max: 8,
+  // Only count successful registrations. Validation errors and duplicate-TSC
+  // rejections (status >= 400) don't burn the quota, so a member fumbling the
+  // form can't lock themselves out without ever actually registering.
+  skipFailedRequests: true,
   message: { success: false, message: 'Too many registration attempts. Please try again in an hour.' },
 });
 
