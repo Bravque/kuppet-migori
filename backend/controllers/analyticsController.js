@@ -5,7 +5,10 @@ async function getSummary(req, res) {
   try {
     const [[members]] = await db.query(`
       SELECT
-        COUNT(*) as total_members,
+        -- Actual members only — a pending_approval row is a registration
+        -- request, and a rejected row never became a member, so neither counts
+        -- toward Total Members. Pending is surfaced separately (Member Requests).
+        SUM(status IN ('approved','suspended')) as total_members,
         SUM(status = 'approved') as active_members,
         SUM(status = 'pending_approval') as pending_members,
         SUM(status = 'rejected') as rejected_members
@@ -88,7 +91,7 @@ async function exportPdf(req, res) {
   try {
     const [[summary]] = await db.query(`
       SELECT
-        (SELECT COUNT(*) FROM members) as total_members,
+        (SELECT COUNT(*) FROM members WHERE status IN ('approved','suspended')) as total_members,
         (SELECT COUNT(*) FROM members WHERE status='approved') as approved_members,
         (SELECT COUNT(*) FROM members WHERE status='pending_approval') as pending_members,
         (SELECT COUNT(*) FROM bbf_claims WHERE status!='draft') as total_bbf,
@@ -113,7 +116,7 @@ async function exportPdf(req, res) {
     section('Membership');
     row('Total Members', summary.total_members);
     row('Approved Members', summary.approved_members);
-    row('Pending Approval', summary.pending_members);
+    row('Member Requests', summary.pending_members);
     doc.moveDown();
 
     section('BBF Claims');

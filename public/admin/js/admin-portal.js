@@ -602,7 +602,7 @@ function renderSummaryCards(d) {
   const cards = [
     { id: 'stat-total-members',    value: d.total_members || 0,    label: 'Total Members',          icon: 'users',           color: 'blue' },
     { id: 'stat-active-members',   value: d.active_members || 0,   label: 'Active Members',         icon: 'user-check',      color: 'green' },
-    { id: 'stat-pending',          value: d.pending_members || 0,  label: 'Pending Approval',        icon: 'user-clock',      color: 'gold' },
+    { id: 'stat-pending',          value: d.pending_members || 0,  label: 'Member Requests',         icon: 'user-clock',      color: 'gold' },
     { id: 'stat-bbf-submitted',    value: d.bbf_submitted || 0,    label: 'BBF Claims Submitted',   icon: 'file-medical',    color: 'purple' },
     { id: 'stat-bbf-approved',     value: d.bbf_approved || 0,     label: 'BBF Claims Approved',    icon: 'check-circle',    color: 'green' },
     { id: 'stat-sch-applications', value: d.sch_applications || 0, label: 'Scholarship Applications',icon: 'award',          color: 'teal' },
