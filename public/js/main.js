@@ -570,6 +570,20 @@ function stripHtml(html) {
   return (d.textContent || '').replace(/\s+/g, ' ').trim();
 }
 
+// Render admin-authored article HTML. Older articles were typed as plain text with
+// line breaks (no HTML block tags) and would collapse into one paragraph — split
+// those on blank lines into <p> and turn single newlines into <br> so they appear
+// arranged the way they were written. Content that already carries block-level tags
+// (from the WYSIWYG content editor) is passed through unchanged.
+function renderArticleHtml(html) {
+  if (!html) return '';
+  if (/<(p|div|ul|ol|li|h[1-6]|br|blockquote|table|figure)[\s>/]/i.test(html)) return html;
+  return html
+    .split(/\n{2,}/)
+    .map(block => `<p>${block.trim().replace(/\n/g, '<br>')}</p>`)
+    .join('');
+}
+
 // Cap a teaser string at `max` characters, trimming back to a word boundary and
 // appending an ellipsis, so long excerpts don't make cards run on.
 function truncate(str, max = 150) {
@@ -647,7 +661,7 @@ async function initArticlePage() {
             <span class="meta-item"><i class="far fa-calendar-alt"></i> ${date}</span>
             <span class="meta-item"><i class="far fa-eye"></i> ${data.views || 0} views</span>
           </div>
-          <div class="article-content">${data.content || ''}</div>
+          <div class="article-content">${renderArticleHtml(data.content)}</div>
           ${data.image_2
             ? `<figure class="article-gallery"><img src="${escHtml(data.image_2)}" alt="${escHtml(data.title)} — additional image" loading="lazy"></figure>`
             : ''}
@@ -742,7 +756,7 @@ async function initAdvocacyArticlePage() {
             <span class="meta-item"><i class="fas fa-tag"></i> ${cat.replace('_', ' ')}</span>
             <span class="meta-item"><i class="far fa-calendar-alt"></i> ${date}</span>
           </div>
-          <div class="article-content">${data.content || ''}</div>
+          <div class="article-content">${renderArticleHtml(data.content)}</div>
           ${data.document_url ? `<a href="${escHtml(data.document_url)}" target="_blank" rel="noopener" class="btn btn-primary btn-sm article-doc"><i class="fas fa-file-download"></i> Download Document</a>` : ''}
           <div><a href="/pages/advocacy.html" class="btn btn-outline btn-sm article-back"><i class="fas fa-arrow-left"></i> Back to Advocacy Desk</a></div>
         </div>

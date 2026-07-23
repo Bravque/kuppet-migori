@@ -529,10 +529,25 @@ textarea.form-control { resize: vertical; min-height: 100px; }
   border-radius: var(--radius-md, 12px) var(--radius-md, 12px) 0 0;
   background: var(--bg, #F7F9FC);
 }
-.rt-toolbar + textarea.form-control {
+/* WYSIWYG editing surface (replaces the textarea; formatted content, no raw HTML) */
+.rt-editor {
+  min-height: 170px;
+  max-height: 440px;
+  overflow-y: auto;
   border-top-left-radius: 0;
   border-top-right-radius: 0;
+  line-height: 1.6;
+  cursor: text;
 }
+.rt-editor:empty::before {
+  content: attr(data-placeholder);
+  color: var(--text-muted, #718096);
+  pointer-events: none;
+}
+.rt-editor p { margin: 0 0 0.6rem; }
+.rt-editor ul, .rt-editor ol { margin: 0 0 0.6rem 1.6rem; }
+.rt-editor li { margin-bottom: 0.25rem; }
+.rt-editor a { color: var(--primary, #1B3A6E); text-decoration: underline; }
 .rt-btn {
   display: inline-flex;
   align-items: center;

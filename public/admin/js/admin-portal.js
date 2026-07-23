@@ -693,52 +693,71 @@ async function loadNewsTable(params = {}) {
   }
 }
 
-// ── Rich-text toolbar (news / advocacy content textareas) ─────────────────────
-// Lightweight formatting toolbar that wraps the textarea selection in the HTML
-// tags the public site already renders + sanitizes (see backend/utils/sanitizeHtml.js).
-// Wire any `.rt-toolbar[data-rt-target="<textarea id>"]` via initRichToolbars().
-function rtApply(ta, cmd) {
-  const start = ta.selectionStart, end = ta.selectionEnd;
-  const sel = ta.value.slice(start, end);
-  let out;
+// ── Rich-text WYSIWYG editor (news / advocacy content) ────────────────────────
+// The admin edits in a live contenteditable surface — bold looks bold, lists look
+// like lists — so a non-technical editor never sees raw HTML tags. The formatted
+// HTML is mirrored into the hidden <textarea name="content"> (existing save/load
+// code keeps working), and rendered + re-sanitized on the public site
+// (backend/utils/sanitizeHtml.js). Wire via `.rt-toolbar[data-rt-target="<textarea id>"]`.
+function rtExec(cmd) {
   switch (cmd) {
-    case 'bold':   out = `<strong>${sel || 'bold text'}</strong>`; break;
-    case 'italic': out = `<em>${sel || 'italic text'}</em>`; break;
-    case 'ol':
-    case 'ul': {
-      const tag = cmd === 'ol' ? 'ol' : 'ul';
-      const lines = (sel || 'List item').split('\n').map(l => l.trim()).filter(Boolean);
-      const items = (lines.length ? lines : ['List item']).map(l => `  <li>${l}</li>`).join('\n');
-      out = `<${tag}>\n${items}\n</${tag}>`;
-      break;
-    }
-    case 'align-left':
-    case 'align-center':
-    case 'align-right': {
-      const a = cmd.split('-')[1];
-      out = `<p style="text-align:${a}">${sel || 'text'}</p>`;
-      break;
-    }
+    case 'bold':         document.execCommand('bold'); break;
+    case 'italic':       document.execCommand('italic'); break;
+    case 'ol':           document.execCommand('insertOrderedList'); break;
+    case 'ul':           document.execCommand('insertUnorderedList'); break;
+    case 'align-left':   document.execCommand('justifyLeft'); break;
+    case 'align-center': document.execCommand('justifyCenter'); break;
+    case 'align-right':  document.execCommand('justifyRight'); break;
     case 'link': {
       const url = prompt('Link URL (https://…):', 'https://');
-      if (!url) return;
-      out = `<a href="${url}" target="_blank" rel="noopener">${sel || url}</a>`;
+      if (url && url !== 'https://') document.execCommand('createLink', false, url);
       break;
     }
-    default: return;
+    default: break;
   }
-  ta.setRangeText(out, start, end, 'end');
-  ta.focus();
-  ta.dispatchEvent(new Event('input', { bubbles: true }));
+}
+// Legacy articles were typed as plain text (line breaks, no HTML tags) and would
+// otherwise load as one blob. Convert them to paragraphs so they appear arranged
+// the way they were typed; anything already containing block tags is left as-is.
+function rtNormalize(html) {
+  if (!html) return '';
+  if (/<(p|div|ul|ol|li|h[1-6]|br|blockquote|table|figure)[\s>/]/i.test(html)) return html;
+  return html.split(/\n{2,}/).map(b => `<p>${b.replace(/\n/g, '<br>')}</p>`).join('');
+}
+// Reload the visible editor from its hidden textarea (call after code sets .value,
+// e.g. opening a modal / form.reset()).
+function refreshRichEditor(ta) {
+  if (ta && ta._rtEditor) ta._rtEditor.innerHTML = rtNormalize(ta.value || '');
 }
 function initRichToolbars(root = document) {
+  try { document.execCommand('styleWithCSS', false, true); } catch (e) { /* older browsers */ }
   root.querySelectorAll('.rt-toolbar').forEach(tb => {
     if (tb.dataset.rtInit) return;
     tb.dataset.rtInit = '1';
     const ta = document.getElementById(tb.dataset.rtTarget);
-    if (!ta) return;
+    if (!ta || ta._rtEditor) return;
+
+    const ed = document.createElement('div');
+    ed.className = 'rt-editor form-control';
+    ed.contentEditable = 'true';
+    ed.setAttribute('role', 'textbox');
+    ed.setAttribute('aria-multiline', 'true');
+    if (ta.hasAttribute('placeholder')) ed.dataset.placeholder = ta.getAttribute('placeholder');
+    ta.style.display = 'none';
+    ta.removeAttribute('required');           // we validate the mirrored value in JS
+    ta.parentNode.insertBefore(ed, ta.nextSibling);
+    ta._rtEditor = ed;
+    ed.innerHTML = rtNormalize(ta.value || '');
+
+    const sync = () => {
+      const html = ed.innerHTML.trim();
+      ta.value = (html === '<br>' || html === '<div><br></div>' || html === '<p><br></p>') ? '' : html;
+    };
+    ed.addEventListener('input', sync);
+    ed.addEventListener('blur', sync);
     tb.querySelectorAll('[data-rt]').forEach(btn => {
-      btn.addEventListener('click', () => rtApply(ta, btn.dataset.rt));
+      btn.addEventListener('mousedown', e => e.preventDefault()); // keep the editor selection
+      btn.addEventListener('click', () => { ed.focus(); rtExec(btn.dataset.rt); sync(); });
     });
   });
 }
@@ -785,6 +804,7 @@ async function openNewsModal(id) {
       alertEl.textContent = 'Could not load this article: ' + err.message;
     }
   }
+  refreshRichEditor(form.querySelector('[name=content]'));
   modal.classList.add('open');
 }
 
