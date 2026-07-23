@@ -545,7 +545,9 @@ textarea.form-control { resize: vertical; min-height: 100px; }
   pointer-events: none;
 }
 .rt-editor p { margin: 0 0 0.6rem; }
-.rt-editor ul, .rt-editor ol { margin: 0 0 0.6rem 1.6rem; }
+/* Restore list markers (global reset sets ul/ol list-style:none) */
+.rt-editor ul { list-style: disc; margin: 0 0 0.6rem 1.6rem; }
+.rt-editor ol { list-style: decimal; margin: 0 0 0.6rem 1.6rem; }
 .rt-editor li { margin-bottom: 0.25rem; }
 .rt-editor a { color: var(--primary, #1B3A6E); text-decoration: underline; }
 .rt-btn {
