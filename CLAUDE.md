@@ -337,16 +337,20 @@ DB stores URL paths (`/uploads/<sub>/<file>`); these are served from the filesys
 - Lost files (uploaded before the persistent dir was configured) are only recoverable from a Hostinger backup snapshot taken **before** the wiping deploy; otherwise re-upload.
 
 ### Rate limiting
-| Endpoint | Limit |
+**All limits are per client IP.** The limiters (`express-rate-limit` v7, `backend/server.js`) set no custom `keyGenerator`, so they use the default key = `req.ip`; each IP gets its own independent counter per limiter. `app.set('trust proxy', 1)` (server.js:47) makes `req.ip` the **real client IP** from `X-Forwarded-For` (first hop = Hostinger's nginx/Passenger), not the proxy's — required, or every request would share one bucket. Caveats: (1) the store is **in-memory**, so counts reset on restart/redeploy and aren't shared across multiple instances/workers (fine on single-instance Hostinger; use a shared store like Redis if ever scaled out); (2) users behind one shared/NATed public IP (e.g. a whole school) share a bucket.
+
+| Endpoint | Limit (per IP) |
 |----------|-------|
 | All `/api/*` | 200 req / 15 min |
 | `POST /api/contact` | 5 req / hr |
 | `POST /api/auth/login` | 20 req / 15 min |
 | `POST /api/member/auth/login` | 20 req / 15 min |
-| `POST /api/member/auth/register` | 3 req / hr |
+| `POST /api/member/auth/register` | 8 req / hr (only **successful** registrations count — `skipFailedRequests`) |
 | `POST /api/member/auth/forgot-password` | 5 req / hr |
 | `POST /api/admin/sms/send` | 20 req / min |
 | `POST /api/admin/sms/bulk` | 3 req / hr |
+| `POST /api/admin/email/send` | 20 req / min |
+| `POST /api/admin/email/bulk` | 5 req / hr |
 
 ### Design tokens (CSS custom properties)
 ```
