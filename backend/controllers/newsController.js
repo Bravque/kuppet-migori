@@ -17,7 +17,7 @@ const getAll = async (req, res) => {
     const rowParams = [...filterParams, clampLimit(limit, 10), clampOffset(offset)];
     const [rows] = await db.query(
       `SELECT id, title, slug, excerpt, category, featured_image, author, is_featured, views, tags, published_at
-       FROM news ${where} ORDER BY published_at DESC LIMIT ? OFFSET ?`,
+       FROM news ${where} ORDER BY is_featured DESC, published_at DESC LIMIT ? OFFSET ?`,
       rowParams
     );
     const [[{ total }]] = await db.query(`SELECT COUNT(*) as total FROM news ${where}`, filterParams);
