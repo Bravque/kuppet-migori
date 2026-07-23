@@ -693,13 +693,66 @@ async function loadNewsTable(params = {}) {
   }
 }
 
+// ── Rich-text toolbar (news / advocacy content textareas) ─────────────────────
+// Lightweight formatting toolbar that wraps the textarea selection in the HTML
+// tags the public site already renders + sanitizes (see backend/utils/sanitizeHtml.js).
+// Wire any `.rt-toolbar[data-rt-target="<textarea id>"]` via initRichToolbars().
+function rtApply(ta, cmd) {
+  const start = ta.selectionStart, end = ta.selectionEnd;
+  const sel = ta.value.slice(start, end);
+  let out;
+  switch (cmd) {
+    case 'bold':   out = `<strong>${sel || 'bold text'}</strong>`; break;
+    case 'italic': out = `<em>${sel || 'italic text'}</em>`; break;
+    case 'ol':
+    case 'ul': {
+      const tag = cmd === 'ol' ? 'ol' : 'ul';
+      const lines = (sel || 'List item').split('\n').map(l => l.trim()).filter(Boolean);
+      const items = (lines.length ? lines : ['List item']).map(l => `  <li>${l}</li>`).join('\n');
+      out = `<${tag}>\n${items}\n</${tag}>`;
+      break;
+    }
+    case 'align-left':
+    case 'align-center':
+    case 'align-right': {
+      const a = cmd.split('-')[1];
+      out = `<p style="text-align:${a}">${sel || 'text'}</p>`;
+      break;
+    }
+    case 'link': {
+      const url = prompt('Link URL (https://…):', 'https://');
+      if (!url) return;
+      out = `<a href="${url}" target="_blank" rel="noopener">${sel || url}</a>`;
+      break;
+    }
+    default: return;
+  }
+  ta.setRangeText(out, start, end, 'end');
+  ta.focus();
+  ta.dispatchEvent(new Event('input', { bubbles: true }));
+}
+function initRichToolbars(root = document) {
+  root.querySelectorAll('.rt-toolbar').forEach(tb => {
+    if (tb.dataset.rtInit) return;
+    tb.dataset.rtInit = '1';
+    const ta = document.getElementById(tb.dataset.rtTarget);
+    if (!ta) return;
+    tb.querySelectorAll('[data-rt]').forEach(btn => {
+      btn.addEventListener('click', () => rtApply(ta, btn.dataset.rt));
+    });
+  });
+}
+
 let editingNewsId = null;
-function setNewsHint(elId, label, url) {
+function setNewsHint(elId, label, url, removeField) {
   const el = document.getElementById(elId);
   if (!el) return;
-  el.innerHTML = url
-    ? `Current: <a href="${escHtml(url)}" target="_blank" rel="noopener">${escHtml(label || 'view')}</a> — choosing a new file replaces it.`
-    : '';
+  if (!url) { el.innerHTML = ''; return; }
+  el.innerHTML =
+    `Current: <a href="${escHtml(url)}" target="_blank" rel="noopener">${escHtml(label || 'view')}</a> — choosing a new file replaces it.` +
+    (removeField
+      ? ` <label style="display:inline-flex;align-items:center;gap:.25rem;margin-left:.4rem;color:var(--red);cursor:pointer"><input type="checkbox" data-remove="${escHtml(removeField)}"> Remove</label>`
+      : '');
 }
 async function openNewsModal(id) {
   editingNewsId = id;
@@ -723,9 +776,9 @@ async function openNewsModal(id) {
       form.querySelector('[name=content]').value = n.content || '';
       form.querySelector('[name=is_featured]').checked = !!n.is_featured;
       form.querySelector('[name=is_published]').checked = !!n.is_published;
-      setNewsHint('news-image1-current', n.featured_image || '', n.featured_image);
-      setNewsHint('news-image2-current', n.image_2 || '', n.image_2);
-      if (n.document_url) setNewsHint('news-document-current', n.document_name || 'attachment', n.document_url);
+      setNewsHint('news-image1-current', n.featured_image || '', n.featured_image, 'featured_image');
+      setNewsHint('news-image2-current', n.image_2 || '', n.image_2, 'image_2');
+      if (n.document_url) setNewsHint('news-document-current', n.document_name || 'attachment', n.document_url, 'document');
     } catch (err) {
       const alertEl = document.getElementById('news-form-alert');
       alertEl.className = 'alert alert-danger';
@@ -760,6 +813,14 @@ async function saveNews() {
   if (image1) fd.append('image1', image1);
   if (image2) fd.append('image2', image2);
   if (doc) fd.append('document', doc);
+
+  // Removals — an empty value clears the column (backend honours featured_image=''
+  // etc.). Only applied when no replacement file was chosen for that slot.
+  const removals = {};
+  form.querySelectorAll('[data-remove]:checked').forEach(cb => { removals[cb.dataset.remove] = true; });
+  if (removals.featured_image && !image1) fd.append('featured_image', '');
+  if (removals.image_2 && !image2) fd.append('image_2', '');
+  if (removals.document && !doc) { fd.append('document_url', ''); fd.append('document_name', ''); }
 
   try {
     if (editingNewsId) {
@@ -1143,6 +1204,7 @@ document.addEventListener('DOMContentLoaded', () => {
   initAdminContacts();
   initAdminSettings();
   initAdminSecurity();
+  initRichToolbars();
 
   // Close modals on overlay click
   document.querySelectorAll('.portal-modal-overlay').forEach(overlay => {

@@ -11,8 +11,8 @@
   <title>News &amp; Circulars — KUPPET Migori Admin</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
-  <link rel="stylesheet" href="/css/style.css?v=20260722a">
-  <link rel="stylesheet" href="/css/portal.css?v=20260722a">
+  <link rel="stylesheet" href="/css/style.css?v=20260723a">
+  <link rel="stylesheet" href="/css/portal.css?v=20260723a">
 </head>
 <body class="portal-body admin-news-page">
 <div class="portal-layout">
@@ -90,7 +90,20 @@
         </div>
         <div class="form-group">
           <label>Content <span class="required">*</span></label>
-          <textarea name="content" class="form-control" rows="8" placeholder="Full article content (HTML supported)" required></textarea>
+          <div class="rt-toolbar" data-rt-target="news-content">
+            <button type="button" class="rt-btn" data-rt="bold" title="Bold"><i class="fas fa-bold"></i></button>
+            <button type="button" class="rt-btn" data-rt="italic" title="Italic"><i class="fas fa-italic"></i></button>
+            <span class="rt-sep"></span>
+            <button type="button" class="rt-btn" data-rt="ol" title="Numbered list"><i class="fas fa-list-ol"></i></button>
+            <button type="button" class="rt-btn" data-rt="ul" title="Bulleted list"><i class="fas fa-list-ul"></i></button>
+            <span class="rt-sep"></span>
+            <button type="button" class="rt-btn" data-rt="align-left" title="Align left"><i class="fas fa-align-left"></i></button>
+            <button type="button" class="rt-btn" data-rt="align-center" title="Align center"><i class="fas fa-align-center"></i></button>
+            <button type="button" class="rt-btn" data-rt="align-right" title="Align right"><i class="fas fa-align-right"></i></button>
+            <span class="rt-sep"></span>
+            <button type="button" class="rt-btn" data-rt="link" title="Insert link"><i class="fas fa-link"></i></button>
+          </div>
+          <textarea id="news-content" name="content" class="form-control" rows="8" placeholder="Full article content (HTML supported)" required></textarea>
         </div>
         <div class="form-row">
           <div class="form-group">
@@ -126,8 +139,8 @@
   </div>
 </div>
 
-<script src="/admin/js/admin-api.js?v=20260722a"></script>
-<script src="/admin/js/admin-portal.js?v=20260722a"></script>
+<script src="/admin/js/admin-api.js?v=20260723a"></script>
+<script src="/admin/js/admin-portal.js?v=20260723a"></script>
 <script>
   document.getElementById('sidebar-placeholder').outerHTML = getSidebarHtml();
   document.getElementById('topbar-placeholder').outerHTML = getTopbarHtml('News & Circulars');

@@ -517,6 +517,48 @@
 
 textarea.form-control { resize: vertical; min-height: 100px; }
 
+/* Rich-text toolbar (content editors) — sits above its textarea */
+.rt-toolbar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.15rem;
+  padding: 0.3rem 0.4rem;
+  border: 1px solid var(--border, #E2E8F0);
+  border-bottom: none;
+  border-radius: var(--radius-md, 12px) var(--radius-md, 12px) 0 0;
+  background: var(--bg, #F7F9FC);
+}
+.rt-toolbar + textarea.form-control {
+  border-top-left-radius: 0;
+  border-top-right-radius: 0;
+}
+.rt-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text, #1A202C);
+  font-size: 0.82rem;
+  cursor: pointer;
+  transition: background 0.12s, border-color 0.12s;
+}
+.rt-btn:hover {
+  background: #fff;
+  border-color: var(--border, #E2E8F0);
+  color: var(--primary, #1B3A6E);
+}
+.rt-sep {
+  width: 1px;
+  height: 18px;
+  margin: 0 0.25rem;
+  background: var(--border, #E2E8F0);
+}
+
 .form-hint {
   font-size: 0.72rem;
   color: var(--text-muted, #718096);
