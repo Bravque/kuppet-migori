@@ -267,6 +267,7 @@ CREATE TABLE IF NOT EXISTS scholarship_applications (
   academic_year VARCHAR(10),
   essay TEXT,
   status ENUM('applied','under_review','approved','rejected') DEFAULT 'applied',
+  amount_awarded DECIMAL(12,2) NULL,
   reviewer_notes TEXT,
   reviewed_by INT,
   reviewed_at TIMESTAMP NULL,

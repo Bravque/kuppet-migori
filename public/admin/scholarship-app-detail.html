@@ -10,7 +10,7 @@
   <title>Scholarship Application — KUPPET Migori Admin</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
-  <link rel="stylesheet" href="/css/style.css?v=20260724g"><link rel="stylesheet" href="/css/portal.css?v=20260724g">
+  <link rel="stylesheet" href="/css/style.css?v=20260724h"><link rel="stylesheet" href="/css/portal.css?v=20260724h">
 </head>
 <body class="portal-body admin-scholarship-app-detail-page">
 <div class="portal-layout">
@@ -44,6 +44,10 @@
             <div class="data-card-header"><div class="data-card-title">Review Decision</div></div>
             <div style="padding:1.25rem">
               <div class="form-group">
+                <label>Award amount (KES) <span style="color:var(--text-muted);font-weight:400">(optional — set when approving)</span></label>
+                <input type="number" id="review-amount" class="form-control" min="0" step="0.01" placeholder="e.g. 20000">
+              </div>
+              <div class="form-group">
                 <label>Reviewer notes <span style="color:var(--text-muted);font-weight:400">(optional for approval, recommended for rejection)</span></label>
                 <textarea id="review-notes" class="form-control" rows="3" placeholder="Add any notes for the member…"></textarea>
               </div>
@@ -63,7 +67,7 @@
     </div>
   </main>
 </div>
-<script src="/admin/js/admin-api.js?v=20260724g"></script><script src="/admin/js/admin-portal.js?v=20260724g"></script>
+<script src="/admin/js/admin-api.js?v=20260724h"></script><script src="/admin/js/admin-portal.js?v=20260724h"></script>
 <script>
   document.getElementById('sidebar-placeholder').outerHTML = getSidebarHtml();
   document.getElementById('topbar-placeholder').outerHTML = getTopbarHtml('Scholarship Application');
@@ -85,6 +89,7 @@
         ['Application No', escHtml(a.application_number)],
         ['Scholarship', escHtml(a.scholarship_title)],
         ['Status', escHtml((a.status||'').replace(/_/g,' '))],
+        ...(a.amount_awarded != null && a.amount_awarded !== '' ? [['Amount Awarded', 'KES ' + Number(a.amount_awarded).toLocaleString()]] : []),
         ['Submitted', formatDate(a.created_at)],
         ['Reviewed', formatDate(a.reviewed_at)],
         ['Reviewer Notes', escHtml(a.reviewer_notes||'—')],
@@ -138,6 +143,9 @@
         ['Reviewed', formatDate(a.reviewed_at)],
         ['Reviewer Notes', escHtml(a.reviewer_notes || '—')],
       ];
+      if (a.amount_awarded != null && a.amount_awarded !== '') {
+        appRows.splice(3, 0, ['Amount Awarded', `KES ${Number(a.amount_awarded).toLocaleString()}`]);
+      }
       const applicantRows = [
         ['Name', escHtml(a.applicant_name || a.full_name || '—')],
         ['Member No', escHtml(a.member_number || '—')],
@@ -175,13 +183,14 @@
 
   async function decide(action) {
     const notes = document.getElementById('review-notes').value.trim();
+    const amount = document.getElementById('review-amount').value.trim();
     if (action === 'reject' && !notes) {
       if (!confirm('Reject without a reason note? The member will not be told why.')) return;
     } else {
       if (!confirm(`Are you sure you want to ${action} this application?`)) return;
     }
     try {
-      if (action === 'approve') await adminApi.schApps.approve(id, notes);
+      if (action === 'approve') await adminApi.schApps.approve(id, notes, amount || null);
       if (action === 'reject')  await adminApi.schApps.reject(id, notes);
       showAlert('action-alert', `Application ${action}d successfully.`, 'success');
       setTimeout(() => window.location.reload(), 1200);

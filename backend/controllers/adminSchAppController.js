@@ -49,19 +49,21 @@ async function getOne(req, res) {
 
 async function approve(req, res) {
   try {
-    const { notes } = req.body;
+    const { notes, amount } = req.body;
+    const awarded = (amount === undefined || amount === null || amount === '') ? null : Number(amount);
     const [[app]] = await db.query(
       'SELECT sa.*, s.title FROM scholarship_applications sa JOIN scholarships s ON sa.scholarship_id = s.id WHERE sa.id = ?',
       [req.params.id]
     );
     if (!app) return res.status(404).json({ success: false, message: 'Application not found' });
     await db.query(
-      'UPDATE scholarship_applications SET status = "approved", reviewed_by = ?, reviewer_notes = ?, reviewed_at = NOW() WHERE id = ?',
-      [req.user.id, notes || null, app.id]
+      'UPDATE scholarship_applications SET status = "approved", amount_awarded = ?, reviewed_by = ?, reviewer_notes = ?, reviewed_at = NOW() WHERE id = ?',
+      [awarded, req.user.id, notes || null, app.id]
     );
     const msg = notificationService.renderNotification('scholarship_approved', {
       scholarship_title: app.title,
       applicant_name: app.applicant_name,
+      amount: awarded ? Number(awarded).toLocaleString() : '',
     });
     await notificationService.createNotification({
       memberId: app.member_id,

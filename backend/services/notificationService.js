@@ -63,11 +63,11 @@ const NOTIFICATION_TEMPLATES = {
   },
   scholarship_approved: {
     label: 'Scholarship application approved', group: 'Scholarships',
-    description: 'Sent when a scholarship application is approved.',
-    variables: [{ name: 'scholarship_title', desc: 'scholarship title' }, { name: 'applicant_name', desc: "applicant's name" }],
+    description: 'Sent when a scholarship application is approved. {{amount}} is shown only if an award amount was entered.',
+    variables: [{ name: 'scholarship_title', desc: 'scholarship title' }, { name: 'applicant_name', desc: "applicant's name" }, { name: 'amount', desc: 'awarded amount, formatted (optional)' }],
     title: 'Scholarship Application Approved',
-    body: 'Your scholarship application for "{{scholarship_title}}" ({{applicant_name}}) has been approved.',
-    sms: 'Dear member, the scholarship application for {{applicant_name}} ({{scholarship_title}}) has been APPROVED. - KUPPET Migori',
+    body: 'Your scholarship application for "{{scholarship_title}}" ({{applicant_name}}) has been approved.{{#amount}} Awarded amount: KES {{amount}}.{{/amount}}',
+    sms: 'Dear member, the scholarship application for {{applicant_name}} ({{scholarship_title}}) has been APPROVED{{#amount}}. Award: KES {{amount}}{{/amount}}. - KUPPET Migori',
   },
   scholarship_rejected: {
     label: 'Scholarship application unsuccessful', group: 'Scholarships',

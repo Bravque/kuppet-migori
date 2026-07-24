@@ -7,15 +7,10 @@ const ctrl = require('../controllers/memberScholarshipController');
 
 const idParam = param('id').isInt({ min: 1 }).withMessage('Invalid id');
 // Runs after multer, so req.body is populated for the multipart application form.
-// Applicant identity is taken from the member's account (not the form); the two
-// required documents are uploaded under fixed field names below.
-const applyRules = [
-  body('institution').trim().notEmpty().withMessage('Institution is required').isLength({ max: 300 }),
-  body('course').trim().notEmpty().withMessage('Course is required').isLength({ max: 300 }),
-  body('year_of_study').trim().notEmpty().withMessage('Year of study is required').isLength({ max: 50 }),
-  body('academic_year').trim().notEmpty().withMessage('Academic year is required').isLength({ max: 50 }),
-  body('essay').trim().notEmpty().withMessage('Personal essay / statement is required').isLength({ max: 20000 }),
-];
+// Applicant identity is taken from the member's account (not the form). The
+// application only requires the two documents (uploaded under the fixed field
+// names below); the old study-detail text fields were removed 24 July 2026.
+const applyRules = [];
 
 const scholarshipUploads = upload.scholarshipDocs.fields([
   { name: 'letter_of_application', maxCount: 1 },
