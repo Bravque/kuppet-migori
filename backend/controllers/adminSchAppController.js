@@ -114,4 +114,40 @@ async function reject(req, res) {
   }
 }
 
-module.exports = { getAll, getOne, approve, reject };
+// Mark an approved scholarship application as paid (mirrors BBF markPaid).
+async function markPaid(req, res) {
+  try {
+    const { ref } = req.body;
+    const [[app]] = await db.query(
+      'SELECT sa.*, s.title FROM scholarship_applications sa JOIN scholarships s ON sa.scholarship_id = s.id WHERE sa.id = ?',
+      [req.params.id]
+    );
+    if (!app) return res.status(404).json({ success: false, message: 'Application not found' });
+    if (app.status !== 'approved') return res.status(400).json({ success: false, message: 'Only approved applications can be marked paid' });
+    await db.query(
+      'UPDATE scholarship_applications SET status = "paid", payment_reference = ?, payment_date = CURDATE() WHERE id = ?',
+      [ref || null, app.id]
+    );
+    const msg = notificationService.renderNotification('scholarship_paid', {
+      scholarship_title: app.title,
+      applicant_name: app.applicant_name,
+      amount: app.amount_awarded ? Number(app.amount_awarded).toLocaleString() : '',
+      reference: ref || '',
+    });
+    await notificationService.createNotification({
+      memberId: app.member_id,
+      type: 'scholarship',
+      title: msg.title,
+      body: msg.body,
+      referenceId: app.id,
+      adminId: req.user.id,
+      email: true,
+      smsMessage: msg.sms,
+    });
+    res.json({ success: true, message: 'Application marked as paid' });
+  } catch (err) {
+    res.status(500).json({ success: false, message: 'Failed to mark paid' });
+  }
+}
+
+module.exports = { getAll, getOne, approve, reject, markPaid };

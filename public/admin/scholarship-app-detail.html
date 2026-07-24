@@ -10,7 +10,7 @@
   <title>Scholarship Application — KUPPET Migori Admin</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
-  <link rel="stylesheet" href="/css/style.css?v=20260724h"><link rel="stylesheet" href="/css/portal.css?v=20260724h">
+  <link rel="stylesheet" href="/css/style.css?v=20260724i"><link rel="stylesheet" href="/css/portal.css?v=20260724i">
 </head>
 <body class="portal-body admin-scholarship-app-detail-page">
 <div class="portal-layout">
@@ -57,6 +57,18 @@
               </div>
             </div>
           </div>
+
+          <!-- Mark as paid (approved applications only) -->
+          <div class="data-card" id="paid-card" style="display:none">
+            <div class="data-card-header"><div class="data-card-title">Payment</div></div>
+            <div style="padding:1.25rem">
+              <div class="form-group">
+                <label>Payment reference <span style="color:var(--text-muted);font-weight:400">(optional)</span></label>
+                <input type="text" id="pay-ref" class="form-control" placeholder="e.g. MPESA / cheque / voucher reference">
+              </div>
+              <button class="btn btn-sm" style="background:#DBEAFE;color:#1E40AF" onclick="markPaid()"><i class="fas fa-money-bill-wave"></i> Mark as Paid</button>
+            </div>
+          </div>
         </div>
 
         <div class="data-card">
@@ -67,7 +79,7 @@
     </div>
   </main>
 </div>
-<script src="/admin/js/admin-api.js?v=20260724h"></script><script src="/admin/js/admin-portal.js?v=20260724h"></script>
+<script src="/admin/js/admin-api.js?v=20260724i"></script><script src="/admin/js/admin-portal.js?v=20260724i"></script>
 <script>
   document.getElementById('sidebar-placeholder').outerHTML = getSidebarHtml();
   document.getElementById('topbar-placeholder').outerHTML = getTopbarHtml('Scholarship Application');
@@ -146,6 +158,10 @@
       if (a.amount_awarded != null && a.amount_awarded !== '') {
         appRows.splice(3, 0, ['Amount Awarded', `KES ${Number(a.amount_awarded).toLocaleString()}`]);
       }
+      if (a.status === 'paid') {
+        appRows.push(['Payment Ref', escHtml(a.payment_reference || '—')]);
+        appRows.push(['Payment Date', formatDate(a.payment_date)]);
+      }
       const applicantRows = [
         ['Name', escHtml(a.applicant_name || a.full_name || '—')],
         ['Member No', escHtml(a.member_number || '—')],
@@ -176,6 +192,10 @@
       if (canDecide && (a.status === 'applied' || a.status === 'under_review')) {
         document.getElementById('review-card').style.display = '';
       }
+      // Approved applications can be marked paid.
+      if (canDecide && a.status === 'approved') {
+        document.getElementById('paid-card').style.display = '';
+      }
     } catch (err) {
       showAlert('action-alert', err.message);
     }
@@ -193,6 +213,18 @@
       if (action === 'approve') await adminApi.schApps.approve(id, notes, amount || null);
       if (action === 'reject')  await adminApi.schApps.reject(id, notes);
       showAlert('action-alert', `Application ${action}d successfully.`, 'success');
+      setTimeout(() => window.location.reload(), 1200);
+    } catch (err) {
+      showAlert('action-alert', err.message);
+    }
+  }
+
+  async function markPaid() {
+    const ref = document.getElementById('pay-ref').value.trim();
+    if (!confirm('Mark this scholarship award as paid? The member will be notified.')) return;
+    try {
+      await adminApi.schApps.markPaid(id, ref || null);
+      showAlert('action-alert', 'Application marked as paid.', 'success');
       setTimeout(() => window.location.reload(), 1200);
     } catch (err) {
       showAlert('action-alert', err.message);

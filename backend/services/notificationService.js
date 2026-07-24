@@ -69,6 +69,14 @@ const NOTIFICATION_TEMPLATES = {
     body: 'Your scholarship application for "{{scholarship_title}}" ({{applicant_name}}) has been approved.{{#amount}} Awarded amount: KES {{amount}}.{{/amount}}',
     sms: 'Dear member, the scholarship application for {{applicant_name}} ({{scholarship_title}}) has been APPROVED{{#amount}}. Award: KES {{amount}}{{/amount}}. - KUPPET Migori',
   },
+  scholarship_paid: {
+    label: 'Scholarship payment processed', group: 'Scholarships',
+    description: 'Sent when a scholarship award payment is processed. {{amount}}/{{reference}} shown only if entered.',
+    variables: [{ name: 'scholarship_title', desc: 'scholarship title' }, { name: 'applicant_name', desc: "applicant's name" }, { name: 'amount', desc: 'awarded amount, formatted (optional)' }, { name: 'reference', desc: 'payment reference (optional)' }],
+    title: 'Scholarship Payment Processed',
+    body: 'Your scholarship award for "{{scholarship_title}}" ({{applicant_name}}) has been paid{{#amount}}. Amount: KES {{amount}}{{/amount}}{{#reference}} (Ref: {{reference}}){{/reference}}.',
+    sms: 'Dear member, your scholarship award for {{scholarship_title}} has been PAID{{#amount}}. Amount: KES {{amount}}{{/amount}}{{#reference}}. Ref: {{reference}}{{/reference}}. - KUPPET Migori',
+  },
   scholarship_rejected: {
     label: 'Scholarship application unsuccessful', group: 'Scholarships',
     description: 'Sent when a scholarship application is rejected. {{reason}} is shown only if a reason was entered.',

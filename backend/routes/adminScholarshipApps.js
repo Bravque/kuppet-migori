@@ -14,7 +14,10 @@ const amount = body('amount').optional({ nullable: true, checkFalsy: true }).isF
 
 router.get('/', authenticate, authorizeAdmin, ctrl.getAll);
 router.get('/:id', authenticate, authorizeAdmin, idParam, handleValidation, ctrl.getOne);
+const ref = body('ref').optional({ nullable: true }).trim().isLength({ max: 100 });
+
 router.put('/:id/approve', authenticate, authorizeDecision, idParam, notes, amount, handleValidation, auditLog('schapp.approve'), ctrl.approve);
 router.put('/:id/reject', authenticate, authorizeDecision, idParam, notes, handleValidation, auditLog('schapp.reject'), ctrl.reject);
+router.put('/:id/paid', authenticate, authorizeDecision, idParam, ref, handleValidation, auditLog('schapp.paid'), ctrl.markPaid);
 
 module.exports = router;
