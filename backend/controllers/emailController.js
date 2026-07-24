@@ -154,4 +154,47 @@ async function getLogs(req, res) {
   }
 }
 
-module.exports = { send, bulk, sendToGroup, getLogs };
+// ── Email templates (reusable subject + body) ────────────────────────────────
+async function getTemplates(req, res) {
+  try {
+    const [rows] = await db.query('SELECT * FROM email_templates WHERE is_active = 1 ORDER BY category, name');
+    res.json({ success: true, data: rows });
+  } catch (err) {
+    res.status(500).json({ success: false, message: 'Failed to fetch templates' });
+  }
+}
+
+async function createTemplate(req, res) {
+  try {
+    const { name, subject, body, category } = req.body;
+    if (!name || !subject || !body) return res.status(400).json({ success: false, message: 'Name, subject and body required' });
+    const [result] = await db.query(
+      'INSERT INTO email_templates (name, subject, body, category, created_by) VALUES (?, ?, ?, ?, ?)',
+      [name, subject, body, category || 'general', req.user.id]
+    );
+    const [[row]] = await db.query('SELECT * FROM email_templates WHERE id = ?', [result.insertId]);
+    res.status(201).json({ success: true, data: row });
+  } catch (err) {
+    res.status(500).json({ success: false, message: 'Failed to create template' });
+  }
+}
+
+async function updateTemplate(req, res) {
+  try {
+    const { name, subject, body, category, is_active } = req.body;
+    const fields = [], params = [];
+    if (name !== undefined)      { fields.push('name = ?'); params.push(name); }
+    if (subject !== undefined)   { fields.push('subject = ?'); params.push(subject); }
+    if (body !== undefined)      { fields.push('body = ?'); params.push(body); }
+    if (category !== undefined)  { fields.push('category = ?'); params.push(category); }
+    if (is_active !== undefined) { fields.push('is_active = ?'); params.push(is_active ? 1 : 0); }
+    if (!fields.length) return res.status(400).json({ success: false, message: 'No fields to update' });
+    params.push(req.params.id);
+    await db.query(`UPDATE email_templates SET ${fields.join(', ')} WHERE id = ?`, params);
+    res.json({ success: true, message: 'Template updated' });
+  } catch (err) {
+    res.status(500).json({ success: false, message: 'Failed to update template' });
+  }
+}
+
+module.exports = { send, bulk, sendToGroup, getLogs, getTemplates, createTemplate, updateTemplate };

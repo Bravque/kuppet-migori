@@ -10,7 +10,7 @@
   <title>Send Email — KUPPET Migori Admin</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
-  <link rel="stylesheet" href="/css/style.css?v=20260724c"><link rel="stylesheet" href="/css/portal.css?v=20260724c">
+  <link rel="stylesheet" href="/css/style.css?v=20260724d"><link rel="stylesheet" href="/css/portal.css?v=20260724d">
 </head>
 <body class="portal-body admin-email-page">
 <div class="portal-layout">
@@ -30,6 +30,7 @@
       <div id="panel-individual" class="data-card" style="max-width:600px;padding:1.5rem">
         <div class="form-group"><label>Recipient Email</label><input type="email" id="ind-email" class="form-control" placeholder="member@example.com"></div>
         <div class="form-group"><label>Recipient Name (optional)</label><input type="text" id="ind-name" class="form-control" placeholder="Used in the greeting — defaults to 'Member'"></div>
+        <div class="form-group"><label>Template (optional)</label><select id="ind-template" class="form-control"><option value="">Select template…</option></select></div>
         <div class="form-group"><label>Subject</label><input type="text" id="ind-subject" class="form-control" maxlength="200"></div>
         <div class="form-group"><label>Message</label><textarea id="ind-message" class="form-control" rows="6" maxlength="5000"></textarea></div>
         <button class="btn btn-gold btn-sm" onclick="sendIndividual()"><i class="fas fa-paper-plane"></i> Send Email</button>
@@ -38,6 +39,7 @@
       <!-- Bulk -->
       <div id="panel-bulk" class="data-card" style="max-width:600px;padding:1.5rem;display:none">
         <div class="form-group"><label>Email Addresses (one per line)</label><textarea id="bulk-emails" class="form-control" rows="6" placeholder="member1@example.com&#10;member2@example.com&#10;..."></textarea></div>
+        <div class="form-group"><label>Template (optional)</label><select id="bulk-template" class="form-control"><option value="">Select template…</option></select></div>
         <div class="form-group"><label>Subject</label><input type="text" id="bulk-subject" class="form-control" maxlength="200"></div>
         <div class="form-group"><label>Message</label><textarea id="bulk-message" class="form-control" rows="6" maxlength="5000"></textarea></div>
         <button class="btn btn-gold btn-sm" onclick="sendBulk()"><i class="fas fa-layer-group"></i> Send Bulk Email</button>
@@ -54,6 +56,7 @@
         <div id="group-subcounty-row" style="display:none" class="form-group"><label>Sub-County</label>
           <select id="group-subcounty" class="form-control"><option>Rongo</option><option>Awendo</option><option>Uriri</option><option>Suna East</option><option>Suna West</option><option>Ntimaru</option><option>Kuria West</option><option>Kuria East</option><option>Mabera</option><option>Nyatike South</option><option>Nyatike West</option><option>Nyatike North</option></select>
         </div>
+        <div class="form-group"><label>Template (optional)</label><select id="group-template" class="form-control"><option value="">Select template…</option></select></div>
         <div class="form-group"><label>Subject</label><input type="text" id="group-subject" class="form-control" maxlength="200"></div>
         <div class="form-group"><label>Message</label><textarea id="group-message" class="form-control" rows="6" maxlength="5000"></textarea></div>
         <p style="font-size:0.8rem;color:var(--text-muted);margin:-0.25rem 0 0.75rem">Each member is greeted by name automatically. Only approved members with an email address receive the message.</p>
@@ -62,7 +65,7 @@
     </div>
   </main>
 </div>
-<script src="/admin/js/admin-api.js?v=20260724c"></script><script src="/admin/js/admin-portal.js?v=20260724c"></script>
+<script src="/admin/js/admin-api.js?v=20260724d"></script><script src="/admin/js/admin-portal.js?v=20260724d"></script>
 <script>
   document.getElementById('sidebar-placeholder').outerHTML = getSidebarHtml();
   document.getElementById('topbar-placeholder').outerHTML = getTopbarHtml('Send Email');
@@ -74,6 +77,23 @@
     document.getElementById('panel-'+t.dataset.mode).style.display='';
     hideAlert('email-alert');
   }));
+
+  // Load email templates and wire the picker in each panel: selecting one
+  // fills that panel's Subject + Message fields.
+  adminApi.email.getTemplates().then(res=>{
+    const tpls=res.data||[];
+    [['ind-template','ind-subject','ind-message'],
+     ['bulk-template','bulk-subject','bulk-message'],
+     ['group-template','group-subject','group-message']].forEach(([selId,subId,msgId])=>{
+      const sel=document.getElementById(selId); if(!sel) return;
+      tpls.forEach((t,i)=>sel.add(new Option(t.name,String(i))));
+      sel.addEventListener('change',()=>{
+        const t=tpls[sel.value]; if(!t) return;
+        document.getElementById(subId).value=t.subject||'';
+        document.getElementById(msgId).value=t.body||'';
+      });
+    });
+  }).catch(()=>{});
 
   async function sendIndividual(){
     const email=document.getElementById('ind-email').value.trim();

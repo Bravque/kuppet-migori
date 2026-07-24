@@ -353,6 +353,18 @@ CREATE TABLE IF NOT EXISTS sms_templates (
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
 
+CREATE TABLE IF NOT EXISTS email_templates (
+  id INT PRIMARY KEY AUTO_INCREMENT,
+  name VARCHAR(150) NOT NULL,
+  subject VARCHAR(200) NOT NULL,
+  body TEXT NOT NULL,
+  category ENUM('bbf','scholarship','general','system') DEFAULT 'general',
+  created_by INT NOT NULL,
+  is_active BOOLEAN DEFAULT TRUE,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+
 -- ============================================
 -- SECURITY & AUDIT TABLES
 -- ============================================

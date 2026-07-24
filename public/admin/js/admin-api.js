@@ -262,6 +262,9 @@ const adminApi = (() => {
       bulk: (d) => request('/admin/email/bulk', { method: 'POST', body: JSON.stringify(d) }),
       group: (d) => request('/admin/email/group', { method: 'POST', body: JSON.stringify(d) }),
       getLogs: (p = {}) => request('/admin/email/logs?' + new URLSearchParams(p)),
+      getTemplates: () => request('/admin/email/templates'),
+      createTemplate: (d) => request('/admin/email/templates', { method: 'POST', body: JSON.stringify(d) }),
+      updateTemplate: (id, d) => request(`/admin/email/templates/${id}`, { method: 'PUT', body: JSON.stringify(d) }),
     },
 
     analytics: {

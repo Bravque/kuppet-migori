@@ -8,7 +8,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 # First-time setup
 cp .env.example .env          # Fill in DB credentials + set JWT secrets
 npm install                   # Install all dependencies
-npm run init-db               # Create MySQL schema (29 tables) and seed data
+npm run init-db               # Create MySQL schema (30 tables) and seed data
 
 # Development
 npm run dev                   # Start with nodemon auto-reload (port 3000)
@@ -42,7 +42,7 @@ There are no tests or linting scripts configured yet.
 | Layer | Status |
 |-------|--------|
 | Express server + all REST API routes | ✓ Complete |
-| MySQL schema (29 tables) + seed data | ✓ Complete |
+| MySQL schema (30 tables) + seed data | ✓ Complete |
 | Homepage (`index.html`) | ✓ Complete |
 | About Us page | ✓ Complete |
 | Teachers Notice Board (news.html) | ✓ Complete |
@@ -133,6 +133,7 @@ Scripts #1–17 have been run on the live Hostinger DB and are folded into `init
 17. `backend/config/migration-scholarship-app-unique.sql` — de-dupes then adds `UNIQUE KEY uq_member_scholarship (member_id, scholarship_id)` on `scholarship_applications` (one application per member per scholarship). ✓ Applied 20 July 2026. Closes the read-then-write duplicate race in `memberScholarshipController.apply` (which now catches `ER_DUP_ENTRY` on that key → 409). Paired code fix (no migration needed): `nextSeq` in `memberAuthController.js` now runs its `UPDATE`+`SELECT LAST_INSERT_ID()` on a single pooled connection — the read-back was connection-scoped and could return another request's value under concurrency, producing duplicate/wrong `MBR`/`BBF`/`SAPP` numbers.
 18. `backend/config/migration-school-category-tertiary.sql` — adds `tertiary_school` to the `school_category` ENUM on **both** `members` and `bbf_claims` (third registration category). ✓ Applied 24 July 2026; folded into `init*.sql`.
 19. `backend/config/migration-bbf-retirement-doc.sql` — adds `letter_of_compulsory_retirement` to the `bbf_claim_documents.doc_type` ENUM (retirement claims require TSC Slip + Letter of Compulsory Retirement). ⚠ **Needs running on live** (created 24 July 2026); folded into `init*.sql`. Without it, uploading that doc on a retirement claim → the DB rejects the ENUM value.
+20. `backend/config/migration-email-templates.sql` — creates the `email_templates` table (reusable email subject + body; the email counterpart to `sms_templates`). ⚠ **Needs running on live** (created 24 July 2026); folded into `init*.sql`. Without it, the Email Templates page + Send Email template picker error on load (`getTemplates` SELECTs it). API at `GET/POST /api/admin/email/templates` + `PUT /api/admin/email/templates/:id` (all `authorizeAdmin`); page `email-templates.html`.
 
 **Task 3 — Real content (owner must supply)**
 Still placeholder in the codebase:
@@ -175,7 +176,7 @@ Code is done and correct (verified 21–22 June 2026):
 ### Backend layout
 - **`backend/server.js`** — Express entry; mounts all middleware, registers all routes, bootstraps upload directories at startup
 - **`backend/config/database.js`** — exports a single `mysql2/promise` connection pool
-- **`backend/config/init.sql`** — authoritative schema (29 tables) + seed data; re-runnable
+- **`backend/config/init.sql`** — authoritative schema (30 tables) + seed data; re-runnable
 - **`backend/controllers/*.js`** — async functions; parameterised queries; `{ success, data, message }` responses. **All list endpoints clamp pagination** via `backend/utils/pagination.js` (`clampLimit`/`clampOffset`) — never bind raw `parseInt(req.query.limit)` to `LIMIT` (NaN → 500; unbounded → full-table dump).
 - **`backend/utils/*.js`** — shared helpers: `pagination.js` (`clampLimit(v, def, max=100)` / `clampOffset(v)` — clamp `?limit`/`?offset` to `[1,100]` / `≥0`, NaN or missing → default), `sanitizeHtml.js` (rich-text XSS allowlist), `memberProfile.js` (required-profile-field list), `excel.js` (XLSX export)
 - **`backend/routes/*.js`** — thin routers with `express-validator` on mutation routes
@@ -218,7 +219,7 @@ Every `<body>` tag carries a class that gates the matching `init*` function in `
 Admin and member portal pages use `admin-*-page` / `member-*-page` classes gating functions in their respective portal JS files.
 
 ### Asset cache-busting (IMPORTANT)
-Public CSS/JS links carry a version query, e.g. `href="/css/style.css?v=20260622b"`. **When you edit `style.css`, `portal.css`, `main.js`, `api.js`, or any portal JS (`admin/js/admin-api.js`, `admin/js/admin-portal.js`, `member/js/member-api.js`, `member/js/member-portal.js`), bump the `?v=` string on every page** (sed across `public/**/*.html`) or returning visitors won't see the change. **HTML is served with `Cache-Control: no-cache` so it always revalidates** (ETag → 304 when unchanged) — set via `setHeaders` on the `express.static` mount in `server.js`, so a deploy (and the bumped `?v=` refs the HTML contains) is visible immediately. *(Before 17 July 2026 the whole static mount had `max-age=1d`, so browsers cached the homepage — incl. the ticker markup — for 24h and never re-fetched to see admin changes; that's fixed.)* Current token: `20260724c` (bumped 24 July 2026 for per-claim-type BBF required documents — retirement claims now require TSC Slip + Letter of Compulsory Retirement instead of the death-claim burial-permit/letter-from-principal set; touches `member-portal.js` doc slots, `memberBbfController.submitClaim`, DB ENUM via migration #19. `20260724b` was **Tertiary School** as a third `school_category` option — register + profile dropdowns, both validators, both `bbfSchoolCatLabel` helpers, DB ENUM via migration #18. `20260724a` earlier same day was the registration fix — `member/js/member-api.js` now surfaces the first express-validator error instead of a bare "Error 400" that hid which field failed, and `member/register.html` enforces the server password rule client-side (≥8 chars incl. a letter & a number) plus a show/hide password toggle on both password fields. `20260723c` was a same-week bump; `20260723b`/`20260723a` were the 23 July content-editor **WYSIWYG** upgrade — the News/Advocacy content field is a live contenteditable surface (bold/italic/lists/align/link via `document.execCommand`, no visible HTML tags) that mirrors into the hidden `textarea name="content"`; plus removable image/attachment, and `main.js` `renderArticleHtml()` reflows legacy plain-text articles into paragraphs on the public site. See `docs/SESSION-NOTES.md` for the per-token change history).
+Public CSS/JS links carry a version query, e.g. `href="/css/style.css?v=20260622b"`. **When you edit `style.css`, `portal.css`, `main.js`, `api.js`, or any portal JS (`admin/js/admin-api.js`, `admin/js/admin-portal.js`, `member/js/member-api.js`, `member/js/member-portal.js`), bump the `?v=` string on every page** (sed across `public/**/*.html`) or returning visitors won't see the change. **HTML is served with `Cache-Control: no-cache` so it always revalidates** (ETag → 304 when unchanged) — set via `setHeaders` on the `express.static` mount in `server.js`, so a deploy (and the bumped `?v=` refs the HTML contains) is visible immediately. *(Before 17 July 2026 the whole static mount had `max-age=1d`, so browsers cached the homepage — incl. the ticker markup — for 24h and never re-fetched to see admin changes; that's fixed.)* Current token: `20260724d` (bumped 24 July 2026 for the **Email Templates** feature — new `email-templates.html` admin page mirroring SMS Templates (name + subject + body + category), backend CRUD on `email_templates` (migration #20), sidebar item under Communications, and a template picker added to all three Send Email panels; touches `admin-portal.js` sidebar + `admin-api.js`. `20260724c` was per-claim-type BBF required documents — retirement claims now require TSC Slip + Letter of Compulsory Retirement instead of the death-claim burial-permit/letter-from-principal set; touches `member-portal.js` doc slots, `memberBbfController.submitClaim`, DB ENUM via migration #19. `20260724b` was **Tertiary School** as a third `school_category` option — register + profile dropdowns, both validators, both `bbfSchoolCatLabel` helpers, DB ENUM via migration #18. `20260724a` earlier same day was the registration fix — `member/js/member-api.js` now surfaces the first express-validator error instead of a bare "Error 400" that hid which field failed, and `member/register.html` enforces the server password rule client-side (≥8 chars incl. a letter & a number) plus a show/hide password toggle on both password fields. `20260723c` was a same-week bump; `20260723b`/`20260723a` were the 23 July content-editor **WYSIWYG** upgrade — the News/Advocacy content field is a live contenteditable surface (bold/italic/lists/align/link via `document.execCommand`, no visible HTML tags) that mirrors into the hidden `textarea name="content"`; plus removable image/attachment, and `main.js` `renderArticleHtml()` reflows legacy plain-text articles into paragraphs on the public site. See `docs/SESSION-NOTES.md` for the per-token change history).
 > ✓ Portal JS is now **versioned too** (as of 20 July 2026): the `<script src>` tags for `admin/js/admin-api.js`, `admin/js/admin-portal.js`, `member/js/member-api.js`, `member/js/member-portal.js` all carry `?v=` and are covered by the bump convention above — so a portal-JS change reaches returning admins/members on next visit without a manual hard-refresh. (Previously these were unversioned and relied on browser revalidation, which silently served stale JS — that's why the button loading-state change wasn't visible on already-open sessions until this was added.)
 
 ### Responsive header (public pages)
@@ -277,14 +278,14 @@ Rosters are imported as **active** members via an offline script → SQL for php
 
 > ⚠ **Rate-limit scoping (10 July 2026):** `contactLimiter` (5/hr) is now applied only to `POST /api/contact` (the public form) — previously `app.use('/api/contact', contactLimiter)` covered the whole path, so admins loading the Contact Inbox (`GET /api/contact`) a handful of times hit the limit and saw the public "Too many contact submissions" message. The admin reads/replies/status are no longer rate-limited by it.
 
-### Database schema (29 tables)
+### Database schema (30 tables)
 **Core (public site):** `users`, `leadership`, `news`, `events`, `resources`, `scholarships`, `advocacy`, `contacts`, `settings`, `announcements`
 
 > `announcements` — the homepage scrolling ticker items (`text`, optional `link`, `sort_order`, `is_active`). Public `GET /api/announcements` returns active items in order; admin CRUD at `POST/PUT/DELETE /api/announcements` (both roles) via the **Ticker Announcements** content page (`content-announcements.html`). The homepage renders them in `main.js` `loadAnnouncements()` (items duplicated for the -50% CSS marquee loop). **The admin page is the single source of truth — there is no hardcoded fallback:** `#ticker-bar` in `index.html` starts `display:none` with an empty `#ticker-content`; `loadAnnouncements()` reveals the bar only when there are active items and keeps it hidden on empty/failed fetch. (Removed the old hardcoded `<span class="ticker-item">` fallback on 17 July 2026 — combined with the HTML no-cache fix, it was showing stale placeholder items on the live homepage.)
 
 **Membership:** `members`, `bbf_claims`, `bbf_claim_documents`, `bbf_claim_timeline`, `scholarship_applications`, `scholarship_application_documents`, `notifications`
 
-**SMS & comms:** `sms_logs`, `sms_templates`, `email_logs` (email send history/progress, mirrors `sms_logs`; admin Email Logs page)
+**SMS & comms:** `sms_logs`, `sms_templates`, `email_logs` (email send history/progress, mirrors `sms_logs`; admin Email Logs page), `email_templates` (reusable email subject + body; admin **Email Templates** page mirrors SMS Templates and is picked in the Send Email composer to fill subject + message — migration #20, 24 July 2026)
 
 **Security & audit:** `audit_logs`, `login_history`, `admin_2fa`
 

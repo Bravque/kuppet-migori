@@ -20,11 +20,22 @@ const groupRules = [
   body('message').trim().notEmpty().withMessage('Message required').isLength({ max: 5000 }),
   body('sub_county').if(body('group').equals('sub_county')).trim().notEmpty().withMessage('sub_county required for a sub-county send').isLength({ max: 150 }),
 ];
+const TEMPLATE_CATEGORIES = ['bbf', 'scholarship', 'general', 'system'];
+const templateRules = [
+  body('name').optional().trim().notEmpty().withMessage('Name cannot be empty').isLength({ max: 150 }),
+  body('subject').optional().trim().notEmpty().withMessage('Subject cannot be empty').isLength({ max: 200 }),
+  body('body').optional().trim().notEmpty().withMessage('Body cannot be empty').isLength({ max: 5000 }),
+  body('category').optional().isIn(TEMPLATE_CATEGORIES).withMessage('Invalid template category'),
+  body('is_active').optional().isBoolean().withMessage('is_active must be a boolean'),
+];
 
 // All communication features are open to every admin role via authorizeAdmin.
 router.post('/send',  authenticate, authorizeAdmin, sendRules,  handleValidation, auditLog('email.send'),  ctrl.send);
 router.post('/bulk',  authenticate, authorizeAdmin, bulkRules,  handleValidation, auditLog('email.bulk'),  ctrl.bulk);
 router.post('/group', authenticate, authorizeAdmin, groupRules, handleValidation, auditLog('email.group'), ctrl.sendToGroup);
 router.get('/logs',   authenticate, authorizeAdmin, ctrl.getLogs);
+router.get('/templates',      authenticate, authorizeAdmin, ctrl.getTemplates);
+router.post('/templates',     authenticate, authorizeAdmin, templateRules, handleValidation, ctrl.createTemplate);
+router.put('/templates/:id',  authenticate, authorizeAdmin, templateRules, handleValidation, ctrl.updateTemplate);
 
 module.exports = router;

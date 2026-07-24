@@ -7,27 +7,27 @@
   <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16.png">
   <link rel="apple-touch-icon" href="/apple-touch-icon.png">
   <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>SMS Templates — KUPPET Migori Admin</title>
+  <title>Email Templates — KUPPET Migori Admin</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
   <link rel="stylesheet" href="/css/style.css?v=20260724d"><link rel="stylesheet" href="/css/portal.css?v=20260724d">
 </head>
-<body class="portal-body admin-sms-templates-page">
+<body class="portal-body admin-email-templates-page">
 <div class="portal-layout">
   <div id="sidebar-placeholder"></div>
   <main class="portal-main">
     <div id="topbar-placeholder"></div>
     <div class="portal-content">
       <div class="page-heading">
-        <div class="page-heading-text"><h1>SMS Templates</h1><p>Reusable message templates. Use placeholders like <code>{{member_name}}</code>.</p></div>
+        <div class="page-heading-text"><h1>Email Templates</h1><p>Reusable email subject + body. Pick one in the Send Email composer. Use placeholders like <code>{{member_name}}</code>.</p></div>
         <button class="btn btn-gold btn-sm" onclick="openNew()"><i class="fas fa-plus"></i> New Template</button>
       </div>
       <div id="alert" class="hidden" style="margin-bottom:1rem"></div>
       <div class="data-card">
         <div class="data-table-wrap">
           <table class="data-table">
-            <thead><tr><th>Name</th><th>Category</th><th>Message</th><th>Actions</th></tr></thead>
-            <tbody id="tbody"><tr><td colspan="4" class="portal-loading"><i class="fas fa-spinner fa-spin"></i> Loading…</td></tr></tbody>
+            <thead><tr><th>Name</th><th>Category</th><th>Subject</th><th>Body</th><th>Actions</th></tr></thead>
+            <tbody id="tbody"><tr><td colspan="5" class="portal-loading"><i class="fas fa-spinner fa-spin"></i> Loading…</td></tr></tbody>
           </table>
         </div>
       </div>
@@ -36,7 +36,7 @@
 </div>
 
 <div class="portal-modal-overlay" id="modal">
-  <div class="portal-modal" style="max-width:560px">
+  <div class="portal-modal" style="max-width:600px">
     <div class="portal-modal-header"><h3 id="modal-title">New Template</h3><button class="modal-close-btn"><i class="fas fa-times"></i></button></div>
     <div class="portal-modal-body">
       <div id="form-alert" class="hidden"></div>
@@ -52,9 +52,10 @@
             </select>
           </div>
         </div>
-        <div class="form-group"><label>Message Body <span class="required">*</span></label>
-          <textarea name="body" class="form-control" rows="5" required placeholder="Dear {{member_name}}, …"></textarea>
-          <div style="font-size:0.75rem;color:var(--text-muted);margin-top:0.25rem">Placeholders: {{member_name}}, {{member_number}}, {{claim_number}}, {{amount}}, {{reason}}</div>
+        <div class="form-group"><label>Subject <span class="required">*</span></label><input name="subject" class="form-control" maxlength="200" required placeholder="e.g. Your KUPPET membership update"></div>
+        <div class="form-group"><label>Body <span class="required">*</span></label>
+          <textarea name="body" class="form-control" rows="8" maxlength="5000" required placeholder="Dear {{member_name}}, …"></textarea>
+          <div style="font-size:0.75rem;color:var(--text-muted);margin-top:0.25rem">Placeholders: {{member_name}}, {{member_number}}, {{claim_number}}, {{amount}}, {{reason}}. Line breaks are preserved.</div>
         </div>
       </form>
     </div>
@@ -68,21 +69,22 @@
 <script src="/admin/js/admin-api.js?v=20260724d"></script><script src="/admin/js/admin-portal.js?v=20260724d"></script>
 <script>
   document.getElementById('sidebar-placeholder').outerHTML = getSidebarHtml();
-  document.getElementById('topbar-placeholder').outerHTML = getTopbarHtml('SMS Templates');
+  document.getElementById('topbar-placeholder').outerHTML = getTopbarHtml('Email Templates');
   const user = requireAdminAuth(); if(user) initSidebar(user);
   let editingId = null;
   const f = sel => document.getElementById('form').querySelector(`[name=${sel}]`);
 
   async function load(){
     const tb=document.getElementById('tbody');
-    tb.innerHTML='<tr><td colspan="4">'+renderLoading()+'</td></tr>';
+    tb.innerHTML='<tr><td colspan="5">'+renderLoading()+'</td></tr>';
     try{
-      const res=await adminApi.sms.getTemplates();
-      if(!res.data.length){tb.innerHTML='<tr><td colspan="4">'+renderEmpty('No templates yet')+'</td></tr>';return;}
+      const res=await adminApi.email.getTemplates();
+      if(!res.data.length){tb.innerHTML='<tr><td colspan="5">'+renderEmpty('No templates yet')+'</td></tr>';return;}
       tb.innerHTML=res.data.map(t=>`<tr>
         <td><strong>${escHtml(t.name)}</strong></td>
         <td>${statusBadge(t.category)}</td>
-        <td style="max-width:380px;color:var(--text-muted);font-size:0.82rem">${escHtml((t.body||'').slice(0,120))}${(t.body||'').length>120?'…':''}</td>
+        <td style="max-width:220px;font-size:0.82rem">${escHtml((t.subject||'').slice(0,80))}${(t.subject||'').length>80?'…':''}</td>
+        <td style="max-width:320px;color:var(--text-muted);font-size:0.82rem">${escHtml((t.body||'').slice(0,120))}${(t.body||'').length>120?'…':''}</td>
         <td>
           <button class="btn btn-outline btn-xs" onclick='edit(${JSON.stringify(t).replace(/'/g,"&#39;")})'><i class="fas fa-edit"></i></button>
           <button class="btn btn-xs" style="background:#FEE2E2;color:#991B1B" onclick="deactivate(${t.id})" title="Deactivate"><i class="fas fa-trash"></i></button>
@@ -101,23 +103,23 @@
   function edit(t){
     editingId=t.id;
     document.getElementById('form').reset();
-    f('name').value=t.name||''; f('category').value=t.category||'general'; f('body').value=t.body||'';
+    f('name').value=t.name||''; f('category').value=t.category||'general'; f('subject').value=t.subject||''; f('body').value=t.body||'';
     document.getElementById('modal-title').textContent='Edit Template';
     document.getElementById('form-alert').className='hidden';
     document.getElementById('modal').classList.add('open');
   }
   async function save(){
-    const data={ name:f('name').value.trim(), category:f('category').value, body:f('body').value.trim() };
-    if(!data.name||!data.body){showAlert('form-alert','Name and message body are required');return;}
+    const data={ name:f('name').value.trim(), category:f('category').value, subject:f('subject').value.trim(), body:f('body').value.trim() };
+    if(!data.name||!data.subject||!data.body){showAlert('form-alert','Name, subject and body are required');return;}
     try{
-      editingId ? await adminApi.sms.updateTemplate(editingId,data) : await adminApi.sms.createTemplate(data);
+      editingId ? await adminApi.email.updateTemplate(editingId,data) : await adminApi.email.createTemplate(data);
       document.getElementById('modal').classList.remove('open');
       load();
     }catch(err){showAlert('form-alert',err.message);}
   }
   async function deactivate(id){
     if(!confirm('Deactivate this template? It will no longer appear in the list.'))return;
-    try{await adminApi.sms.updateTemplate(id,{is_active:false});load();}catch(e){showAlert('alert',e.message);}
+    try{await adminApi.email.updateTemplate(id,{is_active:false});load();}catch(e){showAlert('alert',e.message);}
   }
   load();
 </script>
