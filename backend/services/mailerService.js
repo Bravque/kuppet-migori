@@ -90,7 +90,8 @@ const TRANSACTIONAL_TEMPLATES = {
   },
   password_reset: {
     label: 'Password reset',
-    description: 'Sent when a member requests a password reset. Must keep the {{reset_link}} placeholder.',
+    description: 'Sent when a member requests a password reset. Not editable (security-sensitive — depends on the one-time {{reset_link}}).',
+    editable: false,
     variables: [{ name: 'name', desc: "member's full name" }, { name: 'reset_link', desc: 'one-time reset URL (required)' }],
     subject: 'KUPPET Migori — Password Reset',
     body: `<p>Dear {{name}},</p>

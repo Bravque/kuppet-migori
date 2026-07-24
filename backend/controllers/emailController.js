@@ -206,7 +206,8 @@ async function getTransactionalTemplates(req, res) {
     const defs = mailerService.TRANSACTIONAL_TEMPLATES;
     const [rows] = await db.query('SELECT template_key, subject, body, updated_at FROM transactional_templates');
     const overrides = Object.fromEntries(rows.map(r => [r.template_key, r]));
-    const data = Object.entries(defs).map(([key, d]) => {
+    // Only expose editable templates (e.g. password_reset is locked).
+    const data = Object.entries(defs).filter(([, d]) => d.editable !== false).map(([key, d]) => {
       const ov = overrides[key];
       return {
         key,
@@ -230,14 +231,11 @@ async function getTransactionalTemplates(req, res) {
 async function updateTransactionalTemplate(req, res) {
   try {
     const { key } = req.params;
-    if (!mailerService.TRANSACTIONAL_TEMPLATES[key]) return res.status(404).json({ success: false, message: 'Unknown template' });
+    const def = mailerService.TRANSACTIONAL_TEMPLATES[key];
+    if (!def) return res.status(404).json({ success: false, message: 'Unknown template' });
+    if (def.editable === false) return res.status(403).json({ success: false, message: 'This template is not editable' });
     const { subject, body } = req.body;
     if (!subject || !body) return res.status(400).json({ success: false, message: 'Subject and body required' });
-    // Guard: password_reset must keep the {{reset_link}} placeholder or reset
-    // emails would go out with no way to reset.
-    if (key === 'password_reset' && !/\{\{\s*reset_link\s*\}\}/.test(body)) {
-      return res.status(400).json({ success: false, message: 'The password reset body must include the {{reset_link}} placeholder.' });
-    }
     await db.query(
       `INSERT INTO transactional_templates (template_key, subject, body, updated_by)
        VALUES (?, ?, ?, ?)
@@ -254,7 +252,9 @@ async function updateTransactionalTemplate(req, res) {
 async function resetTransactionalTemplate(req, res) {
   try {
     const { key } = req.params;
-    if (!mailerService.TRANSACTIONAL_TEMPLATES[key]) return res.status(404).json({ success: false, message: 'Unknown template' });
+    const def = mailerService.TRANSACTIONAL_TEMPLATES[key];
+    if (!def) return res.status(404).json({ success: false, message: 'Unknown template' });
+    if (def.editable === false) return res.status(403).json({ success: false, message: 'This template is not editable' });
     await db.query('DELETE FROM transactional_templates WHERE template_key = ?', [key]);
     await mailerService.loadTransactionalCache();
     res.json({ success: true, message: 'Reverted to default' });
