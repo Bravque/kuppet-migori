@@ -49,43 +49,118 @@ function esc(s) {
 // Preserve line breaks from a plain-text body inside HTML.
 const nl2br = (s) => esc(s).replace(/\r?\n/g, '<br>');
 
-// Pre-built templates
-const templates = {
-  memberRegistered: (name) => ({
+// ── Editable transactional templates ─────────────────────────────────────────
+// These automated emails have an admin-editable subject + body (HTML) with
+// {{placeholders}}. Defaults below are the source of truth; the admin Email
+// Templates → Automated Emails page stores per-key overrides in the
+// `transactional_templates` table. Overrides are cached in memory (single
+// Hostinger instance) and refreshed at startup + after each save.
+const TRANSACTIONAL_TEMPLATES = {
+  registration_received: {
+    label: 'Registration received',
+    description: 'Sent to an applicant right after they register.',
+    variables: [{ name: 'name', desc: "applicant's full name" }],
     subject: 'KUPPET Migori — Registration Received',
-    html: `<p>Dear ${esc(name)},</p>
+    body: `<p>Dear {{name}},</p>
 <p>Thank you for registering with KUPPET Migori. Your application is under review and you will be notified via SMS and email once it has been processed.</p>
 <p>If you have any questions, contact our office at <a href="mailto:info@kuppetmigori.co.ke">info@kuppetmigori.co.ke</a> or call +254 721 808 993.</p>
 <p>Regards,<br>Executive Secretary,<br>KUPPET Migori Branch</p>`,
-  }),
-
-  memberApproved: (name, memberNumber) => ({
+  },
+  membership_approved: {
+    label: 'Membership approved',
+    description: 'Sent when an admin approves a membership application.',
+    variables: [{ name: 'name', desc: "member's full name" }, { name: 'member_number', desc: 'assigned member number' }],
     subject: 'KUPPET Migori — Membership Approved',
-    html: `<p>Dear ${esc(name)},</p>
+    body: `<p>Dear {{name}},</p>
 <p>Congratulations! Your KUPPET Migori membership has been <strong>approved</strong>.</p>
-<p>Your member number is: <strong>${esc(memberNumber)}</strong></p>
+<p>Your member number is: <strong>{{member_number}}</strong></p>
 <p>You can now log in to your member portal at <a href="https://kuppetmigori.co.ke/member/login.html">kuppetmigori.co.ke/member/login.html</a></p>
 <p>Regards,<br>Executive Secretary,<br>KUPPET Migori Branch</p>`,
-  }),
-
-  memberRejected: (name, reason) => ({
+  },
+  membership_rejected: {
+    label: 'Membership rejected',
+    description: 'Sent when an admin rejects a membership application.',
+    variables: [{ name: 'name', desc: "applicant's full name" }, { name: 'reason', desc: 'rejection reason' }],
     subject: 'KUPPET Migori — Membership Application Update',
-    html: `<p>Dear ${esc(name)},</p>
+    body: `<p>Dear {{name}},</p>
 <p>We regret to inform you that your membership application could not be approved at this time.</p>
-<p><strong>Reason:</strong> ${esc(reason)}</p>
+<p><strong>Reason:</strong> {{reason}}</p>
 <p>Please visit our office or contact us at info@kuppetmigori.co.ke for further assistance.</p>
 <p>Regards,<br>Executive Secretary,<br>KUPPET Migori Branch</p>`,
-  }),
-
-  passwordReset: (name, link) => ({
+  },
+  password_reset: {
+    label: 'Password reset',
+    description: 'Sent when a member requests a password reset. Must keep the {{reset_link}} placeholder.',
+    variables: [{ name: 'name', desc: "member's full name" }, { name: 'reset_link', desc: 'one-time reset URL (required)' }],
     subject: 'KUPPET Migori — Password Reset',
-    html: `<p>Dear ${esc(name)},</p>
+    body: `<p>Dear {{name}},</p>
 <p>We received a request to reset the password for your KUPPET Migori member portal account. Click the button below to choose a new password. This link expires in <strong>30 minutes</strong> and can only be used once.</p>
-<p><a href="${esc(link)}" style="display:inline-block;background:#1B3A6E;color:#fff;padding:10px 18px;border-radius:6px;text-decoration:none">Reset my password</a></p>
-<p>If the button doesn't work, copy and paste this link into your browser:<br><a href="${esc(link)}">${esc(link)}</a></p>
+<p><a href="{{reset_link}}" style="display:inline-block;background:#1B3A6E;color:#fff;padding:10px 18px;border-radius:6px;text-decoration:none">Reset my password</a></p>
+<p>If the button doesn't work, copy and paste this link into your browser:<br><a href="{{reset_link}}">{{reset_link}}</a></p>
 <p>If you did not request this, you can safely ignore this email — your password will not change.</p>
 <p>Regards,<br>Executive Secretary,<br>KUPPET Migori Branch</p>`,
-  }),
+  },
+  contact_acknowledgement: {
+    label: 'Contact form acknowledgement',
+    description: 'Auto-reply sent to someone who submits the public contact form.',
+    variables: [{ name: 'name', desc: "enquirer's name" }, { name: 'category', desc: 'enquiry category' }],
+    subject: 'KUPPET Migori — We received your {{category}} enquiry',
+    body: `<p>Dear {{name}},</p>
+<p>Thank you for contacting KUPPET Migori. We have received your enquiry and will respond within 2 working days.</p>
+<p>For urgent matters, call +254 721 808 993.</p>
+<p>Regards,<br>Executive Secretary,<br>KUPPET Migori Branch</p>`,
+  },
+};
+
+// In-memory override cache: template_key → { subject, body }. Empty until
+// loadTransactionalCache() runs (and stays empty if the table doesn't exist yet).
+const transactionalCache = new Map();
+
+// Replace {{placeholders}}. Body values are HTML-escaped (user-supplied); subject
+// values are left raw (plain-text header). Unknown placeholders are left intact.
+function interpolate(tpl, vars, escapeValues) {
+  return String(tpl).replace(/\{\{\s*(\w+)\s*\}\}/g, (m, k) => {
+    if (!(k in vars)) return m;
+    const v = vars[k];
+    return escapeValues ? esc(v) : String(v == null ? '' : v);
+  });
+}
+
+// Build { subject, html } for a transactional key, applying any admin override.
+function renderTransactional(key, vars) {
+  const def = TRANSACTIONAL_TEMPLATES[key];
+  if (!def) throw new Error('Unknown transactional template: ' + key);
+  const ov = transactionalCache.get(key) || {};
+  const subjectTpl = ov.subject != null ? ov.subject : def.subject;
+  const bodyTpl = ov.body != null ? ov.body : def.body;
+  return {
+    subject: interpolate(subjectTpl, vars, false),
+    html: interpolate(bodyTpl, vars, true),
+  };
+}
+
+// Refresh the override cache from the DB. Safe before the table exists (keeps
+// defaults). Call at startup and after an admin saves/resets an override.
+async function loadTransactionalCache() {
+  try {
+    const db = require('../config/database');
+    const [rows] = await db.query('SELECT template_key, subject, body FROM transactional_templates');
+    transactionalCache.clear();
+    for (const r of rows) transactionalCache.set(r.template_key, { subject: r.subject, body: r.body });
+  } catch (err) {
+    console.warn('[mailer] transactional overrides not loaded (using defaults):', err.message);
+  }
+}
+
+// Pre-built templates
+const templates = {
+  memberRegistered: (name) => renderTransactional('registration_received', { name }),
+
+  memberApproved: (name, memberNumber) => renderTransactional('membership_approved', { name, member_number: memberNumber }),
+
+  memberRejected: (name, reason) => renderTransactional('membership_rejected', { name, reason }),
+
+  passwordReset: (name, link) => renderTransactional('password_reset', { name, reset_link: link }),
 
   // Generic member status notice — used for BBF claim & scholarship application
   // status changes (submitted, under review, approved, rejected, paid). The
@@ -109,13 +184,7 @@ const templates = {
 <p>Regards,<br>Executive Secretary,<br>KUPPET Migori Branch</p>`,
   }),
 
-  contactAutoReply: (name, category) => ({
-    subject: `KUPPET Migori — We received your ${esc(category)} enquiry`,
-    html: `<p>Dear ${esc(name)},</p>
-<p>Thank you for contacting KUPPET Migori. We have received your enquiry and will respond within 2 working days.</p>
-<p>For urgent matters, call +254 721 808 993.</p>
-<p>Regards,<br>Executive Secretary,<br>KUPPET Migori Branch</p>`,
-  }),
+  contactAutoReply: (name, category) => renderTransactional('contact_acknowledgement', { name, category }),
 
   // Sent to the branch inbox whenever a new enquiry is submitted. replyTo is set
   // to the enquirer's address so staff can reply straight from their mail client.
@@ -145,4 +214,4 @@ const templates = {
   }),
 };
 
-module.exports = { sendMail, templates };
+module.exports = { sendMail, templates, TRANSACTIONAL_TEMPLATES, loadTransactionalCache };

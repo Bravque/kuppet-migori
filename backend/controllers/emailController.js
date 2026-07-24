@@ -197,4 +197,74 @@ async function updateTemplate(req, res) {
   }
 }
 
-module.exports = { send, bulk, sendToGroup, getLogs, getTemplates, createTemplate, updateTemplate };
+// ── Transactional (automated) email templates ────────────────────────────────
+// Editable subject + body for the fixed set of system emails defined in
+// mailerService.TRANSACTIONAL_TEMPLATES. Overrides stored per key; absence =
+// default. Returns each template merged with any override + its default.
+async function getTransactionalTemplates(req, res) {
+  try {
+    const defs = mailerService.TRANSACTIONAL_TEMPLATES;
+    const [rows] = await db.query('SELECT template_key, subject, body, updated_at FROM transactional_templates');
+    const overrides = Object.fromEntries(rows.map(r => [r.template_key, r]));
+    const data = Object.entries(defs).map(([key, d]) => {
+      const ov = overrides[key];
+      return {
+        key,
+        label: d.label,
+        description: d.description,
+        variables: d.variables,
+        default_subject: d.subject,
+        default_body: d.body,
+        subject: ov ? ov.subject : d.subject,
+        body: ov ? ov.body : d.body,
+        is_customized: !!ov,
+        updated_at: ov ? ov.updated_at : null,
+      };
+    });
+    res.json({ success: true, data });
+  } catch (err) {
+    res.status(500).json({ success: false, message: 'Failed to fetch templates' });
+  }
+}
+
+async function updateTransactionalTemplate(req, res) {
+  try {
+    const { key } = req.params;
+    if (!mailerService.TRANSACTIONAL_TEMPLATES[key]) return res.status(404).json({ success: false, message: 'Unknown template' });
+    const { subject, body } = req.body;
+    if (!subject || !body) return res.status(400).json({ success: false, message: 'Subject and body required' });
+    // Guard: password_reset must keep the {{reset_link}} placeholder or reset
+    // emails would go out with no way to reset.
+    if (key === 'password_reset' && !/\{\{\s*reset_link\s*\}\}/.test(body)) {
+      return res.status(400).json({ success: false, message: 'The password reset body must include the {{reset_link}} placeholder.' });
+    }
+    await db.query(
+      `INSERT INTO transactional_templates (template_key, subject, body, updated_by)
+       VALUES (?, ?, ?, ?)
+       ON DUPLICATE KEY UPDATE subject = VALUES(subject), body = VALUES(body), updated_by = VALUES(updated_by)`,
+      [key, subject, body, req.user.id]
+    );
+    await mailerService.loadTransactionalCache();
+    res.json({ success: true, message: 'Template saved' });
+  } catch (err) {
+    res.status(500).json({ success: false, message: 'Failed to save template' });
+  }
+}
+
+async function resetTransactionalTemplate(req, res) {
+  try {
+    const { key } = req.params;
+    if (!mailerService.TRANSACTIONAL_TEMPLATES[key]) return res.status(404).json({ success: false, message: 'Unknown template' });
+    await db.query('DELETE FROM transactional_templates WHERE template_key = ?', [key]);
+    await mailerService.loadTransactionalCache();
+    res.json({ success: true, message: 'Reverted to default' });
+  } catch (err) {
+    res.status(500).json({ success: false, message: 'Failed to reset template' });
+  }
+}
+
+module.exports = {
+  send, bulk, sendToGroup, getLogs,
+  getTemplates, createTemplate, updateTemplate,
+  getTransactionalTemplates, updateTransactionalTemplate, resetTransactionalTemplate,
+};

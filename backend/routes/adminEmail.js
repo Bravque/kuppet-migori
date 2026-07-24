@@ -38,4 +38,13 @@ router.get('/templates',      authenticate, authorizeAdmin, ctrl.getTemplates);
 router.post('/templates',     authenticate, authorizeAdmin, templateRules, handleValidation, ctrl.createTemplate);
 router.put('/templates/:id',  authenticate, authorizeAdmin, templateRules, handleValidation, ctrl.updateTemplate);
 
+// Automated / transactional email templates (editable subject + body overrides).
+const transactionalRules = [
+  body('subject').trim().notEmpty().withMessage('Subject required').isLength({ max: 255 }),
+  body('body').trim().notEmpty().withMessage('Body required').isLength({ max: 20000 }),
+];
+router.get('/transactional',         authenticate, authorizeAdmin, ctrl.getTransactionalTemplates);
+router.put('/transactional/:key',    authenticate, authorizeAdmin, transactionalRules, handleValidation, auditLog('email.transactional_update'), ctrl.updateTransactionalTemplate);
+router.delete('/transactional/:key', authenticate, authorizeAdmin, auditLog('email.transactional_reset'), ctrl.resetTransactionalTemplate);
+
 module.exports = router;

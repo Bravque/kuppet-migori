@@ -370,6 +370,10 @@ process.on('uncaughtException', (err) => {
   sendErrorAlert('Uncaught Exception', detail);
 });
 
+// Load admin-editable transactional email overrides into the mailer cache
+// (safe before the table exists — falls back to hardcoded defaults).
+require('./services/mailerService').loadTransactionalCache();
+
 app.listen(PORT, () => {
   console.log(`\nKUPPET Migori Web Application`);
   console.log(`  Server:      http://localhost:${PORT}`);

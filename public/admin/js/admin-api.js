@@ -265,6 +265,9 @@ const adminApi = (() => {
       getTemplates: () => request('/admin/email/templates'),
       createTemplate: (d) => request('/admin/email/templates', { method: 'POST', body: JSON.stringify(d) }),
       updateTemplate: (id, d) => request(`/admin/email/templates/${id}`, { method: 'PUT', body: JSON.stringify(d) }),
+      getTransactional: () => request('/admin/email/transactional'),
+      updateTransactional: (key, d) => request(`/admin/email/transactional/${key}`, { method: 'PUT', body: JSON.stringify(d) }),
+      resetTransactional: (key) => request(`/admin/email/transactional/${key}`, { method: 'DELETE' }),
     },
 
     analytics: {

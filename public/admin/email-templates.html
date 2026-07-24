@@ -10,7 +10,7 @@
   <title>Email Templates — KUPPET Migori Admin</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
-  <link rel="stylesheet" href="/css/style.css?v=20260724d"><link rel="stylesheet" href="/css/portal.css?v=20260724d">
+  <link rel="stylesheet" href="/css/style.css?v=20260724e"><link rel="stylesheet" href="/css/portal.css?v=20260724e">
 </head>
 <body class="portal-body admin-email-templates-page">
 <div class="portal-layout">
@@ -19,22 +19,40 @@
     <div id="topbar-placeholder"></div>
     <div class="portal-content">
       <div class="page-heading">
-        <div class="page-heading-text"><h1>Email Templates</h1><p>Reusable email subject + body. Pick one in the Send Email composer. Use placeholders like <code>{{member_name}}</code>.</p></div>
-        <button class="btn btn-gold btn-sm" onclick="openNew()"><i class="fas fa-plus"></i> New Template</button>
+        <div class="page-heading-text"><h1>Email Templates</h1><p>Edit the automated system emails, and manage reusable templates for the Send Email composer.</p></div>
+      </div>
+
+      <div class="filter-tabs">
+        <button class="filter-tab active" data-mode="automated">Automated Emails</button>
+        <button class="filter-tab" data-mode="reusable">Reusable Templates</button>
       </div>
       <div id="alert" class="hidden" style="margin-bottom:1rem"></div>
-      <div class="data-card">
-        <div class="data-table-wrap">
-          <table class="data-table">
-            <thead><tr><th>Name</th><th>Category</th><th>Subject</th><th>Body</th><th>Actions</th></tr></thead>
-            <tbody id="tbody"><tr><td colspan="5" class="portal-loading"><i class="fas fa-spinner fa-spin"></i> Loading…</td></tr></tbody>
-          </table>
+
+      <!-- Automated (transactional) emails -->
+      <div id="panel-automated">
+        <p style="font-size:0.85rem;color:var(--text-muted);margin:0 0 1rem">These emails are sent automatically by the system. Editing one changes its wording everywhere it is sent. Placeholders like <code>{{name}}</code> are filled in at send time. You may use HTML.</p>
+        <div id="auto-list"><div class="data-card" style="padding:1.5rem">Loading…</div></div>
+      </div>
+
+      <!-- Reusable templates (Send Email composer) -->
+      <div id="panel-reusable" style="display:none">
+        <div style="display:flex;justify-content:flex-end;margin-bottom:1rem">
+          <button class="btn btn-gold btn-sm" onclick="openNew()"><i class="fas fa-plus"></i> New Template</button>
+        </div>
+        <div class="data-card">
+          <div class="data-table-wrap">
+            <table class="data-table">
+              <thead><tr><th>Name</th><th>Category</th><th>Subject</th><th>Body</th><th>Actions</th></tr></thead>
+              <tbody id="tbody"><tr><td colspan="5" class="portal-loading"><i class="fas fa-spinner fa-spin"></i> Loading…</td></tr></tbody>
+            </table>
+          </div>
         </div>
       </div>
     </div>
   </main>
 </div>
 
+<!-- Reusable template modal -->
 <div class="portal-modal-overlay" id="modal">
   <div class="portal-modal" style="max-width:600px">
     <div class="portal-modal-header"><h3 id="modal-title">New Template</h3><button class="modal-close-btn"><i class="fas fa-times"></i></button></div>
@@ -66,11 +84,98 @@
   </div>
 </div>
 
-<script src="/admin/js/admin-api.js?v=20260724d"></script><script src="/admin/js/admin-portal.js?v=20260724d"></script>
+<!-- Automated email edit modal -->
+<div class="portal-modal-overlay" id="auto-modal">
+  <div class="portal-modal" style="max-width:680px">
+    <div class="portal-modal-header"><h3 id="auto-modal-title">Edit Email</h3><button class="modal-close-btn"><i class="fas fa-times"></i></button></div>
+    <div class="portal-modal-body">
+      <div id="auto-form-alert" class="hidden"></div>
+      <p id="auto-modal-desc" style="font-size:0.85rem;color:var(--text-muted);margin-top:0"></p>
+      <div class="form-group"><label>Subject <span class="required">*</span></label><input id="auto-subject" class="form-control" maxlength="255" required></div>
+      <div class="form-group"><label>Body (HTML) <span class="required">*</span></label>
+        <textarea id="auto-body" class="form-control" rows="14" style="font-family:monospace;font-size:0.82rem" required></textarea>
+        <div id="auto-vars" style="font-size:0.75rem;color:var(--text-muted);margin-top:0.25rem"></div>
+      </div>
+    </div>
+    <div class="portal-modal-footer" style="justify-content:space-between">
+      <button id="auto-reset-btn" class="btn btn-outline btn-sm" style="color:var(--red)" onclick="resetAuto()"><i class="fas fa-rotate-left"></i> Reset to default</button>
+      <div style="display:flex;gap:0.5rem">
+        <button class="modal-close-btn btn btn-outline btn-sm">Cancel</button>
+        <button class="btn btn-gold btn-sm" onclick="submitOnce(this, saveAuto)"><i class="fas fa-save"></i> Save</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="/admin/js/admin-api.js?v=20260724e"></script><script src="/admin/js/admin-portal.js?v=20260724e"></script>
 <script>
   document.getElementById('sidebar-placeholder').outerHTML = getSidebarHtml();
   document.getElementById('topbar-placeholder').outerHTML = getTopbarHtml('Email Templates');
   const user = requireAdminAuth(); if(user) initSidebar(user);
+
+  // Tabs
+  document.querySelectorAll('.filter-tab').forEach(t=>t.addEventListener('click',()=>{
+    document.querySelectorAll('.filter-tab').forEach(x=>x.classList.remove('active'));t.classList.add('active');
+    document.getElementById('panel-automated').style.display = t.dataset.mode==='automated'?'':'none';
+    document.getElementById('panel-reusable').style.display = t.dataset.mode==='reusable'?'':'none';
+    hideAlert('alert');
+  }));
+
+  // ── Automated (transactional) emails ────────────────────────────────────────
+  let AUTO = [];       // loaded templates
+  let editingKey = null;
+  async function loadAuto(){
+    const box=document.getElementById('auto-list');
+    box.innerHTML='<div class="data-card" style="padding:1.5rem">'+renderLoading()+'</div>';
+    try{
+      const res=await adminApi.email.getTransactional();
+      AUTO=res.data||[];
+      if(!AUTO.length){box.innerHTML='<div class="data-card" style="padding:1.5rem">'+renderEmpty('No automated emails')+'</div>';return;}
+      box.innerHTML=AUTO.map((t,i)=>`
+        <div class="data-card" style="padding:1.25rem;margin-bottom:0.85rem;display:flex;justify-content:space-between;gap:1rem;align-items:flex-start;flex-wrap:wrap">
+          <div style="min-width:0;flex:1">
+            <div style="font-weight:700">${escHtml(t.label)} ${t.is_customized?'<span class="status-badge status-badge--under_review" style="font-size:0.68rem">Customized</span>':'<span style="font-size:0.72rem;color:var(--text-muted)">Default</span>'}</div>
+            <div style="font-size:0.8rem;color:var(--text-muted);margin:0.2rem 0 0.4rem">${escHtml(t.description)}</div>
+            <div style="font-size:0.82rem"><strong>Subject:</strong> ${escHtml(t.subject)}</div>
+          </div>
+          <button class="btn btn-outline btn-xs" onclick="editAuto(${i})"><i class="fas fa-edit"></i> Edit</button>
+        </div>`).join('');
+    }catch(err){showAlert('alert',err.message);}
+  }
+  function editAuto(i){
+    const t=AUTO[i]; if(!t) return;
+    editingKey=t.key;
+    document.getElementById('auto-modal-title').textContent='Edit — '+t.label;
+    document.getElementById('auto-modal-desc').textContent=t.description;
+    document.getElementById('auto-subject').value=t.subject||'';
+    document.getElementById('auto-body').value=t.body||'';
+    document.getElementById('auto-vars').innerHTML='Placeholders: '+(t.variables||[]).map(v=>`<code>{{${escHtml(v.name)}}}</code> — ${escHtml(v.desc)}`).join(', ');
+    const rb=document.getElementById('auto-reset-btn');
+    rb.style.display = t.is_customized ? '' : 'none';
+    document.getElementById('auto-form-alert').className='hidden';
+    document.getElementById('auto-modal').classList.add('open');
+  }
+  async function saveAuto(){
+    const subject=document.getElementById('auto-subject').value.trim();
+    const body=document.getElementById('auto-body').value.trim();
+    if(!subject||!body){showAlert('auto-form-alert','Subject and body are required');return;}
+    try{
+      await adminApi.email.updateTransactional(editingKey,{subject,body});
+      document.getElementById('auto-modal').classList.remove('open');
+      loadAuto();
+    }catch(err){showAlert('auto-form-alert',err.message);}
+  }
+  async function resetAuto(){
+    if(!editingKey) return;
+    if(!confirm('Reset this email to its default wording? Your customizations will be lost.'))return;
+    try{
+      await adminApi.email.resetTransactional(editingKey);
+      document.getElementById('auto-modal').classList.remove('open');
+      loadAuto();
+    }catch(err){showAlert('auto-form-alert',err.message);}
+  }
+
+  // ── Reusable templates (Send Email composer) ────────────────────────────────
   let editingId = null;
   const f = sel => document.getElementById('form').querySelector(`[name=${sel}]`);
 
@@ -121,6 +226,8 @@
     if(!confirm('Deactivate this template? It will no longer appear in the list.'))return;
     try{await adminApi.email.updateTemplate(id,{is_active:false});load();}catch(e){showAlert('alert',e.message);}
   }
+
+  loadAuto();
   load();
 </script>
 </body>

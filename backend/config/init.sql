@@ -365,6 +365,15 @@ CREATE TABLE IF NOT EXISTS email_templates (
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
 
+CREATE TABLE IF NOT EXISTS transactional_templates (
+  id INT PRIMARY KEY AUTO_INCREMENT,
+  template_key VARCHAR(64) NOT NULL UNIQUE,
+  subject VARCHAR(255) NOT NULL,
+  body TEXT NOT NULL,
+  updated_by INT,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+
 -- ============================================
 -- SECURITY & AUDIT TABLES
 -- ============================================
