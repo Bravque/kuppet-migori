@@ -49,6 +49,20 @@ function esc(s) {
 // Preserve line breaks from a plain-text body inside HTML.
 const nl2br = (s) => esc(s).replace(/\r?\n/g, '<br>');
 
+// Convert a plain-text body to safe HTML: blank line = new paragraph, single
+// newline = <br>, and bare URLs / email addresses become clickable links. Used
+// for the plain-text editable email templates so non-technical admins can just
+// type — no HTML — and still get the polished paragraph layout.
+function plainToHtml(text) {
+  const linked = esc(text)
+    .replace(/(https?:\/\/[^\s<]+)/g, '<a href="$1">$1</a>')
+    .replace(/([A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,})/g, '<a href="mailto:$1">$1</a>');
+  return linked
+    .split(/\r?\n[ \t]*\r?\n/)
+    .map((p) => '<p>' + p.replace(/\r?\n/g, '<br>') + '</p>')
+    .join('\n');
+}
+
 // ── Editable transactional templates ─────────────────────────────────────────
 // These automated emails have an admin-editable subject + body (HTML) with
 // {{placeholders}}. Defaults below are the source of truth; the admin Email
@@ -59,34 +73,54 @@ const TRANSACTIONAL_TEMPLATES = {
   registration_received: {
     label: 'Registration received',
     description: 'Sent to an applicant right after they register.',
+    plainText: true,
     variables: [{ name: 'name', desc: "applicant's full name" }],
     subject: 'KUPPET Migori — Registration Received',
-    body: `<p>Dear {{name}},</p>
-<p>Thank you for registering with KUPPET Migori. Your application is under review and you will be notified via SMS and email once it has been processed.</p>
-<p>If you have any questions, contact our office at <a href="mailto:info@kuppetmigori.co.ke">info@kuppetmigori.co.ke</a> or call +254 721 808 993.</p>
-<p>Regards,<br>Executive Secretary,<br>KUPPET Migori Branch</p>`,
+    body: `Dear {{name}},
+
+Thank you for registering with KUPPET Migori. Your application is under review and you will be notified via SMS and email once it has been processed.
+
+If you have any questions, contact our office at info@kuppetmigori.co.ke or call +254 721 808 993.
+
+Regards,
+Executive Secretary,
+KUPPET Migori Branch`,
   },
   membership_approved: {
     label: 'Membership approved',
     description: 'Sent when an admin approves a membership application.',
+    plainText: true,
     variables: [{ name: 'name', desc: "member's full name" }, { name: 'member_number', desc: 'assigned member number' }],
     subject: 'KUPPET Migori — Membership Approved',
-    body: `<p>Dear {{name}},</p>
-<p>Congratulations! Your KUPPET Migori membership has been <strong>approved</strong>.</p>
-<p>Your member number is: <strong>{{member_number}}</strong></p>
-<p>You can now log in to your member portal at <a href="https://kuppetmigori.co.ke/member/login.html">kuppetmigori.co.ke/member/login.html</a></p>
-<p>Regards,<br>Executive Secretary,<br>KUPPET Migori Branch</p>`,
+    body: `Dear {{name}},
+
+Congratulations! Your KUPPET Migori membership has been approved.
+
+Your member number is: {{member_number}}
+
+You can now log in to your member portal at https://kuppetmigori.co.ke/member/login.html
+
+Regards,
+Executive Secretary,
+KUPPET Migori Branch`,
   },
   membership_rejected: {
     label: 'Membership rejected',
     description: 'Sent when an admin rejects a membership application.',
+    plainText: true,
     variables: [{ name: 'name', desc: "applicant's full name" }, { name: 'reason', desc: 'rejection reason' }],
     subject: 'KUPPET Migori — Membership Application Update',
-    body: `<p>Dear {{name}},</p>
-<p>We regret to inform you that your membership application could not be approved at this time.</p>
-<p><strong>Reason:</strong> {{reason}}</p>
-<p>Please visit our office or contact us at info@kuppetmigori.co.ke for further assistance.</p>
-<p>Regards,<br>Executive Secretary,<br>KUPPET Migori Branch</p>`,
+    body: `Dear {{name}},
+
+We regret to inform you that your membership application could not be approved at this time.
+
+Reason: {{reason}}
+
+Please visit our office or contact us at info@kuppetmigori.co.ke for further assistance.
+
+Regards,
+Executive Secretary,
+KUPPET Migori Branch`,
   },
   password_reset: {
     label: 'Password reset',
@@ -104,12 +138,18 @@ const TRANSACTIONAL_TEMPLATES = {
   contact_acknowledgement: {
     label: 'Contact form acknowledgement',
     description: 'Auto-reply sent to someone who submits the public contact form.',
+    plainText: true,
     variables: [{ name: 'name', desc: "enquirer's name" }, { name: 'category', desc: 'enquiry category' }],
     subject: 'KUPPET Migori — We received your {{category}} enquiry',
-    body: `<p>Dear {{name}},</p>
-<p>Thank you for contacting KUPPET Migori. We have received your enquiry and will respond within 2 working days.</p>
-<p>For urgent matters, call +254 721 808 993.</p>
-<p>Regards,<br>Executive Secretary,<br>KUPPET Migori Branch</p>`,
+    body: `Dear {{name}},
+
+Thank you for contacting KUPPET Migori. We have received your enquiry and will respond within 2 working days.
+
+For urgent matters, call +254 721 808 993.
+
+Regards,
+Executive Secretary,
+KUPPET Migori Branch`,
   },
 };
 
@@ -134,9 +174,18 @@ function renderTransactional(key, vars) {
   const ov = transactionalCache.get(key) || {};
   const subjectTpl = ov.subject != null ? ov.subject : def.subject;
   const bodyTpl = ov.body != null ? ov.body : def.body;
+  // Treat as plain text only when the template is plainText AND the body isn't
+  // already authored HTML (guards any legacy HTML override saved before the
+  // plain-text switch — those keep rendering as HTML).
+  const looksLikeHtml = /<(p|br|div|a|strong|em|ul|ol|li|table|h[1-6])\b/i.test(bodyTpl);
   return {
     subject: interpolate(subjectTpl, vars, false),
-    html: interpolate(bodyTpl, vars, true),
+    // Plain-text: substitute placeholders raw, then convert the whole body
+    // (escaping + paragraphs + autolinks) to HTML. HTML: substitute with values
+    // HTML-escaped and keep the authored HTML (e.g. password_reset's button).
+    html: (def.plainText && !looksLikeHtml)
+      ? plainToHtml(interpolate(bodyTpl, vars, false))
+      : interpolate(bodyTpl, vars, true),
   };
 }
 
