@@ -17,12 +17,50 @@ function getTransporter() {
   return transporter;
 }
 
+// Absolute logo URL (email clients can't load relative paths).
+const BRAND_LOGO = (process.env.APP_URL || 'https://kuppetmigori.co.ke').replace(/\/$/, '') + '/images/kuppetlogo.png';
+
+// Wrap a body-HTML fragment in the branded KUPPET Migori email shell (logo
+// header, brand band, gold accent, footer). Table-based + inline styles for
+// email-client compatibility. Applied to every outgoing email in sendMail().
+function brandEmail(bodyHtml) {
+  return `<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="margin:0;padding:0;background:#f4f6fb">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f4f6fb">
+    <tr><td align="center" style="padding:24px 12px">
+      <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="width:600px;max-width:100%;background:#ffffff;border-radius:10px;overflow:hidden;border:1px solid #e6eaf2;font-family:Arial,Helvetica,sans-serif">
+        <tr><td style="background:#ffffff;padding:22px 20px 14px;text-align:center">
+          <img src="${BRAND_LOGO}" alt="KUPPET Migori" width="72" style="display:block;margin:0 auto;border:0;outline:none;text-decoration:none">
+        </td></tr>
+        <tr><td style="background:#1B3A6E;padding:12px 20px;text-align:center">
+          <div style="color:#ffffff;font-size:15px;font-weight:700;letter-spacing:.4px">KUPPET MIGORI BRANCH</div>
+          <div style="color:#b8cbe8;font-size:11px;margin-top:2px">Kenya Union of Post Primary Education Teachers</div>
+        </td></tr>
+        <tr><td style="height:3px;background:#C8962A;font-size:0;line-height:0">&nbsp;</td></tr>
+        <tr><td style="padding:26px 30px;color:#1A202C;font-size:15px;line-height:1.65">${bodyHtml}</td></tr>
+        <tr><td style="background:#f7f9fc;border-top:1px solid #e6eaf2;padding:18px 30px;text-align:center;color:#718096;font-size:12px;line-height:1.7">
+          <strong style="color:#4a5568">KUPPET Migori Branch</strong><br>
+          Cosade Building, 3rd Floor, Front Wing, P.O. Box 842-40400, Migori Town<br>
+          <a href="tel:+254721808993" style="color:#1B3A6E;text-decoration:none">+254 721 808 993</a> &nbsp;&middot;&nbsp;
+          <a href="mailto:info@kuppetmigori.co.ke" style="color:#1B3A6E;text-decoration:none">info@kuppetmigori.co.ke</a><br>
+          <a href="https://whatsapp.com/channel/0029VbCDNtx23n3d4LFqbe15" style="color:#1a7340;text-decoration:none">Join our WhatsApp channel</a>
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>
+</body></html>`;
+}
+
 async function sendMail({ to, subject, html, text, replyTo, from }) {
   if (!process.env.SMTP_HOST || !process.env.SMTP_USER || !process.env.SMTP_PASS) {
     console.warn('[mailer] SMTP not configured — skipping email to', to);
     return { skipped: true };
   }
   try {
+    // Plain-text alt is derived from the body fragment (before the branded
+    // wrapper) so it stays clean; the HTML gets the full branded shell.
+    const plainText = text || html.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
     const info = await getTransporter().sendMail({
       // Sends via the authenticated SMTP account; `from` may override the shown
       // sender (e.g. advocacy@ for advocacy replies) on the same mail server.
@@ -30,8 +68,8 @@ async function sendMail({ to, subject, html, text, replyTo, from }) {
       to,
       replyTo,
       subject,
-      html,
-      text: text || html.replace(/<[^>]+>/g, ''),
+      html: brandEmail(html),
+      text: plainText,
     });
     return { success: true, messageId: info.messageId };
   } catch (err) {
