@@ -7,7 +7,6 @@ const ctrl = require('../controllers/notificationTemplateController');
 const rules = [
   body('title').trim().notEmpty().withMessage('Title required').isLength({ max: 255 }),
   body('body').trim().notEmpty().withMessage('Message required').isLength({ max: 5000 }),
-  body('sms').trim().notEmpty().withMessage('SMS text required').isLength({ max: 1000 }),
 ];
 
 // Application-notification templates (BBF + scholarship status). All admin roles.

@@ -99,7 +99,9 @@ function renderNotification(eventKey, vars = {}) {
   return {
     title: renderTemplate(ov.title != null ? ov.title : def.title, vars),
     body: renderTemplate(ov.body != null ? ov.body : def.body, vars),
-    sms: renderTemplate(ov.sms != null ? ov.sms : def.sms, vars),
+    // SMS wording is not editable from the (email-only) admin UI — always the
+    // code default, so the text-message channel stays under code control.
+    sms: renderTemplate(def.sms, vars),
   };
 }
 

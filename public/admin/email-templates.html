@@ -10,7 +10,7 @@
   <title>Email Templates — KUPPET Migori Admin</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
-  <link rel="stylesheet" href="/css/style.css?v=20260724f"><link rel="stylesheet" href="/css/portal.css?v=20260724f">
+  <link rel="stylesheet" href="/css/style.css?v=20260724g"><link rel="stylesheet" href="/css/portal.css?v=20260724g">
 </head>
 <body class="portal-body admin-email-templates-page">
 <div class="portal-layout">
@@ -37,7 +37,7 @@
 
       <!-- Application notifications (BBF + scholarship status) -->
       <div id="panel-notifications" style="display:none">
-        <p style="font-size:0.85rem;color:var(--text-muted);margin:0 0 1rem">Messages members receive when a <strong>BBF claim</strong> or <strong>scholarship application</strong> changes status. Editing one changes the <strong>email</strong>, the <strong>in-app notification</strong> and the <strong>SMS</strong> together. Placeholders like <code>{{claim_number}}</code> fill in automatically; use <code>{{#reason}}…{{/reason}}</code> to show text only when a value is present.</p>
+        <p style="font-size:0.85rem;color:var(--text-muted);margin:0 0 1rem">The <strong>email</strong> (and matching in-app notification) members receive when a <strong>BBF claim</strong> or <strong>scholarship application</strong> changes status. Placeholders like <code>{{claim_number}}</code> fill in automatically; use <code>{{#reason}}…{{/reason}}</code> to show text only when a value is present.</p>
         <div id="notif-list"><div class="data-card" style="padding:1.5rem">Loading…</div></div>
       </div>
 
@@ -123,10 +123,7 @@
       <p id="notif-modal-desc" style="font-size:0.85rem;color:var(--text-muted);margin-top:0"></p>
       <div class="form-group"><label>Title <span class="required">*</span></label><input id="notif-title" class="form-control" maxlength="255" required></div>
       <div class="form-group"><label>Message (email &amp; in-app) <span class="required">*</span></label>
-        <textarea id="notif-body" class="form-control" rows="5" required></textarea>
-      </div>
-      <div class="form-group"><label>SMS text <span class="required">*</span></label>
-        <textarea id="notif-sms" class="form-control" rows="3" maxlength="1000" required></textarea>
+        <textarea id="notif-body" class="form-control" rows="6" required></textarea>
       </div>
       <div id="notif-vars" style="font-size:0.75rem;color:var(--text-muted)"></div>
     </div>
@@ -140,7 +137,7 @@
   </div>
 </div>
 
-<script src="/admin/js/admin-api.js?v=20260724f"></script><script src="/admin/js/admin-portal.js?v=20260724f"></script>
+<script src="/admin/js/admin-api.js?v=20260724g"></script><script src="/admin/js/admin-portal.js?v=20260724g"></script>
 <script>
   document.getElementById('sidebar-placeholder').outerHTML = getSidebarHtml();
   document.getElementById('topbar-placeholder').outerHTML = getTopbarHtml('Email Templates');
@@ -188,7 +185,6 @@
     document.getElementById('notif-modal-desc').textContent=t.description;
     document.getElementById('notif-title').value=t.title||'';
     document.getElementById('notif-body').value=t.body||'';
-    document.getElementById('notif-sms').value=t.sms||'';
     document.getElementById('notif-vars').innerHTML='Placeholders: '+(t.variables||[]).map(v=>`<code>{{${escHtml(v.name)}}}</code> — ${escHtml(v.desc)}`).join(', ');
     document.getElementById('notif-reset-btn').style.display = t.is_customized ? '' : 'none';
     document.getElementById('notif-form-alert').className='hidden';
@@ -197,10 +193,9 @@
   async function saveNotif(){
     const title=document.getElementById('notif-title').value.trim();
     const body=document.getElementById('notif-body').value.trim();
-    const sms=document.getElementById('notif-sms').value.trim();
-    if(!title||!body||!sms){showAlert('notif-form-alert','Title, message and SMS text are required');return;}
+    if(!title||!body){showAlert('notif-form-alert','Title and message are required');return;}
     try{
-      await adminApi.email.updateNotification(editingNotifKey,{title,body,sms});
+      await adminApi.email.updateNotification(editingNotifKey,{title,body});
       document.getElementById('notif-modal').classList.remove('open');
       loadNotif();
     }catch(err){showAlert('notif-form-alert',err.message);}

@@ -35,14 +35,17 @@ async function list(req, res) {
 async function update(req, res) {
   try {
     const { key } = req.params;
-    if (!notificationService.NOTIFICATION_TEMPLATES[key]) return res.status(404).json({ success: false, message: 'Unknown template' });
-    const { title, body, sms } = req.body;
-    if (!title || !body || !sms) return res.status(400).json({ success: false, message: 'Title, message and SMS text are required' });
+    const def = notificationService.NOTIFICATION_TEMPLATES[key];
+    if (!def) return res.status(404).json({ success: false, message: 'Unknown template' });
+    const { title, body } = req.body;
+    if (!title || !body) return res.status(400).json({ success: false, message: 'Title and message are required' });
+    // SMS is not editable here (email-only page); store the code default so the
+    // NOT NULL column stays populated. renderNotification always uses the default.
     await db.query(
       `INSERT INTO notification_templates (template_key, title, body, sms, updated_by)
        VALUES (?, ?, ?, ?, ?)
        ON DUPLICATE KEY UPDATE title = VALUES(title), body = VALUES(body), sms = VALUES(sms), updated_by = VALUES(updated_by)`,
-      [key, title, body, sms, req.user.id]
+      [key, title, body, def.sms, req.user.id]
     );
     await notificationService.loadNotificationCache();
     res.json({ success: true, message: 'Template saved' });
