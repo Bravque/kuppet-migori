@@ -135,7 +135,7 @@ Scripts #1–17 have been run on the live Hostinger DB and are folded into `init
 19. `backend/config/migration-bbf-retirement-doc.sql` — adds `letter_of_compulsory_retirement` to the `bbf_claim_documents.doc_type` ENUM (retirement claims require TSC Slip + Letter of Compulsory Retirement). ✓ Applied 24 July 2026; folded into `init*.sql`.
 20. `backend/config/migration-email-templates.sql` — creates the `email_templates` table (reusable email subject + body; the email counterpart to `sms_templates`). ✓ Applied 24 July 2026; folded into `init*.sql`. API at `GET/POST /api/admin/email/templates` + `PUT /api/admin/email/templates/:id` (all `authorizeAdmin`); page `email-templates.html`.
 21. `backend/config/migration-transactional-templates.sql` — creates the `transactional_templates` table (admin overrides for the automated system emails). ✓ Applied 24 July 2026; folded into `init*.sql`. See the mailer section.
-22. `backend/config/migration-notification-templates.sql` — creates the `notification_templates` table (admin overrides for the BBF/scholarship status notifications — title + body + sms). ⚠ **Needs running on live** (created 24 July 2026); folded into `init*.sql`. Safe to run late — `loadNotificationCache()` falls back to hardcoded defaults until it exists; needed before the Email Templates → Application Notifications tab can save an edit. See the notifications section.
+22. `backend/config/migration-notification-templates.sql` — creates the `notification_templates` table (admin overrides for the BBF/scholarship status notifications — title + body + sms). ✓ Applied 24 July 2026; folded into `init*.sql`. See the notifications section.
 
 **Task 3 — Real content (owner must supply)**
 Still placeholder in the codebase:
