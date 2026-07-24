@@ -73,15 +73,16 @@ async function startReview(req, res) {
     }
     await db.query('UPDATE bbf_claims SET status = "under_review", assigned_to = ?, reviewed_at = NOW() WHERE id = ?', [req.user.id, claim.id]);
     await addTimeline(claim.id, claim.status, 'under_review', req.body.notes, req.user.id);
+    const msg = notificationService.renderNotification('bbf_under_review', { claim_number: claim.claim_number });
     await notificationService.createNotification({
       memberId: claim.member_id,
       type: 'bbf_claim',
-      title: 'BBF Claim Under Review',
-      body: `Your BBF claim ${claim.claim_number} is now under review by the welfare desk. You will be notified once a decision is made.`,
+      title: msg.title,
+      body: msg.body,
       referenceId: claim.id,
       adminId: req.user.id,
       email: true,
-      smsMessage: `Dear member, your BBF claim ${claim.claim_number} is now UNDER REVIEW. - KUPPET Migori`,
+      smsMessage: msg.sms,
     });
     res.json({ success: true, message: 'Claim marked under review' });
   } catch (err) {
@@ -102,15 +103,19 @@ async function approveClaim(req, res) {
       [amount || null, req.user.id, notes || null, claim.id]
     );
     await addTimeline(claim.id, claim.status, 'approved', notes, req.user.id);
+    const msg = notificationService.renderNotification('bbf_approved', {
+      claim_number: claim.claim_number,
+      amount: amount ? Number(amount).toLocaleString() : '',
+    });
     await notificationService.createNotification({
       memberId: claim.member_id,
       type: 'bbf_claim',
-      title: 'BBF Claim Approved',
-      body: `Your BBF claim ${claim.claim_number} has been approved${amount ? `. Approved amount: KES ${Number(amount).toLocaleString()}` : ''}.`,
+      title: msg.title,
+      body: msg.body,
       referenceId: claim.id,
       adminId: req.user.id,
       email: true,
-      smsMessage: `Dear member, your BBF claim ${claim.claim_number} has been APPROVED${amount ? `. Amount: KES ${Number(amount).toLocaleString()}` : ''}. Payment will be processed shortly. - KUPPET Migori`,
+      smsMessage: msg.sms,
     });
     res.json({ success: true, message: 'Claim approved' });
   } catch (err) {
@@ -128,15 +133,19 @@ async function rejectClaim(req, res) {
       [req.user.id, notes || null, claim.id]
     );
     await addTimeline(claim.id, claim.status, 'rejected', notes, req.user.id);
+    const msg = notificationService.renderNotification('bbf_rejected', {
+      claim_number: claim.claim_number,
+      reason: notes || '',
+    });
     await notificationService.createNotification({
       memberId: claim.member_id,
       type: 'bbf_claim',
-      title: 'BBF Claim Not Approved',
-      body: `Your BBF claim ${claim.claim_number} could not be approved at this time. ${notes ? `Reason: ${notes}` : ''}`,
+      title: msg.title,
+      body: msg.body,
       referenceId: claim.id,
       adminId: req.user.id,
       email: true,
-      smsMessage: `Dear member, your BBF claim ${claim.claim_number} was not approved. ${notes ? `Reason: ${notes}` : 'Contact welfare desk for details.'}  - KUPPET Migori`,
+      smsMessage: msg.sms,
     });
     res.json({ success: true, message: 'Claim rejected' });
   } catch (err) {
@@ -155,15 +164,19 @@ async function markPaid(req, res) {
       [ref || null, claim.id]
     );
     await addTimeline(claim.id, 'approved', 'paid', `Payment reference: ${ref || 'N/A'}`, req.user.id);
+    const msg = notificationService.renderNotification('bbf_paid', {
+      claim_number: claim.claim_number,
+      reference: ref || '',
+    });
     await notificationService.createNotification({
       memberId: claim.member_id,
       type: 'bbf_claim',
-      title: 'BBF Claim Payment Processed',
-      body: `Your BBF claim ${claim.claim_number} payment has been processed${ref ? ` (Ref: ${ref})` : ''}.`,
+      title: msg.title,
+      body: msg.body,
       referenceId: claim.id,
       adminId: req.user.id,
       email: true,
-      smsMessage: `Dear member, payment for your BBF claim ${claim.claim_number} has been PROCESSED${ref ? `. Ref: ${ref}` : ''}. - KUPPET Migori`,
+      smsMessage: msg.sms,
     });
     res.json({ success: true, message: 'Claim marked as paid' });
   } catch (err) {

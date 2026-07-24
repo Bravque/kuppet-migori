@@ -55,15 +55,19 @@ async function approve(req, res) {
       'UPDATE scholarship_applications SET status = "approved", reviewed_by = ?, reviewer_notes = ?, reviewed_at = NOW() WHERE id = ?',
       [req.user.id, notes || null, app.id]
     );
+    const msg = notificationService.renderNotification('scholarship_approved', {
+      scholarship_title: app.title,
+      applicant_name: app.applicant_name,
+    });
     await notificationService.createNotification({
       memberId: app.member_id,
       type: 'scholarship',
-      title: 'Scholarship Application Approved',
-      body: `Your scholarship application for "${app.title}" (${app.applicant_name}) has been approved.`,
+      title: msg.title,
+      body: msg.body,
       referenceId: app.id,
       adminId: req.user.id,
       email: true,
-      smsMessage: `Dear member, the scholarship application for ${app.applicant_name} (${app.title}) has been APPROVED. - KUPPET Migori`,
+      smsMessage: msg.sms,
     });
     res.json({ success: true, message: 'Application approved' });
   } catch (err) {
@@ -83,15 +87,20 @@ async function reject(req, res) {
       'UPDATE scholarship_applications SET status = "rejected", reviewed_by = ?, reviewer_notes = ?, reviewed_at = NOW() WHERE id = ?',
       [req.user.id, notes || null, app.id]
     );
+    const msg = notificationService.renderNotification('scholarship_rejected', {
+      scholarship_title: app.title,
+      applicant_name: app.applicant_name,
+      reason: notes || '',
+    });
     await notificationService.createNotification({
       memberId: app.member_id,
       type: 'scholarship',
-      title: 'Scholarship Application Unsuccessful',
-      body: `Your scholarship application for "${app.title}" (${app.applicant_name}) was not successful this time.${notes ? ` Reason: ${notes}` : ''}`,
+      title: msg.title,
+      body: msg.body,
       referenceId: app.id,
       adminId: req.user.id,
       email: true,
-      smsMessage: `Dear member, the scholarship application for ${app.applicant_name} (${app.title}) was not successful this time. ${notes ? `Reason: ${notes}` : 'Contact the office for details.'} - KUPPET Migori`,
+      smsMessage: msg.sms,
     });
     res.json({ success: true, message: 'Application rejected' });
   } catch (err) {

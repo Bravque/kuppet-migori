@@ -268,6 +268,9 @@ const adminApi = (() => {
       getTransactional: () => request('/admin/email/transactional'),
       updateTransactional: (key, d) => request(`/admin/email/transactional/${key}`, { method: 'PUT', body: JSON.stringify(d) }),
       resetTransactional: (key) => request(`/admin/email/transactional/${key}`, { method: 'DELETE' }),
+      getNotifications: () => request('/admin/notification-templates'),
+      updateNotification: (key, d) => request(`/admin/notification-templates/${key}`, { method: 'PUT', body: JSON.stringify(d) }),
+      resetNotification: (key) => request(`/admin/notification-templates/${key}`, { method: 'DELETE' }),
     },
 
     analytics: {

@@ -67,14 +67,18 @@ async function apply(req, res) {
     // Fire-and-forget: the SMS + SMTP round-trip must not hold the response open —
     // under a scholarship-announcement rush that inline wait dominates per-request
     // latency. The in-app notification/SMS/email still send in the background.
+    const msg = notificationService.renderNotification('scholarship_submitted', {
+      app_number: appNumber,
+      scholarship_title: scholarship.title,
+    });
     notificationService.createNotification({
       memberId: req.member.id,
       type: 'scholarship',
-      title: 'Scholarship Application Submitted',
-      body: `Your application ${appNumber} for "${scholarship.title}" has been submitted and is awaiting review.`,
+      title: msg.title,
+      body: msg.body,
       referenceId: result.insertId,
       email: true,
-      smsMessage: `Dear member, your scholarship application ${appNumber} has been submitted for review. - KUPPET Migori`,
+      smsMessage: msg.sms,
     }).catch(() => {});
 
     res.status(201).json({ success: true, message: 'Application submitted successfully', data: { application_number: appNumber } });

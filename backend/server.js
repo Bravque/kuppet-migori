@@ -237,6 +237,7 @@ app.use('/api/admin/email',            (req, res, next) => {
   if (req.method === 'POST' && (req.path === '/bulk' || req.path === '/group')) return emailBulkLimiter(req, res, next);
   next();
 }, require('./routes/adminEmail'));
+app.use('/api/admin/notification-templates', require('./routes/adminNotificationTemplates'));
 app.use('/api/admin/analytics',        require('./routes/adminAnalytics'));
 app.use('/api/admin/audit',            require('./routes/adminAudit'));
 app.use('/api/admin/court-cases',      require('./routes/courtCases'));
@@ -373,6 +374,8 @@ process.on('uncaughtException', (err) => {
 // Load admin-editable transactional email overrides into the mailer cache
 // (safe before the table exists — falls back to hardcoded defaults).
 require('./services/mailerService').loadTransactionalCache();
+// Load admin-editable application-notification overrides (BBF + scholarship).
+require('./services/notificationService').loadNotificationCache();
 
 app.listen(PORT, () => {
   console.log(`\nKUPPET Migori Web Application`);

@@ -119,14 +119,15 @@ async function submitClaim(req, res) {
 
     // Fire-and-forget: the SMS + SMTP round-trip must not hold the response open.
     // The in-app notification/SMS/email still send in the background.
+    const msg = notificationService.renderNotification('bbf_submitted', { claim_number: claim.claim_number });
     notificationService.createNotification({
       memberId: req.member.id,
       type: 'bbf_claim',
-      title: 'BBF Claim Submitted',
-      body: `Your claim ${claim.claim_number} has been submitted and is awaiting review.`,
+      title: msg.title,
+      body: msg.body,
       referenceId: claim.id,
       email: true,
-      smsMessage: `Dear member, your BBF claim ${claim.claim_number} has been submitted for review. - KUPPET Migori`,
+      smsMessage: msg.sms,
     }).catch(() => {});
 
     res.json({ success: true, message: 'Claim submitted successfully' });

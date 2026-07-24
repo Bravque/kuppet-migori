@@ -10,7 +10,7 @@
   <title>Email Templates — KUPPET Migori Admin</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
-  <link rel="stylesheet" href="/css/style.css?v=20260724e"><link rel="stylesheet" href="/css/portal.css?v=20260724e">
+  <link rel="stylesheet" href="/css/style.css?v=20260724f"><link rel="stylesheet" href="/css/portal.css?v=20260724f">
 </head>
 <body class="portal-body admin-email-templates-page">
 <div class="portal-layout">
@@ -24,6 +24,7 @@
 
       <div class="filter-tabs">
         <button class="filter-tab active" data-mode="automated">Automated Emails</button>
+        <button class="filter-tab" data-mode="notifications">Application Notifications</button>
         <button class="filter-tab" data-mode="reusable">Reusable Templates</button>
       </div>
       <div id="alert" class="hidden" style="margin-bottom:1rem"></div>
@@ -32,6 +33,12 @@
       <div id="panel-automated">
         <p style="font-size:0.85rem;color:var(--text-muted);margin:0 0 1rem">These emails are sent automatically by the system. Editing one changes its wording everywhere it is sent. Placeholders like <code>{{name}}</code> are filled in at send time. You may use HTML.</p>
         <div id="auto-list"><div class="data-card" style="padding:1.5rem">Loading…</div></div>
+      </div>
+
+      <!-- Application notifications (BBF + scholarship status) -->
+      <div id="panel-notifications" style="display:none">
+        <p style="font-size:0.85rem;color:var(--text-muted);margin:0 0 1rem">Messages members receive when a <strong>BBF claim</strong> or <strong>scholarship application</strong> changes status. Editing one changes the <strong>email</strong>, the <strong>in-app notification</strong> and the <strong>SMS</strong> together. Placeholders like <code>{{claim_number}}</code> fill in automatically; use <code>{{#reason}}…{{/reason}}</code> to show text only when a value is present.</p>
+        <div id="notif-list"><div class="data-card" style="padding:1.5rem">Loading…</div></div>
       </div>
 
       <!-- Reusable templates (Send Email composer) -->
@@ -107,7 +114,33 @@
   </div>
 </div>
 
-<script src="/admin/js/admin-api.js?v=20260724e"></script><script src="/admin/js/admin-portal.js?v=20260724e"></script>
+<!-- Application-notification edit modal -->
+<div class="portal-modal-overlay" id="notif-modal">
+  <div class="portal-modal" style="max-width:680px">
+    <div class="portal-modal-header"><h3 id="notif-modal-title">Edit Notification</h3><button class="modal-close-btn"><i class="fas fa-times"></i></button></div>
+    <div class="portal-modal-body">
+      <div id="notif-form-alert" class="hidden"></div>
+      <p id="notif-modal-desc" style="font-size:0.85rem;color:var(--text-muted);margin-top:0"></p>
+      <div class="form-group"><label>Title <span class="required">*</span></label><input id="notif-title" class="form-control" maxlength="255" required></div>
+      <div class="form-group"><label>Message (email &amp; in-app) <span class="required">*</span></label>
+        <textarea id="notif-body" class="form-control" rows="5" required></textarea>
+      </div>
+      <div class="form-group"><label>SMS text <span class="required">*</span></label>
+        <textarea id="notif-sms" class="form-control" rows="3" maxlength="1000" required></textarea>
+      </div>
+      <div id="notif-vars" style="font-size:0.75rem;color:var(--text-muted)"></div>
+    </div>
+    <div class="portal-modal-footer" style="justify-content:space-between">
+      <button id="notif-reset-btn" class="btn btn-outline btn-sm" style="color:var(--red)" onclick="resetNotif()"><i class="fas fa-rotate-left"></i> Reset to default</button>
+      <div style="display:flex;gap:0.5rem">
+        <button class="modal-close-btn btn btn-outline btn-sm">Cancel</button>
+        <button class="btn btn-gold btn-sm" onclick="submitOnce(this, saveNotif)"><i class="fas fa-save"></i> Save</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="/admin/js/admin-api.js?v=20260724f"></script><script src="/admin/js/admin-portal.js?v=20260724f"></script>
 <script>
   document.getElementById('sidebar-placeholder').outerHTML = getSidebarHtml();
   document.getElementById('topbar-placeholder').outerHTML = getTopbarHtml('Email Templates');
@@ -117,9 +150,70 @@
   document.querySelectorAll('.filter-tab').forEach(t=>t.addEventListener('click',()=>{
     document.querySelectorAll('.filter-tab').forEach(x=>x.classList.remove('active'));t.classList.add('active');
     document.getElementById('panel-automated').style.display = t.dataset.mode==='automated'?'':'none';
+    document.getElementById('panel-notifications').style.display = t.dataset.mode==='notifications'?'':'none';
     document.getElementById('panel-reusable').style.display = t.dataset.mode==='reusable'?'':'none';
     hideAlert('alert');
   }));
+
+  // ── Application notifications (BBF + scholarship status) ─────────────────────
+  let NOTIF = [];
+  let editingNotifKey = null;
+  async function loadNotif(){
+    const box=document.getElementById('notif-list');
+    box.innerHTML='<div class="data-card" style="padding:1.5rem">'+renderLoading()+'</div>';
+    try{
+      const res=await adminApi.email.getNotifications();
+      NOTIF=res.data||[];
+      if(!NOTIF.length){box.innerHTML='<div class="data-card" style="padding:1.5rem">'+renderEmpty('No notifications')+'</div>';return;}
+      let html='', lastGroup=null;
+      NOTIF.forEach((t,i)=>{
+        if(t.group!==lastGroup){ html+=`<div style="font-size:0.72rem;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;color:var(--text-muted);margin:0.5rem 0 0.6rem">${escHtml(t.group||'')}</div>`; lastGroup=t.group; }
+        html+=`
+        <div class="data-card" style="padding:1.1rem 1.25rem;margin-bottom:0.7rem;display:flex;justify-content:space-between;gap:1rem;align-items:flex-start;flex-wrap:wrap">
+          <div style="min-width:0;flex:1">
+            <div style="font-weight:700">${escHtml(t.label)} ${t.is_customized?'<span class="status-badge status-badge--under_review" style="font-size:0.68rem">Customized</span>':'<span style="font-size:0.72rem;color:var(--text-muted)">Default</span>'}</div>
+            <div style="font-size:0.8rem;color:var(--text-muted);margin:0.2rem 0 0.4rem">${escHtml(t.description)}</div>
+            <div style="font-size:0.82rem"><strong>Title:</strong> ${escHtml(t.title)}</div>
+          </div>
+          <button class="btn btn-outline btn-xs" onclick="editNotif(${i})"><i class="fas fa-edit"></i> Edit</button>
+        </div>`;
+      });
+      box.innerHTML=html;
+    }catch(err){showAlert('alert',err.message);}
+  }
+  function editNotif(i){
+    const t=NOTIF[i]; if(!t) return;
+    editingNotifKey=t.key;
+    document.getElementById('notif-modal-title').textContent='Edit — '+t.label;
+    document.getElementById('notif-modal-desc').textContent=t.description;
+    document.getElementById('notif-title').value=t.title||'';
+    document.getElementById('notif-body').value=t.body||'';
+    document.getElementById('notif-sms').value=t.sms||'';
+    document.getElementById('notif-vars').innerHTML='Placeholders: '+(t.variables||[]).map(v=>`<code>{{${escHtml(v.name)}}}</code> — ${escHtml(v.desc)}`).join(', ');
+    document.getElementById('notif-reset-btn').style.display = t.is_customized ? '' : 'none';
+    document.getElementById('notif-form-alert').className='hidden';
+    document.getElementById('notif-modal').classList.add('open');
+  }
+  async function saveNotif(){
+    const title=document.getElementById('notif-title').value.trim();
+    const body=document.getElementById('notif-body').value.trim();
+    const sms=document.getElementById('notif-sms').value.trim();
+    if(!title||!body||!sms){showAlert('notif-form-alert','Title, message and SMS text are required');return;}
+    try{
+      await adminApi.email.updateNotification(editingNotifKey,{title,body,sms});
+      document.getElementById('notif-modal').classList.remove('open');
+      loadNotif();
+    }catch(err){showAlert('notif-form-alert',err.message);}
+  }
+  async function resetNotif(){
+    if(!editingNotifKey) return;
+    if(!confirm('Reset this notification to its default wording? Your customizations will be lost.'))return;
+    try{
+      await adminApi.email.resetNotification(editingNotifKey);
+      document.getElementById('notif-modal').classList.remove('open');
+      loadNotif();
+    }catch(err){showAlert('notif-form-alert',err.message);}
+  }
 
   // ── Automated (transactional) emails ────────────────────────────────────────
   let AUTO = [];       // loaded templates
@@ -228,6 +322,7 @@
   }
 
   loadAuto();
+  loadNotif();
   load();
 </script>
 </body>
