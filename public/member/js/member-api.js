@@ -42,8 +42,15 @@ const memberApi = (() => {
       return;
     }
     if (!res.ok) {
-      const e = new Error(data.message || `Error ${res.status}`);
+      // express-validator failures return { errors: [{ msg, path }] } with no
+      // top-level `message`, so surface the first field error instead of a bare
+      // "Error 400" that hides which field was rejected.
+      const firstErr = Array.isArray(data.errors) && data.errors.length
+        ? (data.errors[0].msg || data.errors[0].message)
+        : null;
+      const e = new Error(data.message || firstErr || `Error ${res.status}`);
       e.code = data.code; e.status = res.status;
+      e.errors = data.errors;
       throw e;
     }
     return data;

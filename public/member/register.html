@@ -12,8 +12,19 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
-  <link rel="stylesheet" href="/css/style.css?v=20260723c">
-  <link rel="stylesheet" href="/css/portal.css?v=20260723c">
+  <link rel="stylesheet" href="/css/style.css?v=20260724a">
+  <link rel="stylesheet" href="/css/portal.css?v=20260724a">
+  <style>
+    .pw-wrap { position: relative; }
+    .pw-wrap .form-control { padding-right: 2.6rem; }
+    .pw-toggle {
+      position: absolute; top: 0; right: 0; height: 100%; width: 2.6rem;
+      display: flex; align-items: center; justify-content: center;
+      background: none; border: none; cursor: pointer;
+      color: var(--text-muted); padding: 0;
+    }
+    .pw-toggle:hover { color: var(--primary); }
+  </style>
 </head>
 <body class="portal-body member-register-page">
 <div style="min-height:100vh;background:linear-gradient(135deg,#00641C 0%,#008B23 55%,#1FB24A 100%);display:flex;align-items:flex-start;justify-content:center;padding:2rem 1rem">
@@ -71,11 +82,17 @@
       <div class="form-row">
         <div class="form-group">
           <label>Password <span class="required">*</span></label>
-          <input type="password" name="password" class="form-control" placeholder="Minimum 8 characters" required minlength="8">
+          <div class="pw-wrap">
+            <input type="password" name="password" class="form-control" placeholder="Min 8 chars, incl. a letter & a number" required minlength="8" pattern="(?=.*[A-Za-z])(?=.*\d).{8,}">
+            <button type="button" class="pw-toggle" aria-label="Show password"><i class="fas fa-eye"></i></button>
+          </div>
         </div>
         <div class="form-group">
           <label>Confirm Password <span class="required">*</span></label>
-          <input type="password" name="confirm_password" class="form-control" placeholder="Repeat password" required>
+          <div class="pw-wrap">
+            <input type="password" name="confirm_password" class="form-control" placeholder="Repeat password" required>
+            <button type="button" class="pw-toggle" aria-label="Show password"><i class="fas fa-eye"></i></button>
+          </div>
         </div>
       </div>
     </div>
@@ -163,8 +180,19 @@
 </div>
 </div>
 
-<script src="/member/js/member-api.js?v=20260723c"></script>
+<script src="/member/js/member-api.js?v=20260724a"></script>
 <script>
+  // Show/hide password toggles
+  document.querySelectorAll('.pw-toggle').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const input = btn.previousElementSibling;
+      const show = input.type === 'password';
+      input.type = show ? 'text' : 'password';
+      btn.setAttribute('aria-label', show ? 'Hide password' : 'Show password');
+      btn.querySelector('i').className = show ? 'fas fa-eye-slash' : 'fas fa-eye';
+    });
+  });
+
   let currentStep = 1;
   const totalSteps = 2;
 
@@ -195,6 +223,11 @@
     if (step === 1) {
       const pw = panel.querySelector('[name=password]').value;
       const cpw = panel.querySelector('[name=confirm_password]').value;
+      // Mirror the server rule (memberAuth.js): ≥8 chars incl. a letter AND a number.
+      if (!/^(?=.*[A-Za-z])(?=.*\d).{8,}$/.test(pw)) {
+        showReg('Password must be at least 8 characters and include a letter and a number', 'danger');
+        return false;
+      }
       if (pw !== cpw) { showReg('Passwords do not match', 'danger'); return false; }
     }
     return true;
