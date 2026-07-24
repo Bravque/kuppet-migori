@@ -369,7 +369,7 @@ function toggleDeathFields() {
 }
 
 function bbfTypeLabel(t) { return ({ death: 'Death', retirement: 'Retirement' })[t] || (t || '').replace(/_/g, ' '); }
-function bbfSchoolCatLabel(c) { return ({ senior_school: 'Senior School', junior_school: 'Junior School' })[c] || '—'; }
+function bbfSchoolCatLabel(c) { return ({ senior_school: 'Senior School', junior_school: 'Junior School', tertiary_school: 'Tertiary School' })[c] || '—'; }
 
 // Renders a titled block of label/value rows for the claim detail view.
 function renderClaimSection(title, rows) {

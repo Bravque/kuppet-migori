@@ -222,7 +222,7 @@ function statusBadge(status) {
 }
 
 function bbfTypeLabel(t) { return ({ death: 'Death', retirement: 'Retirement' })[t] || (t || '').replace(/_/g, ' '); }
-function bbfSchoolCatLabel(c) { return ({ senior_school: 'Senior School', junior_school: 'Junior School' })[c] || '—'; }
+function bbfSchoolCatLabel(c) { return ({ senior_school: 'Senior School', junior_school: 'Junior School', tertiary_school: 'Tertiary School' })[c] || '—'; }
 
 function renderLoading() {
   return `<div class="portal-loading"><i class="fas fa-spinner fa-spin"></i> Loading…</div>`;

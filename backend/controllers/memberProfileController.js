@@ -39,7 +39,7 @@ async function updateProfile(req, res) {
       if (req.body[key] === undefined) continue;
       let value = req.body[key];
 
-      if (key === 'school_category' && value && !['senior_school','junior_school'].includes(value)) {
+      if (key === 'school_category' && value && !['senior_school','junior_school','tertiary_school'].includes(value)) {
         return res.status(400).json({ success: false, message: 'Invalid school category' });
       }
       if (key === 'job_group' && value && !JOB_GROUPS.includes(value)) {
