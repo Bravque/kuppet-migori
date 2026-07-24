@@ -91,8 +91,18 @@ async function submitClaim(req, res) {
       'SELECT doc_type FROM bbf_claim_documents WHERE claim_id = ?', [claim.id]
     );
     const uploaded = new Set(docs.map(d => d.doc_type));
-    const required = ['tsc_slip', 'burial_permit', 'letter_from_principal'];
-    const labels = { tsc_slip: 'TSC Slip', burial_permit: 'Burial Permit', letter_from_principal: 'Letter From Principal' };
+    // Required documents differ by claim type: retirement claims need the
+    // TSC slip + letter of compulsory retirement; death claims need the
+    // TSC slip, burial permit and letter from principal.
+    const required = claim.claim_type === 'retirement'
+      ? ['tsc_slip', 'letter_of_compulsory_retirement']
+      : ['tsc_slip', 'burial_permit', 'letter_from_principal'];
+    const labels = {
+      tsc_slip: 'TSC Slip',
+      burial_permit: 'Burial Permit',
+      letter_from_principal: 'Letter From Principal',
+      letter_of_compulsory_retirement: 'Letter of Compulsory Retirement',
+    };
     const missing = required.filter(t => !uploaded.has(t));
     if (missing.length > 0) {
       return res.status(400).json({ success: false, message: `Missing required documents: ${missing.map(t => labels[t]).join(', ')}` });

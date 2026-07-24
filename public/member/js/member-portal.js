@@ -425,15 +425,23 @@ async function createClaim() {
 }
 
 // ── BBF Claim Detail ──────────────────────────────────────────────────────────
-const BBF_DOC_SLOTS = [
+// Required documents differ by claim type (see submitClaim on the backend).
+const BBF_DOC_SLOTS_DEATH = [
   { type: 'tsc_slip',              label: 'TSC Slip',             required: true,  note: null },
   { type: 'burial_permit',         label: 'Burial Permit',        required: true,  note: null },
   { type: 'birth_notification',    label: 'Birth Notification',   required: false, note: 'For Children' },
   { type: 'letter_from_principal', label: 'Letter From Principal',required: true,  note: null },
 ];
+const BBF_DOC_SLOTS_RETIREMENT = [
+  { type: 'tsc_slip',                        label: 'TSC Slip',                        required: true, note: null },
+  { type: 'letter_of_compulsory_retirement', label: 'Letter of Compulsory Retirement', required: true, note: null },
+];
+function bbfDocSlotsFor(claimType) {
+  return claimType === 'retirement' ? BBF_DOC_SLOTS_RETIREMENT : BBF_DOC_SLOTS_DEATH;
+}
 
-function renderBbfDocSlots(docs, isDraft) {
-  return BBF_DOC_SLOTS.map(slot => {
+function renderBbfDocSlots(docs, isDraft, claimType) {
+  return bbfDocSlotsFor(claimType).map(slot => {
     const uploaded = docs.find(d => d.doc_type === slot.type);
     return `
       <div class="doc-slot">
@@ -516,9 +524,9 @@ async function loadClaimDetail(id) {
     // Document slots
     const slotsEl = document.getElementById('doc-slots');
     if (slotsEl) {
-      slotsEl.innerHTML = renderBbfDocSlots(c.documents, isDraft);
+      slotsEl.innerHTML = renderBbfDocSlots(c.documents, isDraft, c.claim_type);
       if (isDraft) {
-        BBF_DOC_SLOTS.forEach(slot => {
+        bbfDocSlotsFor(c.claim_type).forEach(slot => {
           const chooseBtn = document.getElementById(`doc-choose-${slot.type}`);
           const fileInput = document.getElementById(`doc-file-${slot.type}`);
           const uploadBtn = document.getElementById(`doc-upload-${slot.type}`);
