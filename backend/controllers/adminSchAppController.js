@@ -4,7 +4,7 @@ const notificationService = require('../services/notificationService');
 
 async function getAll(req, res) {
   try {
-    const { status, scholarship_id, limit = 25, offset = 0 } = req.query;
+    const { status, scholarship_id, school_category, sub_county, school, gender, limit = 25, offset = 0 } = req.query;
     const base = `FROM scholarship_applications sa
                   JOIN members m ON sa.member_id = m.id
                   JOIN scholarships s ON sa.scholarship_id = s.id`;
@@ -12,6 +12,10 @@ async function getAll(req, res) {
     const filterParams = [];
     if (status) { where += ' AND sa.status = ?'; filterParams.push(status); }
     if (scholarship_id) { where += ' AND sa.scholarship_id = ?'; filterParams.push(scholarship_id); }
+    if (school_category) { where += ' AND m.school_category = ?'; filterParams.push(school_category); }
+    if (sub_county) { where += ' AND m.sub_county = ?'; filterParams.push(sub_county); }
+    if (school) { where += ' AND m.school_name LIKE ?'; filterParams.push(`%${school}%`); }
+    if (gender) { where += ' AND m.gender = ?'; filterParams.push(gender); }
 
     const [rows] = await db.query(
       `SELECT sa.*, m.full_name, m.member_number, s.title as scholarship_title ${base} ${where}

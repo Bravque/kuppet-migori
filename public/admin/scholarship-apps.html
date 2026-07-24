@@ -26,6 +26,27 @@
         <button class="filter-tab" data-status="approved">Approved</button>
         <button class="filter-tab" data-status="rejected">Rejected</button>
       </div>
+      <div class="filter-bar">
+        <input type="search" class="form-control" id="school-search" placeholder="Search by school...">
+        <select class="form-control" id="category-filter">
+          <option value="">All Categories</option>
+          <option value="senior_school">Senior School</option>
+          <option value="junior_school">Junior School</option>
+          <option value="tertiary_school">Tertiary School</option>
+        </select>
+        <select class="form-control" id="subcounty-filter">
+          <option value="">All Sub-Counties</option>
+          <option>Rongo</option><option>Awendo</option><option>Uriri</option><option>Suna East</option>
+          <option>Suna West</option><option>Ntimaru</option><option>Kuria West</option><option>Kuria East</option>
+          <option>Mabera</option><option>Nyatike South</option><option>Nyatike West</option><option>Nyatike North</option>
+        </select>
+        <select class="form-control" id="gender-filter">
+          <option value="">All Genders</option>
+          <option value="male">Male</option>
+          <option value="female">Female</option>
+          <option value="other">Other</option>
+        </select>
+      </div>
       <div class="data-card">
         <div class="data-table-wrap">
           <table class="data-table">
@@ -45,11 +66,12 @@
   const user = requireAdminAuth(); if(user) initSidebar(user);
   // Honour a ?status= deep-link (e.g. from the dashboard Quick Actions).
   let currentStatus=new URLSearchParams(window.location.search).get('status')||'', schOffset=0; const SCH_LIMIT=30;
+  let currentCategory='', currentSubCounty='', currentGender='', currentSchool='';
   async function loadApps(){
     const tbody=document.getElementById('sch-tbody');
     tbody.innerHTML='<tr><td colspan="7">'+renderLoading()+'</td></tr>';
     try{
-      const res=await adminApi.schApps.getAll({status:currentStatus,limit:SCH_LIMIT,offset:schOffset});
+      const res=await adminApi.schApps.getAll({status:currentStatus,school_category:currentCategory,sub_county:currentSubCounty,gender:currentGender,school:currentSchool,limit:SCH_LIMIT,offset:schOffset});
       const pager=()=>renderAdminPager('sch-pager',{total:res.total||0,offset:schOffset,limit:SCH_LIMIT,onPage:o=>{schOffset=o;loadApps();}});
       if(!res.data.length){tbody.innerHTML='<tr><td colspan="7">'+renderEmpty()+'</td></tr>';pager();return;}
       tbody.innerHTML=res.data.map(a=>`<tr>
@@ -70,6 +92,10 @@
       document.querySelectorAll('#sch-tabs .filter-tab').forEach(x=>x.classList.remove('active'));t.classList.add('active');currentStatus=t.dataset.status;schOffset=0;loadApps();
     });
   });
+  let sst;document.getElementById('school-search').addEventListener('input',function(){clearTimeout(sst);sst=setTimeout(()=>{currentSchool=this.value;schOffset=0;loadApps();},400);});
+  document.getElementById('category-filter').addEventListener('change',function(){currentCategory=this.value;schOffset=0;loadApps();});
+  document.getElementById('subcounty-filter').addEventListener('change',function(){currentSubCounty=this.value;schOffset=0;loadApps();});
+  document.getElementById('gender-filter').addEventListener('change',function(){currentGender=this.value;schOffset=0;loadApps();});
   loadApps();
 </script>
 </body>

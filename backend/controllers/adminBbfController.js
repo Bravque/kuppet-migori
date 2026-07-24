@@ -18,10 +18,14 @@ async function addTimeline(claimId, fromStatus, toStatus, comment, adminId) {
 
 // Build the claims filter once (status, search) so the list, its count and the
 // Excel export all stay in sync. Returns { where, params }.
-function buildBbfFilter({ status, search } = {}) {
+function buildBbfFilter({ status, search, school_category, sub_county, school, gender } = {}) {
   let where = 'WHERE 1=1';
   const params = [];
   if (status) { where += ' AND bc.status = ?'; params.push(status); }
+  if (school_category) { where += ' AND m.school_category = ?'; params.push(school_category); }
+  if (sub_county) { where += ' AND m.sub_county = ?'; params.push(sub_county); }
+  if (school) { where += ' AND m.school_name LIKE ?'; params.push(`%${school}%`); }
+  if (gender) { where += ' AND m.gender = ?'; params.push(gender); }
   if (search) { where += ' AND (bc.claim_number LIKE ? OR m.full_name LIKE ?)'; params.push(`%${search}%`, `%${search}%`); }
   return { where, params };
 }
