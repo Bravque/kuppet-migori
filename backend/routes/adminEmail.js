@@ -21,7 +21,14 @@ const groupRules = [
   body('sub_county').if(body('group').equals('sub_county')).trim().notEmpty().withMessage('sub_county required for a sub-county send').isLength({ max: 150 }),
 ];
 const TEMPLATE_CATEGORIES = ['bbf', 'scholarship', 'general', 'system'];
-const templateRules = [
+// Create requires name + subject + body; update lets any subset through (partial edit).
+const templateCreateRules = [
+  body('name').trim().notEmpty().withMessage('Name required').isLength({ max: 150 }),
+  body('subject').trim().notEmpty().withMessage('Subject required').isLength({ max: 200 }),
+  body('body').trim().notEmpty().withMessage('Body required').isLength({ max: 5000 }),
+  body('category').optional().isIn(TEMPLATE_CATEGORIES).withMessage('Invalid template category'),
+];
+const templateUpdateRules = [
   body('name').optional().trim().notEmpty().withMessage('Name cannot be empty').isLength({ max: 150 }),
   body('subject').optional().trim().notEmpty().withMessage('Subject cannot be empty').isLength({ max: 200 }),
   body('body').optional().trim().notEmpty().withMessage('Body cannot be empty').isLength({ max: 5000 }),
@@ -35,8 +42,8 @@ router.post('/bulk',  authenticate, authorizeAdmin, bulkRules,  handleValidation
 router.post('/group', authenticate, authorizeAdmin, groupRules, handleValidation, auditLog('email.group'), ctrl.sendToGroup);
 router.get('/logs',   authenticate, authorizeAdmin, ctrl.getLogs);
 router.get('/templates',      authenticate, authorizeAdmin, ctrl.getTemplates);
-router.post('/templates',     authenticate, authorizeAdmin, templateRules, handleValidation, ctrl.createTemplate);
-router.put('/templates/:id',  authenticate, authorizeAdmin, templateRules, handleValidation, ctrl.updateTemplate);
+router.post('/templates',     authenticate, authorizeAdmin, templateCreateRules, handleValidation, ctrl.createTemplate);
+router.put('/templates/:id',  authenticate, authorizeAdmin, templateUpdateRules, handleValidation, ctrl.updateTemplate);
 
 // Automated / transactional email templates (editable subject + body overrides).
 const transactionalRules = [

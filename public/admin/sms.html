@@ -10,7 +10,7 @@
   <title>Send SMS — KUPPET Migori Admin</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
-  <link rel="stylesheet" href="/css/style.css?v=20260725d"><link rel="stylesheet" href="/css/portal.css?v=20260725d">
+  <link rel="stylesheet" href="/css/style.css?v=20260725e"><link rel="stylesheet" href="/css/portal.css?v=20260725e">
 </head>
 <body class="portal-body admin-sms-page">
 <div class="portal-layout">
@@ -29,7 +29,7 @@
       <!-- Individual -->
       <div id="panel-individual" class="data-card" style="max-width:600px;padding:1.5rem">
         <div class="form-group"><label>Recipient Phone</label><input type="tel" id="ind-phone" class="form-control" placeholder="+254 7XX XXX XXX"></div>
-        <div class="form-group"><label>Message <span id="ind-count" style="float:right;font-size:0.75rem;color:var(--text-muted)">0/160</span></label><textarea id="ind-message" class="form-control" rows="4" maxlength="480"></textarea></div>
+        <div class="form-group"><label>Message <span id="ind-count" style="float:right;font-size:0.75rem;color:var(--text-muted)">0 chars · 1 SMS</span></label><textarea id="ind-message" class="form-control" rows="4" maxlength="480"></textarea></div>
         <div class="form-group"><label>Template (optional)</label><select id="ind-template" class="form-control"><option value="">Select template...</option></select></div>
         <button class="btn btn-gold btn-sm" onclick="sendIndividual()"><i class="fas fa-paper-plane"></i> Send SMS</button>
       </div>
@@ -58,7 +58,7 @@
     </div>
   </main>
 </div>
-<script src="/admin/js/admin-api.js?v=20260725d"></script><script src="/admin/js/admin-portal.js?v=20260725d"></script>
+<script src="/admin/js/admin-api.js?v=20260725e"></script><script src="/admin/js/admin-portal.js?v=20260725e"></script>
 <script>
   document.getElementById('sidebar-placeholder').outerHTML = getSidebarHtml();
   document.getElementById('topbar-placeholder').outerHTML = getTopbarHtml('Send SMS');
@@ -71,8 +71,11 @@
     sel.addEventListener('change',()=>{if(sel.value) document.getElementById('ind-message').value=sel.value;});
   }).catch(()=>{});
 
+  // A GSM SMS holds 160 chars; longer messages are split into 153-char segments
+  // (each billed as one SMS). Show both so admins know when a message costs more.
   document.getElementById('ind-message').addEventListener('input',function(){
-    document.getElementById('ind-count').textContent=this.value.length+'/160';
+    const len=this.value.length, seg=len<=160?1:Math.ceil(len/153);
+    document.getElementById('ind-count').textContent=`${len} chars · ${seg} SMS`;
   });
 
   document.querySelectorAll('.filter-tab').forEach(t=>t.addEventListener('click',()=>{
@@ -112,8 +115,7 @@
     if(!message){showAlert('sms-alert','Message required');return;}
     if(!confirm('Send this message to all members in the selected group?'))return;
     try{
-      const res=await fetch('/api/admin/sms/group',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+sessionStorage.getItem('adminToken')},body:JSON.stringify({group,message,sub_county})});
-      const data=await res.json();
+      const data=await adminApi.sms.group({group,message,sub_county});
       if(data.success){showAlert('sms-alert',data.message,'success');}else{showAlert('sms-alert',data.message);}
     }catch(err){showAlert('sms-alert',err.message);}
   }
