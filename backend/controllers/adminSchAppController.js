@@ -25,15 +25,20 @@ const SCH_BASE = `FROM scholarship_applications sa
 
 // Build the applications filter once (status, scholarship, applicant filters) so
 // the list, its count and the Excel export all stay in sync. Returns { where, params }.
-function buildSchFilter({ status, scholarship_id, school_category, sub_county, school, gender } = {}) {
+function buildSchFilter({ status, scholarship_id, scholarship_type, school_category, sub_county, school, gender, date_from, date_to } = {}) {
   let where = 'WHERE 1=1';
   const params = [];
   if (status) { where += ' AND sa.status = ?'; params.push(status); }
   if (scholarship_id) { where += ' AND sa.scholarship_id = ?'; params.push(scholarship_id); }
+  if (scholarship_type) { where += ' AND s.scholarship_type = ?'; params.push(scholarship_type); }
   if (school_category) { where += ' AND m.school_category = ?'; params.push(school_category); }
   if (sub_county) { where += ' AND m.sub_county = ?'; params.push(sub_county); }
   if (school) { where += ' AND m.school_name LIKE ?'; params.push(`%${school}%`); }
   if (gender) { where += ' AND m.gender = ?'; params.push(gender); }
+  // Date range on the applied date (the "Applied" column). Inclusive; either
+  // bound is optional, so a single day, a month or a whole year can be selected.
+  if (date_from) { where += ' AND DATE(sa.created_at) >= ?'; params.push(date_from); }
+  if (date_to) { where += ' AND DATE(sa.created_at) <= ?'; params.push(date_to); }
   return { where, params };
 }
 
