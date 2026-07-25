@@ -1,5 +1,6 @@
 const db = require('../config/database');
 const { clampLimit, clampOffset } = require('../utils/pagination');
+const { sendXlsx } = require('../utils/excel');
 const notificationService = require('../services/notificationService');
 
 // A decision (approve/reject) may only act on an application that is still
@@ -18,30 +19,59 @@ async function notifySafely(payload) {
   }
 }
 
-async function getAll(req, res) {
-  try {
-    const { status, scholarship_id, school_category, sub_county, school, gender, limit = 25, offset = 0 } = req.query;
-    const base = `FROM scholarship_applications sa
+const SCH_BASE = `FROM scholarship_applications sa
                   JOIN members m ON sa.member_id = m.id
                   JOIN scholarships s ON sa.scholarship_id = s.id`;
-    let where = 'WHERE 1=1';
-    const filterParams = [];
-    if (status) { where += ' AND sa.status = ?'; filterParams.push(status); }
-    if (scholarship_id) { where += ' AND sa.scholarship_id = ?'; filterParams.push(scholarship_id); }
-    if (school_category) { where += ' AND m.school_category = ?'; filterParams.push(school_category); }
-    if (sub_county) { where += ' AND m.sub_county = ?'; filterParams.push(sub_county); }
-    if (school) { where += ' AND m.school_name LIKE ?'; filterParams.push(`%${school}%`); }
-    if (gender) { where += ' AND m.gender = ?'; filterParams.push(gender); }
+
+// Build the applications filter once (status, scholarship, applicant filters) so
+// the list, its count and the Excel export all stay in sync. Returns { where, params }.
+function buildSchFilter({ status, scholarship_id, school_category, sub_county, school, gender } = {}) {
+  let where = 'WHERE 1=1';
+  const params = [];
+  if (status) { where += ' AND sa.status = ?'; params.push(status); }
+  if (scholarship_id) { where += ' AND sa.scholarship_id = ?'; params.push(scholarship_id); }
+  if (school_category) { where += ' AND m.school_category = ?'; params.push(school_category); }
+  if (sub_county) { where += ' AND m.sub_county = ?'; params.push(sub_county); }
+  if (school) { where += ' AND m.school_name LIKE ?'; params.push(`%${school}%`); }
+  if (gender) { where += ' AND m.gender = ?'; params.push(gender); }
+  return { where, params };
+}
+
+async function getAll(req, res) {
+  try {
+    const { limit = 25, offset = 0 } = req.query;
+    const { where, params: filterParams } = buildSchFilter(req.query);
 
     const [rows] = await db.query(
-      `SELECT sa.*, m.full_name, m.member_number, s.title as scholarship_title ${base} ${where}
+      `SELECT sa.*, m.full_name, m.member_number, s.title as scholarship_title ${SCH_BASE} ${where}
        ORDER BY sa.created_at DESC LIMIT ? OFFSET ?`,
       [...filterParams, clampLimit(limit, 25), clampOffset(offset)]
     );
-    const [[{ total }]] = await db.query(`SELECT COUNT(*) as total ${base} ${where}`, filterParams);
+    const [[{ total }]] = await db.query(`SELECT COUNT(*) as total ${SCH_BASE} ${where}`, filterParams);
     res.json({ success: true, data: rows, total });
   } catch (err) {
     res.status(500).json({ success: false, message: 'Failed to fetch applications' });
+  }
+}
+
+async function exportExcel(req, res) {
+  try {
+    // Honour the same filters the list is showing (status, scholarship, applicant filters).
+    const { where, params } = buildSchFilter(req.query);
+    const [rows] = await db.query(
+      `SELECT sa.application_number, m.full_name, m.member_number, m.tsc_number,
+              s.title as scholarship_title, sa.applicant_name,
+              m.sub_county, m.school_name, m.school_category, m.gender,
+              sa.status, sa.amount_awarded, sa.payment_reference,
+              DATE(sa.payment_date) as payment_date,
+              DATE(sa.created_at) as applied, DATE(sa.reviewed_at) as reviewed
+       ${SCH_BASE} ${where} ORDER BY sa.created_at DESC`,
+      params
+    );
+    await sendXlsx(res, { sheetName: 'Scholarship Applications', filename: 'scholarship-applications.xlsx', rows });
+  } catch (err) {
+    console.error('Scholarship export failed:', err);
+    res.status(500).json({ success: false, message: 'Export failed' });
   }
 }
 
@@ -172,4 +202,4 @@ async function markPaid(req, res) {
   }
 }
 
-module.exports = { getAll, getOne, approve, reject, markPaid };
+module.exports = { getAll, getOne, approve, reject, markPaid, exportExcel };

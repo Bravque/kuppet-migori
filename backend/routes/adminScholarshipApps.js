@@ -12,6 +12,7 @@ const idParam = param('id').isInt({ min: 1 }).withMessage('Invalid id');
 const notes = body('notes').optional({ nullable: true }).trim().isLength({ max: 2000 });
 const amount = body('amount').optional({ nullable: true, checkFalsy: true }).isFloat({ min: 0 }).withMessage('Amount must be a positive number');
 
+router.get('/export', authenticate, authorizeAdmin, ctrl.exportExcel);
 router.get('/', authenticate, authorizeAdmin, ctrl.getAll);
 router.get('/:id', authenticate, authorizeAdmin, idParam, handleValidation, ctrl.getOne);
 const ref = body('ref').optional({ nullable: true }).trim().isLength({ max: 100 });

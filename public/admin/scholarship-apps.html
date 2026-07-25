@@ -10,7 +10,7 @@
   <title>Scholarship Applications — KUPPET Migori Admin</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
-  <link rel="stylesheet" href="/css/style.css?v=20260724i"><link rel="stylesheet" href="/css/portal.css?v=20260724i">
+  <link rel="stylesheet" href="/css/style.css?v=20260725a"><link rel="stylesheet" href="/css/portal.css?v=20260725a">
 </head>
 <body class="portal-body admin-schapp-page">
 <div class="portal-layout">
@@ -18,7 +18,10 @@
   <main class="portal-main">
     <div id="topbar-placeholder"></div>
     <div class="portal-content">
-      <div class="page-heading"><div class="page-heading-text"><h1>Scholarship Applications</h1></div></div>
+      <div class="page-heading">
+        <div class="page-heading-text"><h1>Scholarship Applications</h1></div>
+        <button id="btn-export" class="btn btn-outline btn-sm"><i class="fas fa-file-excel"></i> Export</button>
+      </div>
       <div class="filter-tabs" id="sch-tabs">
         <button class="filter-tab active" data-status="">All</button>
         <button class="filter-tab" data-status="applied">Applied</button>
@@ -60,7 +63,7 @@
     </div>
   </main>
 </div>
-<script src="/admin/js/admin-api.js?v=20260724i"></script><script src="/admin/js/admin-portal.js?v=20260724i"></script>
+<script src="/admin/js/admin-api.js?v=20260725a"></script><script src="/admin/js/admin-portal.js?v=20260725a"></script>
 <script>
   document.getElementById('sidebar-placeholder').outerHTML = getSidebarHtml();
   document.getElementById('topbar-placeholder').outerHTML = getTopbarHtml('Scholarship Applications');
@@ -68,11 +71,12 @@
   // Honour a ?status= deep-link (e.g. from the dashboard Quick Actions).
   let currentStatus=new URLSearchParams(window.location.search).get('status')||'', schOffset=0; const SCH_LIMIT=30;
   let currentCategory='', currentSubCounty='', currentGender='', currentSchool='';
+  const schFilters=()=>({status:currentStatus,school_category:currentCategory,sub_county:currentSubCounty,gender:currentGender,school:currentSchool});
   async function loadApps(){
     const tbody=document.getElementById('sch-tbody');
     tbody.innerHTML='<tr><td colspan="7">'+renderLoading()+'</td></tr>';
     try{
-      const res=await adminApi.schApps.getAll({status:currentStatus,school_category:currentCategory,sub_county:currentSubCounty,gender:currentGender,school:currentSchool,limit:SCH_LIMIT,offset:schOffset});
+      const res=await adminApi.schApps.getAll({...schFilters(),limit:SCH_LIMIT,offset:schOffset});
       const pager=()=>renderAdminPager('sch-pager',{total:res.total||0,offset:schOffset,limit:SCH_LIMIT,onPage:o=>{schOffset=o;loadApps();}});
       if(!res.data.length){tbody.innerHTML='<tr><td colspan="7">'+renderEmpty()+'</td></tr>';pager();return;}
       tbody.innerHTML=res.data.map(a=>`<tr>
@@ -97,6 +101,8 @@
   document.getElementById('category-filter').addEventListener('change',function(){currentCategory=this.value;schOffset=0;loadApps();});
   document.getElementById('subcounty-filter').addEventListener('change',function(){currentSubCounty=this.value;schOffset=0;loadApps();});
   document.getElementById('gender-filter').addEventListener('change',function(){currentGender=this.value;schOffset=0;loadApps();});
+  // Export mirrors the active filters, not the whole table.
+  document.getElementById('btn-export').addEventListener('click',function(){adminApi.schApps.exportExcel(schFilters()).catch(e=>alert(e.message));});
   loadApps();
 </script>
 </body>

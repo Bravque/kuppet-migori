@@ -246,6 +246,7 @@ const adminApi = (() => {
       approve: (id, notes, amount) => request(`/admin/scholarship-apps/${id}/approve`, { method: 'PUT', body: JSON.stringify({ notes, amount }) }),
       reject: (id, notes) => request(`/admin/scholarship-apps/${id}/reject`, { method: 'PUT', body: JSON.stringify({ notes }) }),
       markPaid: (id, ref) => request(`/admin/scholarship-apps/${id}/paid`, { method: 'PUT', body: JSON.stringify({ ref }) }),
+      exportExcel: (p = {}) => download('/admin/scholarship-apps/export?' + new URLSearchParams(p), 'scholarship-applications.xlsx'),
     },
 
     sms: {
