@@ -17,6 +17,63 @@ function getTransporter() {
   return transporter;
 }
 
+// A dedicated transporter authenticated AS the advocacy mailbox, so advocacy
+// replies can genuinely be sent *From* advocacy@. Only built when the advocacy
+// mailbox's own SMTP credentials are provided; host/port default to the main
+// SMTP server. (ADVOCACY_EMAIL alone is just the address, not a login — the main
+// SMTP server rejects a From it isn't authenticated for.)
+let advocacyTransporter = null;
+let advocacyResolved = false;
+function getAdvocacyTransporter() {
+  if (!advocacyResolved) {
+    advocacyResolved = true;
+    if (process.env.ADVOCACY_SMTP_USER && process.env.ADVOCACY_SMTP_PASS) {
+      const port = parseInt(process.env.ADVOCACY_SMTP_PORT || process.env.SMTP_PORT || '587');
+      advocacyTransporter = nodemailer.createTransport({
+        host: process.env.ADVOCACY_SMTP_HOST || process.env.SMTP_HOST,
+        port,
+        secure: port === 465,
+        auth: { user: process.env.ADVOCACY_SMTP_USER, pass: process.env.ADVOCACY_SMTP_PASS },
+      });
+    }
+  }
+  return advocacyTransporter;
+}
+
+// Send an advocacy-desk reply. When the advocacy mailbox has its own SMTP login
+// (ADVOCACY_SMTP_USER/PASS), the message is sent authenticated as — and genuinely
+// From — advocacy@. Otherwise it falls back to the main authenticated account
+// with the "Advocacy Desk" display name and Reply-To advocacy@, which always
+// delivers (the From address matches the login) and still routes replies to
+// advocacy@. This is why setting only ADVOCACY_EMAIL used to fail: the main
+// server won't send a From it isn't authenticated for.
+async function sendAdvocacyMail({ to, subject, html, text }) {
+  const advocacyEmail = process.env.ADVOCACY_EMAIL || 'advocacy@kuppetmigori.co.ke';
+  const adv = getAdvocacyTransporter();
+  if (adv) {
+    try {
+      const info = await adv.sendMail({
+        from: `"KUPPET Migori Advocacy Desk" <${advocacyEmail}>`,
+        to,
+        replyTo: advocacyEmail,
+        subject,
+        html,
+        text: text || (html ? html.replace(/<[^>]+>/g, '') : ''),
+      });
+      return { success: true, messageId: info.messageId };
+    } catch (err) {
+      console.error('[mailer] Advocacy send failed:', err.message);
+      return { success: false };
+    }
+  }
+  // Fallback: authenticated account, but branded as the Advocacy Desk + reply-to advocacy@.
+  return sendMail({
+    to, subject, html, text,
+    from: `"KUPPET Migori Advocacy Desk" <${process.env.SMTP_USER}>`,
+    replyTo: advocacyEmail,
+  });
+}
+
 async function sendMail({ to, subject, html, text, replyTo, from }) {
   if (!process.env.SMTP_HOST || !process.env.SMTP_USER || !process.env.SMTP_PASS) {
     console.warn('[mailer] SMTP not configured — skipping email to', to);
@@ -264,4 +321,4 @@ const templates = {
   }),
 };
 
-module.exports = { sendMail, templates, TRANSACTIONAL_TEMPLATES, loadTransactionalCache };
+module.exports = { sendMail, sendAdvocacyMail, templates, TRANSACTIONAL_TEMPLATES, loadTransactionalCache };
