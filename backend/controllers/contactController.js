@@ -1,11 +1,10 @@
 const db = require('../config/database');
 const { clampLimit, clampOffset } = require('../utils/pagination');
 const { validationResult } = require('express-validator');
-const { sendMail, templates } = require('../services/mailerService');
+const { sendMail, sendAdvocacyMail, templates } = require('../services/mailerService');
 
 // Advocacy reports (contacts.category = 'advocacy') are restricted to branch_officer
 // + super_admin; branch_secretary cannot list, view, reply to, or restatus them.
-const ADVOCACY_INBOX = process.env.ADVOCACY_EMAIL || 'advocacy@kuppetmigori.co.ke';
 const canViewAdvocacy = (req) => ['super_admin', 'branch_officer'].includes(req.user && req.user.role);
 
 const submit = async (req, res) => {
@@ -59,14 +58,14 @@ const reply = async (req, res) => {
       return res.status(403).json({ success: false, message: 'Advocacy reports are restricted to branch officers.' });
     }
 
-    // Advocacy replies go out from the advocacy inbox (from + reply-to); everything
-    // else uses the default branch sender.
+    // Advocacy replies go out from the advocacy desk (via its own SMTP login when
+    // configured, else the branch account branded as the Advocacy Desk with
+    // Reply-To advocacy@); everything else uses the default branch sender.
     const advocacy = contact.category === 'advocacy';
     const tpl = templates.contactReply(contact.name, contact.subject, contact.message, message);
-    const result = await sendMail({
-      to: contact.email, subject: tpl.subject, html: tpl.html,
-      ...(advocacy ? { from: `"KUPPET Migori Advocacy Desk" <${ADVOCACY_INBOX}>`, replyTo: ADVOCACY_INBOX } : {}),
-    });
+    const result = advocacy
+      ? await sendAdvocacyMail({ to: contact.email, subject: tpl.subject, html: tpl.html })
+      : await sendMail({ to: contact.email, subject: tpl.subject, html: tpl.html });
     if (result.skipped) {
       return res.status(503).json({ success: false, message: 'Email is not configured on the server, so the reply could not be sent.' });
     }
