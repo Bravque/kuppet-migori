@@ -10,7 +10,7 @@
   <title>Scholarship Application — KUPPET Migori Admin</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
-  <link rel="stylesheet" href="/css/style.css?v=20260725f"><link rel="stylesheet" href="/css/portal.css?v=20260725f">
+  <link rel="stylesheet" href="/css/style.css?v=20260725g"><link rel="stylesheet" href="/css/portal.css?v=20260725g">
 </head>
 <body class="portal-body admin-scholarship-app-detail-page">
 <div class="portal-layout">
@@ -22,8 +22,7 @@
         <div class="page-heading-text"><h1 id="app-number">Scholarship Application</h1><div id="app-status"></div></div>
         <div class="page-heading-actions">
           <a href="/admin/scholarship-apps.html" class="btn btn-outline btn-sm"><i class="fas fa-arrow-left"></i> Back</a>
-          <button type="button" id="print-btn" class="btn btn-outline btn-sm" disabled onclick="printApp(false)"><i class="fas fa-print"></i> Print</button>
-          <button type="button" id="print-full-btn" class="btn btn-outline btn-sm" disabled onclick="printApp(true)" title="Includes every attachment — slower to prepare"><i class="fas fa-paperclip"></i> Print + Attachments</button>
+          <button type="button" id="print-btn" class="btn btn-outline btn-sm" disabled onclick="printApp()"><i class="fas fa-print"></i> Print</button>
         </div>
       </div>
       <div id="action-alert" class="hidden" style="margin-bottom:1rem"></div>
@@ -80,7 +79,7 @@
     </div>
   </main>
 </div>
-<script src="/admin/js/admin-api.js?v=20260725f"></script><script src="/admin/js/admin-portal.js?v=20260725f"></script>
+<script src="/admin/js/admin-api.js?v=20260725g"></script><script src="/admin/js/admin-portal.js?v=20260725g"></script>
 <script>
   document.getElementById('sidebar-placeholder').outerHTML = getSidebarHtml();
   document.getElementById('topbar-placeholder').outerHTML = getTopbarHtml('Scholarship Application');
@@ -94,9 +93,9 @@
   const DOC_LABELS = { letter_of_application:'Letter of Application', tsc_slip:'TSC Slip', kcse_certificate:'KCSE Certificate', kcse_cert:'KCSE Certificate', admission_letter:'Admission Letter', fee_structure:'Fee Structure', recommendation:'Recommendation', id_copy:'ID Copy', other:'Other' };
   let CURRENT = null;   // the loaded application, used by printApp()
 
-  // Print the application. withDocs=false → fast details-only page; true → full
-  // record with each attachment reproduced (slower — fetches + renders every file).
-  function printApp(withDocs){
+  // Print a clean, details-only record of the application (attachments are
+  // viewed on-screen, not printed).
+  function printApp(){
     const a = CURRENT; if(!a) return;
     const sections = [
       { title:'Application', rows:[
@@ -128,8 +127,7 @@
         ['Statement', a.essay ? escHtml(a.essay).replace(/\n/g,'<br>') : '—'],
       ]},
     ];
-    const documents = (a.documents||[]).map(d => ({ label: DOC_LABELS[d.doc_type]||d.doc_type||'Document', file_url: d.file_url }));
-    printApplication({ heading:'Scholarship Application — '+(a.application_number||''), subheading:escHtml(a.scholarship_title||''), sections, documents, includeDocuments: !!withDocs });
+    printApplication({ heading:'Scholarship Application — '+(a.application_number||''), subheading:escHtml(a.scholarship_title||''), sections });
   }
 
   const section = (title, rows) => `
@@ -146,7 +144,6 @@
       const a = res.data;
       CURRENT = a;
       document.getElementById('print-btn').disabled = false;
-      document.getElementById('print-full-btn').disabled = false;
       document.getElementById('app-number').textContent = a.application_number;
       document.getElementById('app-status').innerHTML = statusBadge(a.status);
 

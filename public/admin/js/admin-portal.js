@@ -53,102 +53,14 @@ async function viewDoc(fileUrlOrName) {
 }
 window.viewDoc = viewDoc;
 
-// Lazy-load the locally-vendored PDF.js (self-hosted so it stays within the
-// site CSP — script-src 'self', worker from 'self'). Loaded only when a print
-// job actually contains a PDF. Returns the pdfjsLib global.
-let _pdfjsPromise = null;
-function ensurePdfJs() {
-  if (window.pdfjsLib) return Promise.resolve(window.pdfjsLib);
-  if (_pdfjsPromise) return _pdfjsPromise;
-  _pdfjsPromise = new Promise((resolve, reject) => {
-    const s = document.createElement('script');
-    s.src = '/vendor/pdfjs/pdf.min.js';
-    s.onload = () => {
-      if (!window.pdfjsLib) return reject(new Error('pdf.js failed to initialise'));
-      window.pdfjsLib.GlobalWorkerOptions.workerSrc = '/vendor/pdfjs/pdf.worker.min.js';
-      resolve(window.pdfjsLib);
-    };
-    s.onerror = () => reject(new Error('pdf.js failed to load'));
-    document.head.appendChild(s);
-  });
-  return _pdfjsPromise;
-}
-
-// Read a Blob as a data: URL (CSP img-src allows data: but not blob:, so we
-// embed everything as data URLs for reliable printing in the popup window).
-function blobToDataUrl(blob) {
-  return new Promise((resolve, reject) => {
-    const fr = new FileReader();
-    fr.onload = () => resolve(fr.result);
-    fr.onerror = () => reject(fr.error || new Error('read failed'));
-    fr.readAsDataURL(blob);
-  });
-}
-
-// Render every page of a PDF blob to a JPEG data: URL via PDF.js, so PDF
-// attachments print exactly like image attachments (guaranteed, browser-independent).
-async function pdfToImageDataUrls(blob, scale = 1.6) {
-  const pdfjsLib = await ensurePdfJs();
-  const pdf = await pdfjsLib.getDocument({ data: await blob.arrayBuffer() }).promise;
-  const pages = [];
-  for (let n = 1; n <= pdf.numPages; n++) {
-    const page = await pdf.getPage(n);
-    const viewport = page.getViewport({ scale });
-    const canvas = document.createElement('canvas');
-    canvas.width = Math.ceil(viewport.width);
-    canvas.height = Math.ceil(viewport.height);
-    await page.render({ canvasContext: canvas.getContext('2d'), viewport }).promise;
-    pages.push(canvas.toDataURL('image/jpeg', 0.85));
-  }
-  return pages;
-}
-
-// Print an application (BBF claim / scholarship app) as a clean, branded
-// document with its attachments embedded inline so the whole file prints as one
-// job. Images and PDF pages are all embedded as data: images (PDFs rendered via
-// PDF.js) so everything prints reliably. Attachments are fetched as blobs
-// (auth-protected) and rendered into a fresh window.
-// opts = { heading, subheading, sections:[{title, rows:[[k, vHtml], …]}], documents:[{label, file_url}], footer }
-async function printApplication(opts) {
-  const { heading = 'Application', subheading = '', sections = [], documents = [], footer = '', includeDocuments = true } = opts || {};
+// Print an application (BBF claim / scholarship app) as a clean, branded,
+// details-only document. Attachments are viewed on-screen (viewDoc), never
+// printed, so this opens instantly with no blob fetching or PDF rendering.
+// opts = { heading, subheading, sections:[{title, rows:[[k, vHtml], …]}], footer }
+function printApplication(opts) {
+  const { heading = 'Application', subheading = '', sections = [], footer = '' } = opts || {};
   const w = window.open('', '_blank');
   if (!w) { alert('Please allow pop-ups for this site to print.'); return; }
-  // Details-only prints skip the slow attachment fetch + PDF.js rendering entirely.
-  const withDocs = includeDocuments && documents.length > 0;
-  w.document.write('<!doctype html><meta charset="utf-8"><title>' + escHtml(heading) +
-    '</title><body style="font-family:Arial,sans-serif;padding:2rem;color:#333">' +
-    (withDocs ? 'Preparing document &amp; attachments…' : 'Preparing document…') + '</body>');
-  w.document.close();
-
-  // Pull each attachment as a blob (needs the Bearer token) and turn it into one
-  // or more data: images: image files directly, PDFs page-by-page via PDF.js.
-  // Each entry is { label, src } (a data URL) or { label, error, note }.
-  // Skipped for details-only prints — this loop is what makes a full print slow.
-  const atts = [];
-  if (withDocs) {
-    for (const d of documents) {
-      try {
-        const blob = await fetchDocBlob(d.file_url);
-        const isPdf = /pdf/i.test(blob.type) || /\.pdf(\?|$)/i.test(d.file_url || '');
-        if (isPdf) {
-          try {
-            const pages = await pdfToImageDataUrls(blob);
-            if (!pages.length) throw new Error('empty pdf');
-            pages.forEach((src, i) => atts.push({
-              label: d.label + (pages.length > 1 ? ` — page ${i + 1} of ${pages.length}` : ''),
-              src,
-            }));
-          } catch (_) {
-            atts.push({ label: d.label, error: true, note: 'This PDF could not be rendered for printing.' });
-          }
-        } else {
-          atts.push({ label: d.label, src: await blobToDataUrl(blob) });
-        }
-      } catch (_) {
-        atts.push({ label: d.label, error: true });
-      }
-    }
-  }
 
   const sectionsHtml = sections.map(s => `
     <div class="sec">
@@ -156,20 +68,6 @@ async function printApplication(opts) {
       <table>${s.rows.map(([k, v]) => `<tr><td class="k">${escHtml(k)}</td><td>${v == null || v === '' ? '—' : v}</td></tr>`).join('')}</table>
     </div>`).join('');
 
-  const attsHtml = atts.map(a => a.error
-    ? `<div class="att"><h2>${escHtml(a.label)}</h2><p class="err">${escHtml(a.note || 'This attachment could not be loaded.')}</p></div>`
-    : `<div class="att"><h2>${escHtml(a.label)}</h2><img src="${a.src}" alt="${escHtml(a.label)}"></div>`
-  ).join('');
-
-  // On a details-only print, omit the Attachments section entirely; note when
-  // attachments exist but were intentionally left out.
-  const attIntro = !withDocs
-    ? (includeDocuments || !documents.length
-        ? `<div class="sec"><h2>Attachments</h2><p class="muted">No attachments on file.</p></div>`
-        : `<div class="sec"><h2>Attachments</h2><p class="muted">${documents.length} attachment(s) on file — omitted from this details-only printout.</p></div>`)
-    : `<div class="sec"><h2>Attachments (${documents.length})</h2><p class="muted">Each attachment is reproduced on its own page below.</p></div>`;
-
-  w.document.open();
   w.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>${escHtml(heading)}</title>
     <style>
       @page { margin: 1.4cm; }
@@ -186,10 +84,6 @@ async function printApplication(opts) {
       table { width:100%; border-collapse:collapse; font-size:0.85rem; }
       td { padding:0.32rem 0; vertical-align:top; }
       td.k { color:#718096; width:38%; }
-      .muted { color:#718096; font-size:0.82rem; }
-      .err { color:#991B1B; font-size:0.82rem; }
-      .att { page-break-before: always; }
-      .att img { max-width:100%; height:auto; display:block; margin-top:0.5rem; }
       .foot { margin-top:1.5rem; padding-top:0.8rem; border-top:1px solid #e2e8f0; font-size:0.72rem; color:#718096; }
     </style></head>
     <body>
@@ -199,11 +93,9 @@ async function printApplication(opts) {
         <div class="org">KUPPET Migori Branch<br>Cosade Building, 3rd Floor, Migori Town<br>info@kuppetmigori.co.ke</div>
       </div>
       ${sectionsHtml}
-      ${attIntro}
-      ${attsHtml}
       <div class="foot">Printed ${escHtml(new Date().toLocaleString('en-KE'))} · KUPPET Migori administrative record${footer ? ' · ' + escHtml(footer) : ''}</div>
       <script>
-        window.addEventListener('load', function(){ setTimeout(function(){ window.focus(); window.print(); }, 400); });
+        window.addEventListener('load', function(){ setTimeout(function(){ window.focus(); window.print(); }, 300); });
       <\/script>
     </body></html>`);
   w.document.close();
