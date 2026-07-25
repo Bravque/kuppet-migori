@@ -32,7 +32,9 @@ async function notifySafely(payload) {
 // Build the claims filter once (status, search) so the list, its count and the
 // Excel export all stay in sync. Returns { where, params }.
 function buildBbfFilter({ status, search, school_category, sub_county, school, gender } = {}) {
-  let where = 'WHERE 1=1';
+  // Drafts are a member's unsubmitted work-in-progress — they never appear in the
+  // admin queue (list, count or export), regardless of any status filter passed.
+  let where = "WHERE bc.status <> 'draft'";
   const params = [];
   if (status) { where += ' AND bc.status = ?'; params.push(status); }
   if (school_category) { where += ' AND m.school_category = ?'; params.push(school_category); }

@@ -78,6 +78,7 @@ const memberApi = (() => {
     bbf: {
       getAll: () => request('/member/bbf'),
       create: (d) => request('/member/bbf', { method: 'POST', body: JSON.stringify(d) }),
+      update: (id, d) => request(`/member/bbf/${id}`, { method: 'PUT', body: JSON.stringify(d) }),
       getOne: (id) => request(`/member/bbf/${id}`),
       submit: (id) => request(`/member/bbf/${id}/submit`, { method: 'POST', body: '{}' }),
       uploadDocs: (id, form) => request(`/member/bbf/${id}/documents`, { method: 'POST', body: form }),
@@ -89,6 +90,7 @@ const memberApi = (() => {
       apply: (id, form) => request(`/member/scholarships/${id}/apply`, { method: 'POST', body: form }),
       getApplications: () => request('/member/scholarships/applications'),
       getOneApplication: (id) => request(`/member/scholarships/applications/${id}`),
+      reuploadDoc: (id, form) => request(`/member/scholarships/applications/${id}/documents`, { method: 'POST', body: form }),
     },
 
     notifications: {

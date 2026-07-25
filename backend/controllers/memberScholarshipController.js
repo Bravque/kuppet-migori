@@ -103,9 +103,55 @@ async function getApplications(req, res) {
        ORDER BY sa.created_at DESC`,
       [req.member.id]
     );
+    // Attach each application's documents so the member can review/replace them
+    // from the list (one extra query, not per-application).
+    if (apps.length) {
+      const [docs] = await db.query(
+        'SELECT * FROM scholarship_application_documents WHERE application_id IN (?)',
+        [apps.map(a => a.id)]
+      );
+      const byApp = {};
+      for (const d of docs) (byApp[d.application_id] ||= []).push(d);
+      for (const a of apps) a.documents = byApp[a.id] || [];
+    }
     res.json({ success: true, data: apps });
   } catch (err) {
     res.status(500).json({ success: false, message: 'Failed to fetch applications' });
+  }
+}
+
+// Replace one of the required documents on an application that is still awaiting
+// review (status "applied"). Once an admin starts reviewing (or a decision is
+// made) the documents lock.
+async function reuploadDocument(req, res) {
+  try {
+    const docType = req.body.doc_type;
+    if (!REQUIRED_DOCS.find(d => d.field === docType)) {
+      return res.status(400).json({ success: false, message: 'Invalid document type' });
+    }
+    if (!req.file) return res.status(400).json({ success: false, message: 'No file uploaded' });
+
+    const [[app]] = await db.query(
+      'SELECT id, status FROM scholarship_applications WHERE id = ? AND member_id = ?',
+      [req.params.id, req.member.id]
+    );
+    if (!app) return res.status(404).json({ success: false, message: 'Application not found' });
+    if (app.status !== 'applied') {
+      return res.status(400).json({ success: false, message: 'Documents can only be changed while the application is awaiting review' });
+    }
+
+    // Swap the existing document of this type for the new upload.
+    await db.query(
+      'DELETE FROM scholarship_application_documents WHERE application_id = ? AND doc_type = ?',
+      [app.id, docType]
+    );
+    await db.query(
+      'INSERT INTO scholarship_application_documents (application_id, doc_type, file_url, file_name, file_size) VALUES (?, ?, ?, ?, ?)',
+      [app.id, docType, `/uploads/scholarships/${req.file.filename}`, req.file.originalname, req.file.size]
+    );
+    res.json({ success: true, message: 'Document replaced' });
+  } catch (err) {
+    res.status(500).json({ success: false, message: 'Re-upload failed' });
   }
 }
 
@@ -127,4 +173,4 @@ async function getOneApplication(req, res) {
   }
 }
 
-module.exports = { getAvailable, apply, getApplications, getOneApplication };
+module.exports = { getAvailable, apply, getApplications, getOneApplication, reuploadDocument };

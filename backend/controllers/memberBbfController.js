@@ -60,6 +60,46 @@ async function create(req, res) {
   }
 }
 
+// Edit a draft claim's particulars (type + death-specific fields). Only allowed
+// while the claim is still a draft — once submitted it is locked.
+async function update(req, res) {
+  try {
+    const { claim_type, deceased_name, relationship, date_of_death } = req.body;
+
+    if (!claim_type || !['death', 'retirement'].includes(claim_type)) {
+      return res.status(400).json({ success: false, message: 'Claim type must be death or retirement' });
+    }
+    if (claim_type === 'death' && (!deceased_name || !relationship || !date_of_death)) {
+      return res.status(400).json({ success: false, message: 'Deceased name, relationship and date of death are required for a death claim' });
+    }
+
+    const [[claim]] = await db.query(
+      'SELECT status FROM bbf_claims WHERE id = ? AND member_id = ?',
+      [req.params.id, req.member.id]
+    );
+    if (!claim) return res.status(404).json({ success: false, message: 'Claim not found' });
+    if (claim.status !== 'draft') return res.status(400).json({ success: false, message: 'Only draft claims can be edited' });
+
+    // For a death claim the "name" is the deceased relative; for retirement it is the member (the retiree).
+    const [[m]] = await db.query('SELECT full_name FROM members WHERE id = ?', [req.member.id]);
+    const claimName = claim_type === 'death' ? deceased_name : m.full_name;
+
+    await db.query(
+      'UPDATE bbf_claims SET claim_type = ?, deceased_name = ?, relationship = ?, date_of_death = ? WHERE id = ?',
+      [
+        claim_type, claimName,
+        claim_type === 'death' ? relationship : null,
+        claim_type === 'death' ? date_of_death : null,
+        req.params.id,
+      ]
+    );
+    const [[updated]] = await db.query('SELECT * FROM bbf_claims WHERE id = ?', [req.params.id]);
+    res.json({ success: true, data: updated, message: 'Claim updated' });
+  } catch (err) {
+    res.status(500).json({ success: false, message: 'Failed to update claim' });
+  }
+}
+
 async function getOne(req, res) {
   try {
     const [[claim]] = await db.query(
@@ -176,4 +216,4 @@ async function getTimeline(req, res) {
   }
 }
 
-module.exports = { getAll, create, getOne, submitClaim, uploadDocuments, getTimeline };
+module.exports = { getAll, create, update, getOne, submitClaim, uploadDocuments, getTimeline };

@@ -21,5 +21,7 @@ router.get('/', authenticateMember, ctrl.getAvailable);
 router.get('/applications', authenticateMember, ctrl.getApplications);
 router.get('/applications/:id', authenticateMember, idParam, handleValidation, ctrl.getOneApplication);
 router.post('/:id/apply', authenticateMember, scholarshipUploads, idParam, applyRules, handleValidation, ctrl.apply);
+// Replace one required document on a still-pending ("applied") application.
+router.post('/applications/:id/documents', authenticateMember, upload.scholarshipDocs.single('file'), idParam, handleValidation, ctrl.reuploadDocument);
 
 module.exports = router;

@@ -478,12 +478,57 @@ async function initMemberBbfDetail() {
 
   loadClaimDetail(id);
   document.getElementById('btn-submit-claim')?.addEventListener('click', () => submitClaim(id));
+  document.getElementById('btn-edit-claim')?.addEventListener('click', openEditClaim);
+  document.getElementById('edit-claim-type')?.addEventListener('change', toggleEditDeathFields);
+  document.getElementById('btn-save-claim')?.addEventListener('click', () => saveClaimEdit(id));
+  document.querySelectorAll('.modal-close-btn').forEach(b => b.addEventListener('click', () => b.closest('.portal-modal-overlay').classList.remove('open')));
+}
+
+// Holds the currently-loaded claim so the edit modal can prefill from it.
+let currentBbfClaim = null;
+
+function toggleEditDeathFields() {
+  const type = document.getElementById('edit-claim-type')?.value;
+  const df = document.getElementById('edit-death-only-fields');
+  if (df) df.style.display = type === 'death' ? '' : 'none';
+}
+
+function openEditClaim() {
+  const c = currentBbfClaim;
+  if (!c) return;
+  document.getElementById('edit-claim-type').value = c.claim_type;
+  document.getElementById('edit-claim-name').value = c.claim_type === 'death' ? (c.deceased_name || '') : '';
+  document.getElementById('edit-claim-relationship').value = c.relationship || '';
+  document.getElementById('edit-claim-dod').value = c.date_of_death ? String(c.date_of_death).slice(0, 10) : '';
+  toggleEditDeathFields();
+  document.getElementById('edit-claim-modal').classList.add('open');
+}
+
+async function saveClaimEdit(id) {
+  const type = document.getElementById('edit-claim-type').value;
+  const payload = {
+    claim_type: type,
+    deceased_name: document.getElementById('edit-claim-name').value.trim(),
+    relationship: document.getElementById('edit-claim-relationship').value.trim(),
+    date_of_death: document.getElementById('edit-claim-dod').value || null,
+  };
+  if (!type) { showMsg('edit-claim-msg', 'Claim type required'); return; }
+  if (type === 'death' && (!payload.deceased_name || !payload.relationship || !payload.date_of_death)) {
+    showMsg('edit-claim-msg', 'Name of deceased, relationship and date of death are required for a death claim'); return;
+  }
+  try {
+    await memberApi.bbf.update(id, payload);
+    document.getElementById('edit-claim-modal').classList.remove('open');
+    showMsg('detail-msg', 'Claim updated', 'success');
+    loadClaimDetail(id);
+  } catch (err) { showMsg('edit-claim-msg', err.message); }
 }
 
 async function loadClaimDetail(id) {
   try {
     const res = await memberApi.bbf.getOne(id);
     const c = res.data;
+    currentBbfClaim = c;
     document.getElementById('claim-number').textContent = c.claim_number;
 
     const claimRows = [
@@ -516,10 +561,12 @@ async function loadClaimDetail(id) {
     }
     document.getElementById('claim-details').innerHTML = html;
 
-    // Show submit button only for drafts
+    // Show submit + edit buttons only for drafts
     const isDraft = c.status === 'draft';
     const submitBtn = document.getElementById('btn-submit-claim');
     if (submitBtn) submitBtn.style.display = isDraft ? '' : 'none';
+    const editBtn = document.getElementById('btn-edit-claim');
+    if (editBtn) editBtn.style.display = isDraft ? '' : 'none';
 
     // Document slots
     const slotsEl = document.getElementById('doc-slots');
@@ -648,11 +695,68 @@ async function submitApplication() {
 }
 
 // ── Scholarship Applications list ─────────────────────────────────────────────
+// The two required scholarship documents (mirror REQUIRED_DOCS on the backend).
+const SCH_DOC_SLOTS = [
+  { type: 'letter_of_application', label: 'Letter of Application' },
+  { type: 'tsc_slip',             label: 'TSC Slip' },
+];
+
+// Document slots for one application. A member may replace a document only while
+// the application is still awaiting review ("applied").
+function renderSchDocSlots(app) {
+  const canEdit = app.status === 'applied';
+  return `
+    <div style="border-top:1px solid #e6eaf0;padding:0.85rem 1.25rem">
+      <div style="font-size:0.72rem;text-transform:uppercase;letter-spacing:0.05em;color:var(--text-muted);margin-bottom:0.5rem">Documents</div>
+      ${SCH_DOC_SLOTS.map(slot => {
+        const doc = (app.documents || []).find(d => d.doc_type === slot.type);
+        const key = `${app.id}-${slot.type}`;
+        return `
+        <div class="doc-slot">
+          <div class="doc-slot-info">
+            <span class="doc-slot-name"><i class="fas fa-file-alt"></i> ${escHtml(slot.label)}</span>
+            <div class="doc-slot-status">
+              ${doc
+                ? `<span class="doc-uploaded"><i class="fas fa-check-circle"></i> ${escHtml(doc.file_name || doc.file_url)}</span>`
+                : `<span class="doc-not-uploaded"><i class="fas fa-times-circle"></i> Not uploaded</span>`}
+            </div>
+          </div>
+          ${canEdit ? `
+          <div class="doc-slot-upload">
+            <input type="file" id="sch-file-${key}" accept="image/jpeg,image/png,application/pdf,.jpg,.jpeg,.png,.pdf" style="display:none">
+            <button class="btn btn-outline btn-xs" data-choose="${key}"><i class="fas fa-paperclip"></i> Choose</button>
+            <span class="doc-slot-filename" id="sch-fname-${key}"></span>
+            <button class="btn btn-gold btn-xs" data-upload="${app.id}|${slot.type}"><i class="fas fa-upload"></i> Replace</button>
+          </div>` : ''}
+        </div>`;
+      }).join('')}
+    </div>`;
+}
+
 async function initScholarshipApplications() {
   if (!document.querySelector('.member-schapp-page')) return;
   const member = requireMemberAuth(); if (!member) return;
   initMemberSidebar(member); loadNotifCount();
 
+  const el = document.getElementById('applications-list');
+  if (!el) return;
+  // Delegated handlers — the list re-renders after each replace.
+  el.addEventListener('click', (e) => {
+    const chooseBtn = e.target.closest('[data-choose]');
+    if (chooseBtn) { document.getElementById('sch-file-' + chooseBtn.dataset.choose)?.click(); return; }
+    const upBtn = e.target.closest('[data-upload]');
+    if (upBtn) { const [id, type] = upBtn.dataset.upload.split('|'); reuploadSchDoc(id, type); }
+  });
+  el.addEventListener('change', (e) => {
+    const inp = e.target.closest('input[type=file]');
+    if (!inp || !inp.id.startsWith('sch-file-')) return;
+    const fn = document.getElementById('sch-fname-' + inp.id.slice('sch-file-'.length));
+    if (fn) fn.textContent = inp.files[0]?.name || '';
+  });
+  loadScholarshipApplications();
+}
+
+async function loadScholarshipApplications() {
   const el = document.getElementById('applications-list');
   if (!el) return;
   el.innerHTML = '<div class="portal-loading"><i class="fas fa-spinner fa-spin"></i> Loading…</div>';
@@ -669,8 +773,21 @@ async function initScholarshipApplications() {
           </div>
           ${statusBadge(a.status)}
         </div>
+        ${renderSchDocSlots(a)}
       </div>`).join('');
   } catch (err) { el.innerHTML = `<div class="alert alert-danger">${escHtml(err.message)}</div>`; }
+}
+
+async function reuploadSchDoc(id, docType) {
+  const inp = document.getElementById(`sch-file-${id}-${docType}`);
+  if (!inp || !inp.files[0]) { alert('Please choose a file first'); return; }
+  const form = new FormData();
+  form.append('file', inp.files[0]);
+  form.append('doc_type', docType);
+  try {
+    await memberApi.scholarships.reuploadDoc(id, form);
+    loadScholarshipApplications();
+  } catch (err) { alert(err.message); }
 }
 
 // ── Notifications ─────────────────────────────────────────────────────────────
