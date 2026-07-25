@@ -644,10 +644,14 @@ INSERT IGNORE INTO sms_templates (name, body, category, created_by) VALUES
 ('Registration Approved', 'Dear {{member_name}}, your KUPPET Migori membership application has been approved. Your member number is {{member_number}}. Welcome to the union! - KUPPET Migori', 'general', 1),
 ('Registration Rejected', 'Dear {{member_name}}, your KUPPET Migori membership application could not be approved at this time. Reason: {{reason}}. Please visit our office for assistance. - KUPPET Migori', 'general', 1),
 ('BBF Claim Submitted', 'Dear {{member_name}}, your BBF claim {{claim_number}} has been received and is under processing. You will be notified of updates. - KUPPET Migori', 'bbf', 1),
+('BBF Claim Under Review', 'Dear {{member_name}}, your BBF claim {{claim_number}} is now UNDER REVIEW. You will be notified of the outcome. - KUPPET Migori', 'bbf', 1),
 ('BBF Claim Approved', 'Dear {{member_name}}, your BBF claim {{claim_number}} has been APPROVED. Amount: KES {{amount}}. Payment will be processed shortly. - KUPPET Migori', 'bbf', 1),
 ('BBF Claim Rejected', 'Dear {{member_name}}, your BBF claim {{claim_number}} could not be approved. Reason: {{reason}}. Contact the welfare desk for guidance. - KUPPET Migori', 'bbf', 1),
+('BBF Claim Paid', 'Dear {{member_name}}, payment for your BBF claim {{claim_number}} has been PROCESSED. Ref: {{reference}}. - KUPPET Migori', 'bbf', 1),
+('Scholarship Application Submitted', 'Dear {{member_name}}, your scholarship application {{app_number}} has been received and is under review. - KUPPET Migori', 'scholarship', 1),
 ('Scholarship Application Approved', 'Dear {{member_name}}, the scholarship application for {{applicant_name}} ({{scholarship_title}}) has been APPROVED. Congratulations! - KUPPET Migori', 'scholarship', 1),
 ('Scholarship Application Rejected', 'Dear {{member_name}}, the scholarship application for {{applicant_name}} was unsuccessful this time. Keep applying for future opportunities. - KUPPET Migori', 'scholarship', 1),
+('Scholarship Application Paid', 'Dear {{member_name}}, your scholarship award for {{scholarship_title}} has been PAID. Amount: KES {{amount}}. Ref: {{reference}}. - KUPPET Migori', 'scholarship', 1),
 ('Event Reminder', 'Dear {{member_name}}, reminder: {{event_title}} is scheduled for {{event_date}} at {{event_venue}}. Your attendance is important. - KUPPET Migori', 'general', 1);
 
 -- ============================================
