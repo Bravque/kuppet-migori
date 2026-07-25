@@ -32,6 +32,12 @@
       </div>
       <div class="filter-bar">
         <input type="search" class="form-control" id="school-search" placeholder="Search by school...">
+        <select class="form-control" id="type-filter">
+          <option value="">All Types</option>
+          <option value="kcse">KCSE</option>
+          <option value="kjsea">KJSEA</option>
+          <option value="dte">DTE</option>
+        </select>
         <select class="form-control" id="category-filter">
           <option value="">All Categories</option>
           <option value="senior_school">Senior School</option>
@@ -50,6 +56,13 @@
           <option value="female">Female</option>
           <option value="other">Other</option>
         </select>
+        <div style="display:flex;align-items:center;gap:.35rem">
+          <span style="font-size:.8rem;color:var(--text-muted)">Applied</span>
+          <input type="date" class="form-control" id="date-from" aria-label="Applied from" title="Applied from (inclusive)">
+          <span style="font-size:.8rem;color:var(--text-muted)">to</span>
+          <input type="date" class="form-control" id="date-to" aria-label="Applied to" title="Applied to (inclusive)">
+          <button id="date-clear" class="btn btn-outline btn-xs" title="Clear dates" type="button"><i class="fas fa-times"></i></button>
+        </div>
       </div>
       <div class="data-card">
         <div class="data-table-wrap">
@@ -71,7 +84,8 @@
   // Honour a ?status= deep-link (e.g. from the dashboard Quick Actions).
   let currentStatus=new URLSearchParams(window.location.search).get('status')||'', schOffset=0; const SCH_LIMIT=30;
   let currentCategory='', currentSubCounty='', currentGender='', currentSchool='';
-  const schFilters=()=>({status:currentStatus,school_category:currentCategory,sub_county:currentSubCounty,gender:currentGender,school:currentSchool});
+  let currentType='', currentFrom='', currentTo='';
+  const schFilters=()=>({status:currentStatus,scholarship_type:currentType,school_category:currentCategory,sub_county:currentSubCounty,gender:currentGender,school:currentSchool,date_from:currentFrom,date_to:currentTo});
   async function loadApps(){
     const tbody=document.getElementById('sch-tbody');
     tbody.innerHTML='<tr><td colspan="7">'+renderLoading()+'</td></tr>';
@@ -98,9 +112,13 @@
     });
   });
   let sst;document.getElementById('school-search').addEventListener('input',function(){clearTimeout(sst);sst=setTimeout(()=>{currentSchool=this.value;schOffset=0;loadApps();},400);});
+  document.getElementById('type-filter').addEventListener('change',function(){currentType=this.value;schOffset=0;loadApps();});
   document.getElementById('category-filter').addEventListener('change',function(){currentCategory=this.value;schOffset=0;loadApps();});
   document.getElementById('subcounty-filter').addEventListener('change',function(){currentSubCounty=this.value;schOffset=0;loadApps();});
   document.getElementById('gender-filter').addEventListener('change',function(){currentGender=this.value;schOffset=0;loadApps();});
+  document.getElementById('date-from').addEventListener('change',function(){currentFrom=this.value;schOffset=0;loadApps();});
+  document.getElementById('date-to').addEventListener('change',function(){currentTo=this.value;schOffset=0;loadApps();});
+  document.getElementById('date-clear').addEventListener('click',function(){currentFrom='';currentTo='';document.getElementById('date-from').value='';document.getElementById('date-to').value='';schOffset=0;loadApps();});
   // Export mirrors the active filters, not the whole table.
   document.getElementById('btn-export').addEventListener('click',function(){adminApi.schApps.exportExcel(schFilters()).catch(e=>alert(e.message));});
   loadApps();
