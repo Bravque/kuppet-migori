@@ -56,7 +56,7 @@ async function getMonthlyTrends(req, res) {
     const [bbfRows] = await db.query(`
       SELECT DATE_FORMAT(created_at, '%Y-%m') as month, COUNT(*) as count
       FROM bbf_claims
-      WHERE created_at >= DATE_SUB(NOW(), INTERVAL 12 MONTH)
+      WHERE status != 'draft' AND created_at >= DATE_SUB(NOW(), INTERVAL 12 MONTH)
       GROUP BY month ORDER BY month ASC
     `);
     const [smsRows] = await db.query(`

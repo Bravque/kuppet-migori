@@ -18,6 +18,7 @@ const createRules = [
 router.get('/', authenticateMember, ctrl.getAll);
 router.post('/', authenticateMember, createRules, handleValidation, ctrl.create);
 router.get('/:id', authenticateMember, idParam, handleValidation, ctrl.getOne);
+router.put('/:id', authenticateMember, idParam, createRules, handleValidation, ctrl.update);
 router.post('/:id/submit', authenticateMember, idParam, handleValidation, ctrl.submitClaim);
 router.post('/:id/documents', authenticateMember, upload.bbfDocs.array('files', 5), idParam, handleValidation, ctrl.uploadDocuments);
 router.get('/:id/timeline', authenticateMember, idParam, handleValidation, ctrl.getTimeline);
