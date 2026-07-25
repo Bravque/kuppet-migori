@@ -360,6 +360,7 @@ DB stores URL paths (`/uploads/<sub>/<file>`); these are served from the filesys
 | `POST /api/member/auth/login` | 20 req / 15 min |
 | `POST /api/member/auth/register` | 8 req / hr (only **successful** registrations count — `skipFailedRequests`) |
 | `POST /api/member/auth/forgot-password` | 5 req / hr |
+| `POST /api/member/scholarships/:id/apply` | 30 req / 15 min (tune via `SCH_APPLY_RATE_MAX`; runs before the upload; the `UNIQUE(member,scholarship)` key blocks true duplicates) |
 | `POST /api/admin/sms/send` | 20 req / min |
 | `POST /api/admin/sms/bulk` | 3 req / hr |
 | `POST /api/admin/email/send` | 20 req / min |

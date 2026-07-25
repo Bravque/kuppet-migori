@@ -24,7 +24,7 @@ async function apply(req, res) {
   try {
     const id = req.params.id;
 
-    const [[scholarship]] = await db.query('SELECT * FROM scholarships WHERE id = ? AND is_active = 1', [id]);
+    const [[scholarship]] = await db.query('SELECT id, title FROM scholarships WHERE id = ? AND is_active = 1', [id]);
     if (!scholarship) return res.status(404).json({ success: false, message: 'Scholarship not found' });
 
     const [[existing]] = await db.query(
@@ -48,20 +48,35 @@ async function apply(req, res) {
     const { institution, course, year_of_study, academic_year, essay } = req.body;
     const appNumber = await nextSeq('schapp_seq', 'SAPP');
 
-    const [result] = await db.query(
-      `INSERT INTO scholarship_applications
-         (application_number, member_id, scholarship_id, applicant_name, institution, course, year_of_study, academic_year, essay)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [appNumber, req.member.id, id, member.full_name, institution || null, course || null,
-       year_of_study || null, academic_year || null, essay || null]
-    );
-
-    for (const { field } of REQUIRED_DOCS) {
-      const file = files[field][0];
-      await db.query(
-        'INSERT INTO scholarship_application_documents (application_id, doc_type, file_url, file_name, file_size) VALUES (?, ?, ?, ?, ?)',
-        [result.insertId, field, `/uploads/scholarships/${file.filename}`, file.originalname, file.size]
+    // Persist the application and its documents atomically — one transaction plus a
+    // single multi-row insert for the docs — so a partial failure never leaves an
+    // application without its files, and fewer round-trips are held during a rush.
+    const conn = await db.getConnection();
+    let applicationId;
+    try {
+      await conn.beginTransaction();
+      const [result] = await conn.query(
+        `INSERT INTO scholarship_applications
+           (application_number, member_id, scholarship_id, applicant_name, institution, course, year_of_study, academic_year, essay)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [appNumber, req.member.id, id, member.full_name, institution || null, course || null,
+         year_of_study || null, academic_year || null, essay || null]
       );
+      applicationId = result.insertId;
+      const docValues = REQUIRED_DOCS.map(({ field }) => {
+        const file = files[field][0];
+        return [applicationId, field, `/uploads/scholarships/${file.filename}`, file.originalname, file.size];
+      });
+      await conn.query(
+        'INSERT INTO scholarship_application_documents (application_id, doc_type, file_url, file_name, file_size) VALUES ?',
+        [docValues]
+      );
+      await conn.commit();
+    } catch (err) {
+      await conn.rollback();
+      throw err;
+    } finally {
+      conn.release();
     }
 
     // Fire-and-forget: the SMS + SMTP round-trip must not hold the response open —
@@ -76,7 +91,7 @@ async function apply(req, res) {
       type: 'scholarship',
       title: msg.title,
       body: msg.body,
-      referenceId: result.insertId,
+      referenceId: applicationId,
       email: true,
       smsMessage: msg.sms,
     }).catch(() => {});

@@ -53,7 +53,9 @@ module.exports = {
 
   scholarshipDocs: multer({
     storage: storage('scholarships'),
-    limits: { fileSize: 10 * MB },
+    // 5 MB is ample for a scanned letter + TSC slip; the smaller cap sharply cuts
+    // bandwidth/disk per application, which matters most during an application rush.
+    limits: { fileSize: 5 * MB },
     fileFilter: fileFilter(PDF_IMG),
   }),
 
