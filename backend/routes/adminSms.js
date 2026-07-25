@@ -18,7 +18,13 @@ const groupRules = [
   body('message').trim().notEmpty().withMessage('Message required').isLength({ max: 1600 }),
   body('sub_county').if(body('group').equals('sub_county')).trim().notEmpty().withMessage('sub_county required for a sub-county send').isLength({ max: 150 }),
 ];
-const templateRules = [
+// Create requires name + body; update lets any subset through (partial edit).
+const templateCreateRules = [
+  body('name').trim().notEmpty().withMessage('Name required').isLength({ max: 150 }),
+  body('body').trim().notEmpty().withMessage('Body required').isLength({ max: 1600 }),
+  body('category').optional().isIn(TEMPLATE_CATEGORIES).withMessage('Invalid template category'),
+];
+const templateUpdateRules = [
   body('name').optional().trim().notEmpty().withMessage('Name cannot be empty').isLength({ max: 150 }),
   body('body').optional().trim().notEmpty().withMessage('Body cannot be empty').isLength({ max: 1600 }),
   body('category').optional().isIn(TEMPLATE_CATEGORIES).withMessage('Invalid template category'),
@@ -33,7 +39,7 @@ router.post('/group', authenticate, authorizeAdmin, groupRules, handleValidation
 router.get('/logs', authenticate, authorizeAdmin, ctrl.getLogs);
 router.post('/logs/:id/check-status', authenticate, authorizeAdmin, auditLog('sms.check_status'), ctrl.checkStatus);
 router.get('/templates', authenticate, authorizeAdmin, ctrl.getTemplates);
-router.post('/templates', authenticate, authorizeAdmin, templateRules, handleValidation, ctrl.createTemplate);
-router.put('/templates/:id', authenticate, authorizeAdmin, templateRules, handleValidation, ctrl.updateTemplate);
+router.post('/templates', authenticate, authorizeAdmin, templateCreateRules, handleValidation, ctrl.createTemplate);
+router.put('/templates/:id', authenticate, authorizeAdmin, templateUpdateRules, handleValidation, ctrl.updateTemplate);
 
 module.exports = router;

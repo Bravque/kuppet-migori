@@ -179,8 +179,9 @@ async function checkDelivery(talksasaRef) {
 
 function normalizePhone(phone) {
   const digits = phone.replace(/\D/g, '');
-  if (digits.startsWith('0')) return '254' + digits.slice(1);
   if (digits.startsWith('254')) return digits;
+  if (digits.startsWith('0')) return '254' + digits.slice(1);           // 07XX… / 01XX…
+  if (digits.length === 9 && /^[17]/.test(digits)) return '254' + digits; // bare 7XXXXXXXX / 1XXXXXXXX
   return digits;
 }
 
