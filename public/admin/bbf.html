@@ -32,6 +32,11 @@
       </div>
       <div class="filter-bar">
         <input type="search" class="form-control" id="school-search" placeholder="Search by school...">
+        <select class="form-control" id="type-filter">
+          <option value="">All Types</option>
+          <option value="death">Death</option>
+          <option value="retirement">Retirement</option>
+        </select>
         <select class="form-control" id="category-filter">
           <option value="">All Categories</option>
           <option value="senior_school">Senior School</option>
@@ -50,6 +55,13 @@
           <option value="female">Female</option>
           <option value="other">Other</option>
         </select>
+        <div style="display:flex;align-items:center;gap:.35rem">
+          <span style="font-size:.8rem;color:var(--text-muted)">Submitted</span>
+          <input type="date" class="form-control" id="date-from" aria-label="Submitted from" title="Submitted from (inclusive)">
+          <span style="font-size:.8rem;color:var(--text-muted)">to</span>
+          <input type="date" class="form-control" id="date-to" aria-label="Submitted to" title="Submitted to (inclusive)">
+          <button id="date-clear" class="btn btn-outline btn-xs" title="Clear dates" type="button"><i class="fas fa-times"></i></button>
+        </div>
       </div>
       <div class="data-card">
         <div class="data-table-wrap">
@@ -71,7 +83,8 @@
   let currentStatus = new URLSearchParams(window.location.search).get('status') || '';
   let bbfOffset = 0; const BBF_LIMIT = 30;
   let currentCategory='', currentSubCounty='', currentGender='', currentSchool='';
-  const bbfFilters=()=>({status:currentStatus,school_category:currentCategory,sub_county:currentSubCounty,gender:currentGender,school:currentSchool});
+  let currentType='', currentFrom='', currentTo='';
+  const bbfFilters=()=>({status:currentStatus,claim_type:currentType,school_category:currentCategory,sub_county:currentSubCounty,gender:currentGender,school:currentSchool,date_from:currentFrom,date_to:currentTo});
   async function loadBbf() {
     const tbody = document.getElementById('bbf-tbody');
     tbody.innerHTML = '<tr><td colspan="6">'+renderLoading()+'</td></tr>';
@@ -98,9 +111,13 @@
     });
   });
   let sst;document.getElementById('school-search').addEventListener('input',function(){clearTimeout(sst);sst=setTimeout(()=>{currentSchool=this.value;bbfOffset=0;loadBbf();},400);});
+  document.getElementById('type-filter').addEventListener('change',function(){currentType=this.value;bbfOffset=0;loadBbf();});
   document.getElementById('category-filter').addEventListener('change',function(){currentCategory=this.value;bbfOffset=0;loadBbf();});
   document.getElementById('subcounty-filter').addEventListener('change',function(){currentSubCounty=this.value;bbfOffset=0;loadBbf();});
   document.getElementById('gender-filter').addEventListener('change',function(){currentGender=this.value;bbfOffset=0;loadBbf();});
+  document.getElementById('date-from').addEventListener('change',function(){currentFrom=this.value;bbfOffset=0;loadBbf();});
+  document.getElementById('date-to').addEventListener('change',function(){currentTo=this.value;bbfOffset=0;loadBbf();});
+  document.getElementById('date-clear').addEventListener('click',function(){currentFrom='';currentTo='';document.getElementById('date-from').value='';document.getElementById('date-to').value='';bbfOffset=0;loadBbf();});
   // Export mirrors the active filters, not the whole table.
   document.getElementById('btn-export').addEventListener('click',function(){adminApi.bbf.exportExcel(bbfFilters()).catch(e=>alert(e.message));});
   loadBbf();

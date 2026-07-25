@@ -31,16 +31,21 @@ async function notifySafely(payload) {
 
 // Build the claims filter once (status, search) so the list, its count and the
 // Excel export all stay in sync. Returns { where, params }.
-function buildBbfFilter({ status, search, school_category, sub_county, school, gender } = {}) {
+function buildBbfFilter({ status, search, school_category, sub_county, school, gender, claim_type, date_from, date_to } = {}) {
   // Drafts are a member's unsubmitted work-in-progress — they never appear in the
   // admin queue (list, count or export), regardless of any status filter passed.
   let where = "WHERE bc.status <> 'draft'";
   const params = [];
   if (status) { where += ' AND bc.status = ?'; params.push(status); }
+  if (claim_type) { where += ' AND bc.claim_type = ?'; params.push(claim_type); }
   if (school_category) { where += ' AND m.school_category = ?'; params.push(school_category); }
   if (sub_county) { where += ' AND m.sub_county = ?'; params.push(sub_county); }
   if (school) { where += ' AND m.school_name LIKE ?'; params.push(`%${school}%`); }
   if (gender) { where += ' AND m.gender = ?'; params.push(gender); }
+  // Date range on the submitted date (the "Submitted" column). Inclusive; either
+  // bound is optional, so a single date, a month or a whole year can be selected.
+  if (date_from) { where += ' AND DATE(bc.submitted_at) >= ?'; params.push(date_from); }
+  if (date_to) { where += ' AND DATE(bc.submitted_at) <= ?'; params.push(date_to); }
   if (search) { where += ' AND (bc.claim_number LIKE ? OR m.full_name LIKE ?)'; params.push(`%${search}%`, `%${search}%`); }
   return { where, params };
 }
