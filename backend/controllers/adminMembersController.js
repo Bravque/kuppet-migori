@@ -4,6 +4,17 @@ const { sendXlsx } = require('../utils/excel');
 const notificationService = require('../services/notificationService');
 const mailerService = require('../services/mailerService');
 
+// Member notifications are best-effort: the status change is already committed,
+// so a notification-delivery failure must not make the API report a failure the
+// admin would (wrongly) retry.
+async function notifySafely(payload) {
+  try {
+    await notificationService.createNotification(payload);
+  } catch (err) {
+    console.error('[notify] member notification failed for member', payload.memberId, '-', err.message);
+  }
+}
+
 // Build the members filter once (status, sub_county, gender, search, school) so the
 // list, its count and the Excel export all stay in sync. Returns { where, params }.
 function buildMemberFilter({ status, sub_county, gender, search, school } = {}) {
@@ -63,7 +74,7 @@ async function approve(req, res) {
       [req.user.id, member.id]
     );
 
-    await notificationService.createNotification({
+    await notifySafely({
       memberId: member.id,
       type: 'general',
       title: 'Membership Approved',
@@ -84,8 +95,9 @@ async function approve(req, res) {
 async function reject(req, res) {
   try {
     const { reason } = req.body;
-    const [[member]] = await db.query('SELECT id, full_name, email FROM members WHERE id = ?', [req.params.id]);
+    const [[member]] = await db.query('SELECT id, full_name, email, status FROM members WHERE id = ?', [req.params.id]);
     if (!member) return res.status(404).json({ success: false, message: 'Member not found' });
+    if (member.status === 'rejected') return res.status(400).json({ success: false, message: 'Already rejected' });
 
     await db.query(
       'UPDATE members SET status = "rejected", rejection_reason = ? WHERE id = ?',
@@ -103,8 +115,10 @@ async function reject(req, res) {
 
 async function suspend(req, res) {
   try {
-    const [[member]] = await db.query('SELECT id FROM members WHERE id = ?', [req.params.id]);
+    const [[member]] = await db.query('SELECT id, status FROM members WHERE id = ?', [req.params.id]);
     if (!member) return res.status(404).json({ success: false, message: 'Member not found' });
+    if (member.status === 'suspended') return res.status(400).json({ success: false, message: 'Already suspended' });
+    if (member.status !== 'approved') return res.status(400).json({ success: false, message: 'Only approved members can be suspended' });
     await db.query('UPDATE members SET status = "suspended" WHERE id = ?', [req.params.id]);
     res.json({ success: true, message: 'Member suspended' });
   } catch (err) {

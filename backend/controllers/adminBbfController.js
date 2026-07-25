@@ -9,11 +9,24 @@ const VALID_TRANSITIONS = {
   approved:     ['paid'],
 };
 
-async function addTimeline(claimId, fromStatus, toStatus, comment, adminId) {
-  await db.query(
+// Runs on the pool by default, or on a supplied connection when the caller is
+// wrapping the status change + timeline row in one transaction.
+async function addTimeline(claimId, fromStatus, toStatus, comment, adminId, conn = db) {
+  await conn.query(
     'INSERT INTO bbf_claim_timeline (claim_id, from_status, to_status, comment, changed_by, changed_by_type) VALUES (?, ?, ?, ?, ?, "admin")',
     [claimId, fromStatus, toStatus, comment || null, adminId]
   );
+}
+
+// Member notifications are best-effort: the status change is already committed,
+// so a notification-delivery failure must not make the API report a failure the
+// admin would (wrongly) retry.
+async function notifySafely(payload) {
+  try {
+    await notificationService.createNotification(payload);
+  } catch (err) {
+    console.error('[notify] BBF notification failed for member', payload.memberId, '-', err.message);
+  }
 }
 
 // Build the claims filter once (status, search) so the list, its count and the
@@ -75,10 +88,20 @@ async function startReview(req, res) {
     if (!VALID_TRANSITIONS[claim.status]?.includes('under_review')) {
       return res.status(400).json({ success: false, message: `Cannot move from ${claim.status} to under_review` });
     }
-    await db.query('UPDATE bbf_claims SET status = "under_review", assigned_to = ?, reviewed_at = NOW() WHERE id = ?', [req.user.id, claim.id]);
-    await addTimeline(claim.id, claim.status, 'under_review', req.body.notes, req.user.id);
+    const conn = await db.getConnection();
+    try {
+      await conn.beginTransaction();
+      await conn.query('UPDATE bbf_claims SET status = "under_review", assigned_to = ?, reviewed_at = NOW() WHERE id = ?', [req.user.id, claim.id]);
+      await addTimeline(claim.id, claim.status, 'under_review', req.body.notes, req.user.id, conn);
+      await conn.commit();
+    } catch (err) {
+      await conn.rollback();
+      throw err;
+    } finally {
+      conn.release();
+    }
     const msg = notificationService.renderNotification('bbf_under_review', { claim_number: claim.claim_number });
-    await notificationService.createNotification({
+    await notifySafely({
       memberId: claim.member_id,
       type: 'bbf_claim',
       title: msg.title,
@@ -102,16 +125,26 @@ async function approveClaim(req, res) {
     if (!VALID_TRANSITIONS[claim.status]?.includes('approved')) {
       return res.status(400).json({ success: false, message: `Cannot approve from status ${claim.status}` });
     }
-    await db.query(
-      'UPDATE bbf_claims SET status = "approved", amount_approved = ?, reviewed_by = ?, reviewer_notes = ?, resolved_at = NOW() WHERE id = ?',
-      [amount || null, req.user.id, notes || null, claim.id]
-    );
-    await addTimeline(claim.id, claim.status, 'approved', notes, req.user.id);
+    const conn = await db.getConnection();
+    try {
+      await conn.beginTransaction();
+      await conn.query(
+        'UPDATE bbf_claims SET status = "approved", amount_approved = ?, reviewed_by = ?, reviewer_notes = ?, resolved_at = NOW() WHERE id = ?',
+        [amount || null, req.user.id, notes || null, claim.id]
+      );
+      await addTimeline(claim.id, claim.status, 'approved', notes, req.user.id, conn);
+      await conn.commit();
+    } catch (err) {
+      await conn.rollback();
+      throw err;
+    } finally {
+      conn.release();
+    }
     const msg = notificationService.renderNotification('bbf_approved', {
       claim_number: claim.claim_number,
       amount: amount ? Number(amount).toLocaleString() : '',
     });
-    await notificationService.createNotification({
+    await notifySafely({
       memberId: claim.member_id,
       type: 'bbf_claim',
       title: msg.title,
@@ -132,16 +165,29 @@ async function rejectClaim(req, res) {
     const { notes } = req.body;
     const [[claim]] = await db.query('SELECT id, status, member_id, claim_number FROM bbf_claims WHERE id = ?', [req.params.id]);
     if (!claim) return res.status(404).json({ success: false, message: 'Claim not found' });
-    await db.query(
-      'UPDATE bbf_claims SET status = "rejected", reviewed_by = ?, reviewer_notes = ?, resolved_at = NOW() WHERE id = ?',
-      [req.user.id, notes || null, claim.id]
-    );
-    await addTimeline(claim.id, claim.status, 'rejected', notes, req.user.id);
+    if (!VALID_TRANSITIONS[claim.status]?.includes('rejected')) {
+      return res.status(400).json({ success: false, message: `Cannot reject from status ${claim.status}` });
+    }
+    const conn = await db.getConnection();
+    try {
+      await conn.beginTransaction();
+      await conn.query(
+        'UPDATE bbf_claims SET status = "rejected", reviewed_by = ?, reviewer_notes = ?, resolved_at = NOW() WHERE id = ?',
+        [req.user.id, notes || null, claim.id]
+      );
+      await addTimeline(claim.id, claim.status, 'rejected', notes, req.user.id, conn);
+      await conn.commit();
+    } catch (err) {
+      await conn.rollback();
+      throw err;
+    } finally {
+      conn.release();
+    }
     const msg = notificationService.renderNotification('bbf_rejected', {
       claim_number: claim.claim_number,
       reason: notes || '',
     });
-    await notificationService.createNotification({
+    await notifySafely({
       memberId: claim.member_id,
       type: 'bbf_claim',
       title: msg.title,
@@ -163,16 +209,26 @@ async function markPaid(req, res) {
     const [[claim]] = await db.query('SELECT id, status, member_id, claim_number FROM bbf_claims WHERE id = ?', [req.params.id]);
     if (!claim) return res.status(404).json({ success: false, message: 'Claim not found' });
     if (claim.status !== 'approved') return res.status(400).json({ success: false, message: 'Only approved claims can be marked paid' });
-    await db.query(
-      'UPDATE bbf_claims SET status = "paid", payment_reference = ?, payment_date = CURDATE() WHERE id = ?',
-      [ref || null, claim.id]
-    );
-    await addTimeline(claim.id, 'approved', 'paid', `Payment reference: ${ref || 'N/A'}`, req.user.id);
+    const conn = await db.getConnection();
+    try {
+      await conn.beginTransaction();
+      await conn.query(
+        'UPDATE bbf_claims SET status = "paid", payment_reference = ?, payment_date = CURDATE() WHERE id = ?',
+        [ref || null, claim.id]
+      );
+      await addTimeline(claim.id, 'approved', 'paid', `Payment reference: ${ref || 'N/A'}`, req.user.id, conn);
+      await conn.commit();
+    } catch (err) {
+      await conn.rollback();
+      throw err;
+    } finally {
+      conn.release();
+    }
     const msg = notificationService.renderNotification('bbf_paid', {
       claim_number: claim.claim_number,
       reference: ref || '',
     });
-    await notificationService.createNotification({
+    await notifySafely({
       memberId: claim.member_id,
       type: 'bbf_claim',
       title: msg.title,
