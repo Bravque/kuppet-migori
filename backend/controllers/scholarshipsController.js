@@ -67,9 +67,17 @@ const adminUpdate = async (req, res) => {
 
 const adminRemove = async (req, res) => {
   try {
-    const [[existing]] = await db.query('SELECT id FROM scholarships WHERE id = ?', [req.params.id]);
+    const id = req.params.id;
+    const [[existing]] = await db.query('SELECT id FROM scholarships WHERE id = ?', [id]);
     if (!existing) return res.status(404).json({ success: false, message: 'Scholarship not found' });
-    await db.query('DELETE FROM scholarships WHERE id = ?', [req.params.id]);
+    // Preserve application history: a scholarship with applications on record
+    // cannot be deleted (that would destroy or orphan them). Deactivate it
+    // (set inactive) instead so it stops accepting applications but the history stays.
+    const [[{ n }]] = await db.query('SELECT COUNT(*) AS n FROM scholarship_applications WHERE scholarship_id = ?', [id]);
+    if (n > 0) {
+      return res.status(409).json({ success: false, message: 'This scholarship has applications on record. Deactivate it (set inactive) instead of deleting, so the application history is preserved.' });
+    }
+    await db.query('DELETE FROM scholarships WHERE id = ?', [id]);
     res.json({ success: true, message: 'Scholarship deleted' });
   } catch (err) {
     res.status(500).json({ success: false, message: 'Failed to delete scholarship' });

@@ -14,17 +14,23 @@ async function getSummary(req, res) {
         SUM(status = 'rejected') as rejected_members
       FROM members
     `);
+    // JOIN members (and scholarships) so counts match the admin lists exactly —
+    // an orphaned claim/application (member or scholarship since deleted) is
+    // hidden from the INNER-JOIN lists, so it must not be counted here either.
     const [[bbf]] = await db.query(`
       SELECT
         COUNT(*) as bbf_submitted,
-        SUM(status = 'approved') as bbf_approved,
-        SUM(status = 'rejected') as bbf_rejected,
-        SUM(status = 'paid') as bbf_paid
-      FROM bbf_claims WHERE status != 'draft'
+        SUM(bc.status = 'approved') as bbf_approved,
+        SUM(bc.status = 'rejected') as bbf_rejected,
+        SUM(bc.status = 'paid') as bbf_paid
+      FROM bbf_claims bc JOIN members m ON bc.member_id = m.id
+      WHERE bc.status != 'draft'
     `);
     const [[sch]] = await db.query(`
-      SELECT COUNT(*) as sch_applications, SUM(status = 'approved') as sch_approved
-      FROM scholarship_applications
+      SELECT COUNT(*) as sch_applications, SUM(sa.status = 'approved') as sch_approved
+      FROM scholarship_applications sa
+      JOIN members m ON sa.member_id = m.id
+      JOIN scholarships s ON sa.scholarship_id = s.id
     `);
     const [[sms]] = await db.query(`
       SELECT COUNT(*) as sms_sent FROM sms_logs
@@ -94,10 +100,10 @@ async function exportPdf(req, res) {
         (SELECT COUNT(*) FROM members WHERE status IN ('approved','suspended')) as total_members,
         (SELECT COUNT(*) FROM members WHERE status='approved') as approved_members,
         (SELECT COUNT(*) FROM members WHERE status='pending_approval') as pending_members,
-        (SELECT COUNT(*) FROM bbf_claims WHERE status!='draft') as total_bbf,
-        (SELECT COUNT(*) FROM bbf_claims WHERE status='approved') as approved_bbf,
-        (SELECT COUNT(*) FROM scholarship_applications) as total_sch,
-        (SELECT COUNT(*) FROM scholarship_applications WHERE status='approved') as approved_sch
+        (SELECT COUNT(*) FROM bbf_claims bc JOIN members m ON bc.member_id=m.id WHERE bc.status!='draft') as total_bbf,
+        (SELECT COUNT(*) FROM bbf_claims bc JOIN members m ON bc.member_id=m.id WHERE bc.status='approved') as approved_bbf,
+        (SELECT COUNT(*) FROM scholarship_applications sa JOIN members m ON sa.member_id=m.id JOIN scholarships s ON sa.scholarship_id=s.id) as total_sch,
+        (SELECT COUNT(*) FROM scholarship_applications sa JOIN members m ON sa.member_id=m.id JOIN scholarships s ON sa.scholarship_id=s.id WHERE sa.status='approved') as approved_sch
     `);
 
     const doc = new PDFDocument({ margin: 50 });

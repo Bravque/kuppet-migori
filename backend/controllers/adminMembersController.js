@@ -128,7 +128,22 @@ async function suspend(req, res) {
 
 async function remove(req, res) {
   try {
-    await db.query('DELETE FROM members WHERE id = ?', [req.params.id]);
+    const id = req.params.id;
+    // Preserve welfare/scholarship history: a member with claims or applications
+    // on record cannot be hard-deleted (that would either destroy the history or
+    // orphan it — counted on the dashboard but hidden from the INNER-JOIN lists).
+    // Suspend them instead. Members with no such history delete cleanly.
+    const [[{ n }]] = await db.query(
+      `SELECT (SELECT COUNT(*) FROM bbf_claims WHERE member_id = ?)
+            + (SELECT COUNT(*) FROM scholarship_applications WHERE member_id = ?) AS n`,
+      [id, id]
+    );
+    if (n > 0) {
+      return res.status(409).json({ success: false, message: 'This member has BBF claims or scholarship applications on record. Suspend the member instead of deleting, so the history is preserved.' });
+    }
+    // No dependent history — clean up the member's own notifications, then delete.
+    await db.query('DELETE FROM notifications WHERE member_id = ?', [id]);
+    await db.query('DELETE FROM members WHERE id = ?', [id]);
     res.json({ success: true, message: 'Member deleted' });
   } catch (err) {
     res.status(500).json({ success: false, message: 'Failed to delete' });
