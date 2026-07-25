@@ -2,6 +2,22 @@ const db = require('../config/database');
 const { clampLimit, clampOffset } = require('../utils/pagination');
 const notificationService = require('../services/notificationService');
 
+// A decision (approve/reject) may only act on an application that is still
+// awaiting a decision. Prevents re-approving a rejected app, flipping a paid
+// one back to approved, etc. (state-machine guard).
+const DECIDABLE = ['applied', 'under_review'];
+
+// Member notifications are best-effort: the decision is already committed, so a
+// notification-delivery failure must not roll it back or make the API report a
+// failure the admin would (wrongly) retry.
+async function notifySafely(payload) {
+  try {
+    await notificationService.createNotification(payload);
+  } catch (err) {
+    console.error('[notify] scholarship notification failed for member', payload.memberId, '-', err.message);
+  }
+}
+
 async function getAll(req, res) {
   try {
     const { status, scholarship_id, school_category, sub_county, school, gender, limit = 25, offset = 0 } = req.query;
@@ -56,6 +72,9 @@ async function approve(req, res) {
       [req.params.id]
     );
     if (!app) return res.status(404).json({ success: false, message: 'Application not found' });
+    if (!DECIDABLE.includes(app.status)) {
+      return res.status(400).json({ success: false, message: `Cannot approve an application with status "${app.status}"` });
+    }
     await db.query(
       'UPDATE scholarship_applications SET status = "approved", amount_awarded = ?, reviewed_by = ?, reviewer_notes = ?, reviewed_at = NOW() WHERE id = ?',
       [awarded, req.user.id, notes || null, app.id]
@@ -65,7 +84,7 @@ async function approve(req, res) {
       applicant_name: app.applicant_name,
       amount: awarded ? Number(awarded).toLocaleString() : '',
     });
-    await notificationService.createNotification({
+    await notifySafely({
       memberId: app.member_id,
       type: 'scholarship',
       title: msg.title,
@@ -89,6 +108,9 @@ async function reject(req, res) {
       [req.params.id]
     );
     if (!app) return res.status(404).json({ success: false, message: 'Application not found' });
+    if (!DECIDABLE.includes(app.status)) {
+      return res.status(400).json({ success: false, message: `Cannot reject an application with status "${app.status}"` });
+    }
     await db.query(
       'UPDATE scholarship_applications SET status = "rejected", reviewed_by = ?, reviewer_notes = ?, reviewed_at = NOW() WHERE id = ?',
       [req.user.id, notes || null, app.id]
@@ -98,7 +120,7 @@ async function reject(req, res) {
       applicant_name: app.applicant_name,
       reason: notes || '',
     });
-    await notificationService.createNotification({
+    await notifySafely({
       memberId: app.member_id,
       type: 'scholarship',
       title: msg.title,
@@ -134,7 +156,7 @@ async function markPaid(req, res) {
       amount: app.amount_awarded ? Number(app.amount_awarded).toLocaleString() : '',
       reference: ref || '',
     });
-    await notificationService.createNotification({
+    await notifySafely({
       memberId: app.member_id,
       type: 'scholarship',
       title: msg.title,
