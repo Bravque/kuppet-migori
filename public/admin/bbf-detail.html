@@ -10,7 +10,7 @@
   <title>BBF Claim Detail — KUPPET Migori Admin</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
-  <link rel="stylesheet" href="/css/style.css?v=20260725e"><link rel="stylesheet" href="/css/portal.css?v=20260725e">
+  <link rel="stylesheet" href="/css/style.css?v=20260725f"><link rel="stylesheet" href="/css/portal.css?v=20260725f">
 </head>
 <body class="portal-body admin-bbf-detail-page">
 <div class="portal-layout">
@@ -22,7 +22,8 @@
         <div class="page-heading-text"><h1 id="claim-number">BBF Claim</h1><div id="claim-status"></div></div>
         <div class="page-heading-actions">
           <a href="/admin/bbf.html" class="btn btn-outline btn-sm"><i class="fas fa-arrow-left"></i> Back</a>
-          <button type="button" id="print-btn" class="btn btn-outline btn-sm" disabled onclick="printClaim()"><i class="fas fa-print"></i> Print</button>
+          <button type="button" id="print-btn" class="btn btn-outline btn-sm" disabled onclick="printClaim(false)"><i class="fas fa-print"></i> Print</button>
+          <button type="button" id="print-full-btn" class="btn btn-outline btn-sm" disabled onclick="printClaim(true)" title="Includes every attachment — slower to prepare"><i class="fas fa-paperclip"></i> Print + Attachments</button>
         </div>
       </div>
       <div id="action-alert" class="hidden" style="margin-bottom:1rem"></div>
@@ -73,7 +74,7 @@
   </div>
 </div>
 
-<script src="/admin/js/admin-api.js?v=20260725e"></script><script src="/admin/js/admin-portal.js?v=20260725e"></script>
+<script src="/admin/js/admin-api.js?v=20260725f"></script><script src="/admin/js/admin-portal.js?v=20260725f"></script>
 <script>
   document.getElementById('sidebar-placeholder').outerHTML = getSidebarHtml();
   document.getElementById('topbar-placeholder').outerHTML = getTopbarHtml('BBF Claim Detail');
@@ -87,8 +88,9 @@
   const DOC_LABELS = {tsc_slip:'TSC Slip',burial_permit:'Burial Permit',birth_notification:'Birth Notification',letter_from_principal:'Letter From Principal',letter_of_compulsory_retirement:'Letter of Compulsory Retirement',other:'Other'};
   let CURRENT = null;   // the loaded claim, used by printClaim()
 
-  // Print the full claim + attachments (available to every admin role).
-  function printClaim(){
+  // Print the claim. withDocs=false → fast details-only page; true → full record
+  // with each attachment reproduced (slower — fetches + renders every file).
+  function printClaim(withDocs){
     const c = CURRENT; if(!c) return;
     const money = v => v ? 'KES ' + Number(v).toLocaleString() : '—';
     const sections = [
@@ -122,7 +124,7 @@
       ]});
     }
     const documents = (c.documents||[]).map(d => ({ label: DOC_LABELS[d.doc_type]||d.doc_type||'Document', file_url: d.file_url }));
-    printApplication({ heading:'BBF Claim — '+(c.claim_number||''), subheading:'Benevolent Benefit Fund claim record', sections, documents });
+    printApplication({ heading:'BBF Claim — '+(c.claim_number||''), subheading:'Benevolent Benefit Fund claim record', sections, documents, includeDocuments: !!withDocs });
   }
   (async()=>{
     try {
@@ -155,6 +157,7 @@
       document.getElementById('claim-details').innerHTML = detailsHtml;
       CURRENT = c;
       document.getElementById('print-btn').disabled = false;
+      document.getElementById('print-full-btn').disabled = false;
       document.getElementById('doc-list').innerHTML = c.documents.length ? c.documents.map(d=>`<li class="doc-item"><i class="fas fa-file doc-icon"></i><span class="doc-name">${escHtml(d.file_name||d.file_url)}</span><span class="doc-size">${escHtml(DOC_LABELS[d.doc_type]||d.doc_type)}</span><button type="button" onclick="viewDoc('${escHtml(d.file_url)}')" class="btn btn-outline btn-xs">View</button></li>`).join('') : '<li style="padding:0.5rem;color:var(--text-muted)">No documents</li>';
       document.getElementById('timeline').innerHTML = c.timeline.map(e=>`<div class="timeline-item status-${e.to_status}"><div class="timeline-dot"><i class="fas fa-circle" style="font-size:0.45rem"></i></div><div class="timeline-content"><div class="timeline-status">${escHtml(e.to_status.replace(/_/g,' '))}</div><div class="timeline-meta">${formatDateTime(e.created_at)} by ${escHtml(e.changed_by_type)}</div>${e.comment?`<div class="timeline-comment">${escHtml(e.comment)}</div>`:''}</div></div>`).join('');
 
