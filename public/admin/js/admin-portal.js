@@ -110,37 +110,43 @@ async function pdfToImageDataUrls(blob, scale = 1.6) {
 // (auth-protected) and rendered into a fresh window.
 // opts = { heading, subheading, sections:[{title, rows:[[k, vHtml], …]}], documents:[{label, file_url}], footer }
 async function printApplication(opts) {
-  const { heading = 'Application', subheading = '', sections = [], documents = [], footer = '' } = opts || {};
+  const { heading = 'Application', subheading = '', sections = [], documents = [], footer = '', includeDocuments = true } = opts || {};
   const w = window.open('', '_blank');
   if (!w) { alert('Please allow pop-ups for this site to print.'); return; }
+  // Details-only prints skip the slow attachment fetch + PDF.js rendering entirely.
+  const withDocs = includeDocuments && documents.length > 0;
   w.document.write('<!doctype html><meta charset="utf-8"><title>' + escHtml(heading) +
-    '</title><body style="font-family:Arial,sans-serif;padding:2rem;color:#333">Preparing document &amp; attachments…</body>');
+    '</title><body style="font-family:Arial,sans-serif;padding:2rem;color:#333">' +
+    (withDocs ? 'Preparing document &amp; attachments…' : 'Preparing document…') + '</body>');
   w.document.close();
 
   // Pull each attachment as a blob (needs the Bearer token) and turn it into one
   // or more data: images: image files directly, PDFs page-by-page via PDF.js.
   // Each entry is { label, src } (a data URL) or { label, error, note }.
+  // Skipped for details-only prints — this loop is what makes a full print slow.
   const atts = [];
-  for (const d of documents) {
-    try {
-      const blob = await fetchDocBlob(d.file_url);
-      const isPdf = /pdf/i.test(blob.type) || /\.pdf(\?|$)/i.test(d.file_url || '');
-      if (isPdf) {
-        try {
-          const pages = await pdfToImageDataUrls(blob);
-          if (!pages.length) throw new Error('empty pdf');
-          pages.forEach((src, i) => atts.push({
-            label: d.label + (pages.length > 1 ? ` — page ${i + 1} of ${pages.length}` : ''),
-            src,
-          }));
-        } catch (_) {
-          atts.push({ label: d.label, error: true, note: 'This PDF could not be rendered for printing.' });
+  if (withDocs) {
+    for (const d of documents) {
+      try {
+        const blob = await fetchDocBlob(d.file_url);
+        const isPdf = /pdf/i.test(blob.type) || /\.pdf(\?|$)/i.test(d.file_url || '');
+        if (isPdf) {
+          try {
+            const pages = await pdfToImageDataUrls(blob);
+            if (!pages.length) throw new Error('empty pdf');
+            pages.forEach((src, i) => atts.push({
+              label: d.label + (pages.length > 1 ? ` — page ${i + 1} of ${pages.length}` : ''),
+              src,
+            }));
+          } catch (_) {
+            atts.push({ label: d.label, error: true, note: 'This PDF could not be rendered for printing.' });
+          }
+        } else {
+          atts.push({ label: d.label, src: await blobToDataUrl(blob) });
         }
-      } else {
-        atts.push({ label: d.label, src: await blobToDataUrl(blob) });
+      } catch (_) {
+        atts.push({ label: d.label, error: true });
       }
-    } catch (_) {
-      atts.push({ label: d.label, error: true });
     }
   }
 
@@ -155,9 +161,13 @@ async function printApplication(opts) {
     : `<div class="att"><h2>${escHtml(a.label)}</h2><img src="${a.src}" alt="${escHtml(a.label)}"></div>`
   ).join('');
 
-  const attIntro = documents.length
-    ? `<div class="sec"><h2>Attachments (${documents.length})</h2><p class="muted">Each attachment is reproduced on its own page below.</p></div>`
-    : `<div class="sec"><h2>Attachments</h2><p class="muted">No attachments on file.</p></div>`;
+  // On a details-only print, omit the Attachments section entirely; note when
+  // attachments exist but were intentionally left out.
+  const attIntro = !withDocs
+    ? (includeDocuments || !documents.length
+        ? `<div class="sec"><h2>Attachments</h2><p class="muted">No attachments on file.</p></div>`
+        : `<div class="sec"><h2>Attachments</h2><p class="muted">${documents.length} attachment(s) on file — omitted from this details-only printout.</p></div>`)
+    : `<div class="sec"><h2>Attachments (${documents.length})</h2><p class="muted">Each attachment is reproduced on its own page below.</p></div>`;
 
   w.document.open();
   w.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>${escHtml(heading)}</title>
