@@ -196,6 +196,7 @@ app.use('/api/scholarships',require('./routes/scholarships'));
 app.use('/api/contact',     require('./routes/contact'));
 app.use('/api/advocacy',    require('./routes/advocacy'));
 app.use('/api/announcements', require('./routes/announcements'));
+app.use('/api/schools',     require('./routes/schools'));
 app.use('/api/settings',    require('./routes/settings'));
 
 // ============================================
@@ -224,6 +225,7 @@ app.use('/api/member/documents',     require('./routes/memberDocuments'));
 // ============================================
 app.use('/api/admin/documents',        require('./routes/adminDocuments'));
 app.use('/api/admin/members',          require('./routes/adminMembers'));
+app.use('/api/admin/schools',          require('./routes/adminSchools'));
 app.use('/api/admin/bbf',              require('./routes/adminBbf'));
 app.use('/api/admin/scholarship-apps', require('./routes/adminScholarshipApps'));
 app.use('/api/admin/users',            require('./routes/adminUsers'));

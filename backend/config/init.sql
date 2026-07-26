@@ -159,6 +159,18 @@ CREATE TABLE IF NOT EXISTS settings (
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
 
+-- Curated list of schools powering the school-name autocomplete (registration,
+-- profile, admin filters). See migration-schools.sql; on live it is seeded from
+-- existing member entries, then curated by admins.
+CREATE TABLE IF NOT EXISTS schools (
+  id INT PRIMARY KEY AUTO_INCREMENT,
+  name VARCHAR(200) NOT NULL,
+  sub_county VARCHAR(100) NULL,
+  is_active TINYINT(1) DEFAULT 1,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE KEY uq_school_name (name)
+);
+
 -- Homepage announcement ticker items (editable from the admin portal)
 CREATE TABLE IF NOT EXISTS announcements (
   id INT PRIMARY KEY AUTO_INCREMENT,

@@ -10,7 +10,7 @@
   <title>My Profile — KUPPET Migori</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
-  <link rel="stylesheet" href="/css/style.css?v=20260725g"><link rel="stylesheet" href="/css/portal.css?v=20260725g">
+  <link rel="stylesheet" href="/css/style.css?v=20260725h"><link rel="stylesheet" href="/css/portal.css?v=20260725h">
 </head>
 <body class="portal-body member-profile-page">
 <div class="portal-layout">
@@ -76,7 +76,7 @@
             <div class="form-group"><label>Employment Number</label><input type="text" id="p-employment-number" class="form-control"></div>
           </div>
           <div class="form-row">
-            <div class="form-group"><label>School Name</label><input type="text" id="p-school-name" class="form-control"></div>
+            <div class="form-group"><label>School Name</label><input type="text" id="p-school-name" class="form-control" list="schools-list" autocomplete="off"><datalist id="schools-list"></datalist></div>
             <div class="form-group"><label>Sub-County</label>
               <select id="p-sub-county" class="form-control">
                 <option>Rongo</option><option>Awendo</option><option>Uriri</option><option>Suna East</option><option>Suna West</option><option>Ntimaru</option><option>Kuria West</option><option>Kuria East</option><option>Mabera</option><option>Nyatike South</option><option>Nyatike West</option><option>Nyatike North</option>
@@ -129,7 +129,7 @@
     </div>
   </main>
 </div>
-<script src="/member/js/member-api.js?v=20260725g"></script><script src="/member/js/member-portal.js?v=20260725g"></script>
+<script src="/member/js/member-api.js?v=20260725h"></script><script src="/member/js/member-portal.js?v=20260725h"></script>
 <script>
   document.getElementById('sidebar-placeholder').outerHTML = getMemberSidebarHtml();
   document.getElementById('topbar-placeholder').outerHTML = getMemberTopbarHtml('My Profile');

@@ -53,6 +53,19 @@ async function viewDoc(fileUrlOrName) {
 }
 window.viewDoc = viewDoc;
 
+// Populate a <datalist> with active school names, for the school autocomplete on
+// the admin filter inputs. Uses the public schools endpoint (names aren't sensitive).
+async function loadSchoolsDatalist(datalistId = 'schools-list') {
+  const dl = document.getElementById(datalistId);
+  if (!dl) return;
+  try {
+    const res = await fetch('/api/schools').then(r => r.json());
+    dl.innerHTML = '';
+    (res.data || []).forEach(name => { const o = document.createElement('option'); o.value = name; dl.appendChild(o); });
+  } catch { /* autocomplete is a convenience; ignore failures */ }
+}
+window.loadSchoolsDatalist = loadSchoolsDatalist;
+
 // Print an application (BBF claim / scholarship app) as a clean, branded,
 // details-only document. Attachments are viewed on-screen (viewDoc), never
 // printed, so this opens instantly with no blob fetching or PDF rendering.
@@ -336,6 +349,9 @@ function getSidebarHtml() {
     <a href="/admin/members.html?tab=pending" class="sidebar-nav-item">
       <i class="fas fa-user-clock"></i> Pending Approval
       <span class="nav-badge" id="pending-count-badge" style="display:none"></span>
+    </a>
+    <a href="/admin/schools.html" class="sidebar-nav-item">
+      <i class="fas fa-school"></i> Schools
     </a>
 
     <div class="sidebar-nav-section">Welfare</div>

@@ -244,11 +244,23 @@ function showOnboardingBanner(missing) {
 }
 
 // ── Profile ───────────────────────────────────────────────────────────────────
+// Populate a <datalist> with active school names for the school autocomplete.
+async function loadSchoolsDatalist(datalistId = 'schools-list') {
+  const dl = document.getElementById(datalistId);
+  if (!dl) return;
+  try {
+    const res = await fetch('/api/schools').then(r => r.json());
+    dl.innerHTML = '';
+    (res.data || []).forEach(name => { const o = document.createElement('option'); o.value = name; dl.appendChild(o); });
+  } catch { /* autocomplete is a convenience; ignore failures */ }
+}
+
 async function initMemberProfile() {
   if (!document.querySelector('.member-profile-page')) return;
   const member = requireMemberAuth(); if (!member) return;
   initMemberSidebar(member);
   loadNotifCount();
+  loadSchoolsDatalist();
 
   try {
     const res = await memberApi.profile.get();

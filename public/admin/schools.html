@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<script>(function(){var t=sessionStorage.getItem("adminToken"),la=parseInt(sessionStorage.getItem("adminLastActivity")||"0",10);if(!t||(la&&Date.now()-la>1800000)){sessionStorage.removeItem("adminToken");sessionStorage.removeItem("adminUser");sessionStorage.removeItem("adminLastActivity");location.replace("/admin/login.html");}})();</script>
+  <link rel="icon" href="/favicon.ico" sizes="any">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16.png">
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Schools — KUPPET Migori Admin</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <link rel="stylesheet" href="/css/style.css?v=20260725h"><link rel="stylesheet" href="/css/portal.css?v=20260725h">
+</head>
+<body class="portal-body admin-schools-page">
+<div class="portal-layout">
+  <div id="sidebar-placeholder"></div>
+  <main class="portal-main">
+    <div id="topbar-placeholder"></div>
+    <div class="portal-content">
+      <div class="page-heading">
+        <div class="page-heading-text"><h1>Schools</h1><p>The curated list that powers the school-name autocomplete on registration, member profiles and admin filters. Merge duplicates/typos and add missing schools here.</p></div>
+        <button class="btn btn-gold btn-sm" onclick="openNew()"><i class="fas fa-plus"></i> Add School</button>
+      </div>
+      <div id="alert" class="hidden" style="margin-bottom:1rem"></div>
+      <div class="filter-bar">
+        <input type="search" class="form-control" id="search" placeholder="Search schools…">
+        <select class="form-control" id="active-filter">
+          <option value="">Active + inactive</option>
+          <option value="true" selected>Active only</option>
+          <option value="false">Inactive only</option>
+        </select>
+      </div>
+      <div class="data-card">
+        <div class="data-table-wrap">
+          <table class="data-table">
+            <thead><tr><th>School Name</th><th>Sub-County</th><th>Status</th><th>Actions</th></tr></thead>
+            <tbody id="tbody"><tr><td colspan="4" class="portal-loading"><i class="fas fa-spinner fa-spin"></i> Loading…</td></tr></tbody>
+          </table>
+        </div>
+        <div id="pager"></div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<div class="portal-modal-overlay" id="modal">
+  <div class="portal-modal" style="max-width:520px">
+    <div class="portal-modal-header"><h3 id="modal-title">Add School</h3><button class="modal-close-btn"><i class="fas fa-times"></i></button></div>
+    <div class="portal-modal-body">
+      <div id="form-alert" class="hidden"></div>
+      <form id="form">
+        <div class="form-group"><label>School Name <span class="required">*</span></label><input name="name" class="form-control" required placeholder="e.g. Migori Boys High School"></div>
+        <div class="form-group"><label>Sub-County</label>
+          <select name="sub_county" class="form-control">
+            <option value="">— (optional) —</option>
+            <option>Rongo</option><option>Awendo</option><option>Uriri</option><option>Suna East</option>
+            <option>Suna West</option><option>Ntimaru</option><option>Kuria West</option><option>Kuria East</option>
+            <option>Mabera</option><option>Nyatike South</option><option>Nyatike West</option><option>Nyatike North</option>
+          </select>
+        </div>
+        <label style="display:flex;align-items:center;gap:0.5rem;font-size:0.88rem"><input type="checkbox" name="is_active" checked> Active (show in the autocomplete)</label>
+      </form>
+    </div>
+    <div class="portal-modal-footer">
+      <button class="modal-close-btn btn btn-outline btn-sm">Cancel</button>
+      <button class="btn btn-gold btn-sm" onclick="submitOnce(this, save)"><i class="fas fa-save"></i> Save</button>
+    </div>
+  </div>
+</div>
+
+<script src="/admin/js/admin-api.js?v=20260725h"></script><script src="/admin/js/admin-portal.js?v=20260725h"></script>
+<script>
+  document.getElementById('sidebar-placeholder').outerHTML = getSidebarHtml();
+  document.getElementById('topbar-placeholder').outerHTML = getTopbarHtml('Schools');
+  const user = requireAdminAuth(); if(user) initSidebar(user);
+  let editingId = null, offset = 0; const LIMIT = 25;
+  let currentSearch = '', currentActive = 'true';
+  const f = sel => document.getElementById('form').querySelector(`[name=${sel}]`);
+
+  async function load(){
+    const tb=document.getElementById('tbody');
+    tb.innerHTML='<tr><td colspan="4">'+renderLoading()+'</td></tr>';
+    try{
+      const res=await adminApi.schools.getAll({search:currentSearch,active:currentActive,limit:LIMIT,offset});
+      const pager=()=>renderAdminPager('pager',{total:res.total||0,offset,limit:LIMIT,onPage:o=>{offset=o;load();}});
+      if(!res.data.length){tb.innerHTML='<tr><td colspan="4">'+renderEmpty('No schools found')+'</td></tr>';pager();return;}
+      tb.innerHTML=res.data.map(s=>`<tr>
+        <td><strong>${escHtml(s.name)}</strong></td>
+        <td>${escHtml(s.sub_county||'—')}</td>
+        <td>${s.is_active?'<span class="status-badge status-badge--approved">Active</span>':'<span class="status-badge status-badge--suspended">Inactive</span>'}</td>
+        <td><div style="display:flex;gap:.3rem;flex-wrap:wrap">
+          <button class="btn btn-outline btn-xs" onclick='edit(${JSON.stringify(s).replace(/'/g,"&#39;")})'><i class="fas fa-edit"></i> Edit</button>
+          <button class="btn btn-xs" style="background:#FEE2E2;color:#991B1B" onclick="removeSchool(${s.id})" title="Delete"><i class="fas fa-trash"></i></button>
+        </div></td>
+      </tr>`).join('');
+      pager();
+    }catch(err){tb.innerHTML='<tr><td colspan="4">'+escHtml(err.message)+'</td></tr>';}
+  }
+
+  function openNew(){
+    editingId=null;
+    document.getElementById('form').reset();
+    f('is_active').checked=true;
+    document.getElementById('modal-title').textContent='Add School';
+    document.getElementById('form-alert').className='hidden';
+    document.getElementById('modal').classList.add('open');
+  }
+  function edit(s){
+    editingId=s.id;
+    document.getElementById('form').reset();
+    f('name').value=s.name||''; f('sub_county').value=s.sub_county||''; f('is_active').checked=!!s.is_active;
+    document.getElementById('modal-title').textContent='Edit School';
+    document.getElementById('form-alert').className='hidden';
+    document.getElementById('modal').classList.add('open');
+  }
+  async function save(){
+    const data={ name:f('name').value.trim(), sub_county:f('sub_county').value, is_active:f('is_active').checked };
+    if(!data.name){showAlert('form-alert','School name is required');return;}
+    try{
+      editingId ? await adminApi.schools.update(editingId,data) : await adminApi.schools.create(data);
+      document.getElementById('modal').classList.remove('open');
+      load();
+    }catch(err){showAlert('form-alert',err.message);}
+  }
+  async function removeSchool(id){
+    if(!confirm('Delete this school from the list? Members already recorded with it are not affected — it just stops appearing in the autocomplete.'))return;
+    try{await adminApi.schools.remove(id);load();}catch(e){showAlert('alert',e.message);}
+  }
+
+  let st;document.getElementById('search').addEventListener('input',function(){clearTimeout(st);st=setTimeout(()=>{currentSearch=this.value;offset=0;load();},350);});
+  document.getElementById('active-filter').addEventListener('change',function(){currentActive=this.value;offset=0;load();});
+  load();
+</script>
+</body>
+</html>

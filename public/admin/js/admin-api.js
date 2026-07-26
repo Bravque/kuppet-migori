@@ -230,6 +230,13 @@ const adminApi = (() => {
       exportExcel: (p = {}) => download('/admin/members/export?' + new URLSearchParams(p), 'members.xlsx'),
     },
 
+    schools: {
+      getAll: (p = {}) => request('/admin/schools?' + new URLSearchParams(p)),
+      create: (d) => request('/admin/schools', { method: 'POST', body: JSON.stringify(d) }),
+      update: (id, d) => request(`/admin/schools/${id}`, { method: 'PUT', body: JSON.stringify(d) }),
+      remove: (id) => request(`/admin/schools/${id}`, { method: 'DELETE' }),
+    },
+
     bbf: {
       getAll: (p = {}) => request('/admin/bbf?' + new URLSearchParams(p)),
       getOne: (id) => request(`/admin/bbf/${id}`),
