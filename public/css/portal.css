@@ -1298,3 +1298,17 @@ textarea.form-control { resize: vertical; min-height: 100px; }
 
   a[href]:after { content: ""; }
 }
+
+/* Touch-friendly school typeahead (school-picker.js) — replaces flaky <datalist> */
+.school-picker { position: relative; }
+.school-picker-menu {
+  position: absolute; top: 100%; left: 0; right: 0; z-index: 60;
+  margin: 2px 0 0; padding: 4px; list-style: none;
+  background: #fff; border: 1px solid #d0d7e2; border-radius: 8px;
+  max-height: 240px; overflow-y: auto; box-shadow: 0 8px 24px rgba(0,0,0,.14);
+  display: none;
+}
+.school-picker-menu li {
+  padding: .6rem .7rem; font-size: .9rem; border-radius: 6px; cursor: pointer; color: #1A202C;
+}
+.school-picker-menu li:hover, .school-picker-menu li.active { background: #eef3fb; }

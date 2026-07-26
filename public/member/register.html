@@ -12,8 +12,8 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
-  <link rel="stylesheet" href="/css/style.css?v=20260725i">
-  <link rel="stylesheet" href="/css/portal.css?v=20260725i">
+  <link rel="stylesheet" href="/css/style.css?v=20260725j">
+  <link rel="stylesheet" href="/css/portal.css?v=20260725j">
   <style>
     .pw-wrap { position: relative; }
     .pw-wrap .form-control { padding-right: 2.6rem; }
@@ -134,8 +134,7 @@
       </div>
       <div class="form-group">
         <label>School Name <span class="required">*</span></label>
-        <input type="text" name="school_name" class="form-control" placeholder="Start typing your school name…" list="schools-list" autocomplete="off" required>
-        <datalist id="schools-list"></datalist>
+        <input type="text" name="school_name" class="form-control" placeholder="Start typing your school name…" data-school-picker autocomplete="off" required>
         <small style="color:var(--text-muted);font-size:0.78rem">Select your school from the list. If it isn't listed, contact the KUPPET Migori office to have it added.</small>
       </div>
       <div class="form-group">
@@ -183,18 +182,15 @@
 </div>
 </div>
 
-<script src="/member/js/member-api.js?v=20260725i"></script>
+<script src="/member/js/member-api.js?v=20260725j"></script>
+<script src="/js/school-picker.js?v=20260725j"></script>
 <script>
-  // Populate the school-name autocomplete from the curated schools list, and keep
-  // a lowercase set so we can enforce "must be on the list" (matches the server).
+  // Keep a lowercase set of valid schools so we can enforce "must be on the list"
+  // (matches the server). Sourced from the same cached list the picker uses.
   const KNOWN_SCHOOLS = new Set();
-  fetch('/api/schools').then(r => r.json()).then(res => {
-    const dl = document.getElementById('schools-list');
-    (res.data || []).forEach(name => {
-      if (dl) { const o = document.createElement('option'); o.value = name; dl.appendChild(o); }
-      KNOWN_SCHOOLS.add(String(name).trim().toLowerCase());
-    });
-  }).catch(() => { /* autocomplete is a convenience; ignore */ });
+  (window.SchoolPicker ? SchoolPicker.load() : Promise.resolve([])).then(list => {
+    (list || []).forEach(name => KNOWN_SCHOOLS.add(String(name).trim().toLowerCase()));
+  });
 
   // Show/hide password toggles
   document.querySelectorAll('.pw-toggle').forEach(btn => {

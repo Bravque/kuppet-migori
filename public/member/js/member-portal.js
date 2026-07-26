@@ -260,7 +260,6 @@ async function initMemberProfile() {
   const member = requireMemberAuth(); if (!member) return;
   initMemberSidebar(member);
   loadNotifCount();
-  loadSchoolsDatalist();
 
   try {
     const res = await memberApi.profile.get();
