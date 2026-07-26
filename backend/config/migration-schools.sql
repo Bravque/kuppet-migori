@@ -19,3 +19,18 @@ INSERT IGNORE INTO schools (name)
 SELECT DISTINCT TRIM(school_name)
 FROM members
 WHERE school_name IS NOT NULL AND TRIM(school_name) <> '';
+
+-- Backfill each school's sub-county from the members recorded at that school.
+-- MAX() keeps it compatible with every MySQL/MariaDB version; for the rare school
+-- whose members span more than one sub-county it just picks one deterministically.
+-- Only fills blanks, so admin-set sub-counties are never overwritten.
+UPDATE schools s
+JOIN (
+  SELECT TRIM(school_name) AS name, MAX(sub_county) AS sub_county
+  FROM members
+  WHERE school_name IS NOT NULL AND TRIM(school_name) <> ''
+    AND sub_county IS NOT NULL AND sub_county <> ''
+  GROUP BY TRIM(school_name)
+) m ON m.name = s.name
+SET s.sub_county = m.sub_county
+WHERE s.sub_county IS NULL OR s.sub_county = '';
