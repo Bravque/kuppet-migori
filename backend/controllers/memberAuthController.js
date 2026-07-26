@@ -4,6 +4,7 @@ const db = require('../config/database');
 const { validationResult } = require('express-validator');
 const mailerService = require('../services/mailerService');
 const { missingProfileFields } = require('../utils/memberProfile');
+const { resolveSchool, OFF_LIST_MESSAGE } = require('../utils/schools');
 
 // ── Sequence number generator (atomic) ───────────────────────────────────────
 // LAST_INSERT_ID() is connection-scoped, so the UPDATE and the read-back MUST run
@@ -90,6 +91,11 @@ async function register(req, res) {
     const [[byEmail]] = await db.query('SELECT id FROM members WHERE email = ?', [email.toLowerCase()]);
     if (byEmail) return res.status(409).json({ success: false, message: 'Email already registered' });
 
+    // The curated schools list is the source of truth — the school must be on it
+    // (stored using its canonical spelling). Off-list values are rejected.
+    const school = await resolveSchool(school_name);
+    if (!school.ok) return res.status(400).json({ success: false, message: OFF_LIST_MESSAGE });
+
     const hashedPassword = await bcrypt.hash(password, 10);
     const memberNumber = await nextSeq('member_seq', 'MBR');
 
@@ -100,7 +106,7 @@ async function register(req, res) {
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [memberNumber, full_name, tsc_number, national_id, employment_number || null,
        phone, email.toLowerCase(), hashedPassword, gender, date_of_birth,
-       school_name, sub_county, school_category, job_group || null]
+       school.name, sub_county, school_category, job_group || null]
     );
 
     // Send confirmation email (non-blocking)

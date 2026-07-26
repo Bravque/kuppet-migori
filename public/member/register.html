@@ -136,7 +136,7 @@
         <label>School Name <span class="required">*</span></label>
         <input type="text" name="school_name" class="form-control" placeholder="Start typing your school name…" list="schools-list" autocomplete="off" required>
         <datalist id="schools-list"></datalist>
-        <small style="color:var(--text-muted);font-size:0.78rem">Pick your school from the list if it appears, to keep the name consistent.</small>
+        <small style="color:var(--text-muted);font-size:0.78rem">Select your school from the list. If it isn't listed, contact the KUPPET Migori office to have it added.</small>
       </div>
       <div class="form-group">
         <label>Sub-County <span class="required">*</span></label>
@@ -185,10 +185,15 @@
 
 <script src="/member/js/member-api.js?v=20260725i"></script>
 <script>
-  // Populate the school-name autocomplete from the curated schools list.
+  // Populate the school-name autocomplete from the curated schools list, and keep
+  // a lowercase set so we can enforce "must be on the list" (matches the server).
+  const KNOWN_SCHOOLS = new Set();
   fetch('/api/schools').then(r => r.json()).then(res => {
     const dl = document.getElementById('schools-list');
-    if (dl && res.data) res.data.forEach(name => { const o = document.createElement('option'); o.value = name; dl.appendChild(o); });
+    (res.data || []).forEach(name => {
+      if (dl) { const o = document.createElement('option'); o.value = name; dl.appendChild(o); }
+      KNOWN_SCHOOLS.add(String(name).trim().toLowerCase());
+    });
   }).catch(() => { /* autocomplete is a convenience; ignore */ });
 
   // Show/hide password toggles
@@ -238,6 +243,16 @@
         return false;
       }
       if (pw !== cpw) { showReg('Passwords do not match', 'danger'); return false; }
+    }
+    const schoolInp = panel.querySelector('[name=school_name]');
+    if (schoolInp) {
+      const val = schoolInp.value.trim();
+      // Enforce the curated list once it has loaded (matches the server; skipped if empty).
+      if (val && KNOWN_SCHOOLS.size > 0 && !KNOWN_SCHOOLS.has(val.toLowerCase())) {
+        schoolInp.focus();
+        showReg('Please select your school from the list. If it is not listed, contact the office to have it added.', 'danger');
+        return false;
+      }
     }
     return true;
   }

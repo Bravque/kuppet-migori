@@ -1,5 +1,6 @@
 const db = require('../config/database');
 const { missingProfileFields } = require('../utils/memberProfile');
+const { resolveSchool, OFF_LIST_MESSAGE } = require('../utils/schools');
 
 async function getProfile(req, res) {
   try {
@@ -47,6 +48,12 @@ async function updateProfile(req, res) {
       }
       if (key === 'gender' && value && !['male','female','other'].includes(value)) {
         return res.status(400).json({ success: false, message: 'Invalid gender' });
+      }
+      if (key === 'school_name' && value) {
+        // Curated schools list is the source of truth — must be on it (canonical spelling stored).
+        const school = await resolveSchool(value);
+        if (!school.ok) return res.status(400).json({ success: false, message: OFF_LIST_MESSAGE });
+        value = school.name;
       }
       if (key === 'date_of_birth' && value && !/^\d{4}-\d{2}-\d{2}$/.test(value)) {
         return res.status(400).json({ success: false, message: 'Invalid date of birth' });
