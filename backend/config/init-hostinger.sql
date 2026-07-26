@@ -301,6 +301,18 @@ CREATE TABLE IF NOT EXISTS scholarship_application_documents (
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+-- Status-change audit trail for scholarship applications (mirrors bbf_claim_timeline)
+CREATE TABLE IF NOT EXISTS scholarship_application_timeline (
+  id INT PRIMARY KEY AUTO_INCREMENT,
+  application_id INT NOT NULL,
+  from_status VARCHAR(30),
+  to_status VARCHAR(30) NOT NULL,
+  comment TEXT,
+  changed_by INT NOT NULL,
+  changed_by_type ENUM('admin','member') NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
 -- In-app notifications for members
 CREATE TABLE IF NOT EXISTS notifications (
   id INT PRIMARY KEY AUTO_INCREMENT,

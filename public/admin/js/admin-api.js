@@ -250,6 +250,7 @@ const adminApi = (() => {
     schApps: {
       getAll: (p = {}) => request('/admin/scholarship-apps?' + new URLSearchParams(p)),
       getOne: (id) => request(`/admin/scholarship-apps/${id}`),
+      startReview: (id, notes) => request(`/admin/scholarship-apps/${id}/review`, { method: 'PUT', body: JSON.stringify({ notes }) }),
       approve: (id, notes, amount) => request(`/admin/scholarship-apps/${id}/approve`, { method: 'PUT', body: JSON.stringify({ notes, amount }) }),
       reject: (id, notes) => request(`/admin/scholarship-apps/${id}/reject`, { method: 'PUT', body: JSON.stringify({ notes }) }),
       markPaid: (id, ref) => request(`/admin/scholarship-apps/${id}/paid`, { method: 'PUT', body: JSON.stringify({ ref }) }),

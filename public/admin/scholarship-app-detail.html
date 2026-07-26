@@ -10,7 +10,7 @@
   <title>Scholarship Application — KUPPET Migori Admin</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
-  <link rel="stylesheet" href="/css/style.css?v=20260725h"><link rel="stylesheet" href="/css/portal.css?v=20260725h">
+  <link rel="stylesheet" href="/css/style.css?v=20260725i"><link rel="stylesheet" href="/css/portal.css?v=20260725i">
 </head>
 <body class="portal-body admin-scholarship-app-detail-page">
 <div class="portal-layout">
@@ -22,6 +22,7 @@
         <div class="page-heading-text"><h1 id="app-number">Scholarship Application</h1><div id="app-status"></div></div>
         <div class="page-heading-actions">
           <a href="/admin/scholarship-apps.html" class="btn btn-outline btn-sm"><i class="fas fa-arrow-left"></i> Back</a>
+          <button type="button" id="review-btn" class="btn btn-outline btn-sm" style="display:none" onclick="startReview()"><i class="fas fa-search"></i> Start Review</button>
           <button type="button" id="print-btn" class="btn btn-outline btn-sm" disabled onclick="printApp()"><i class="fas fa-print"></i> Print</button>
         </div>
       </div>
@@ -71,15 +72,21 @@
           </div>
         </div>
 
-        <div class="data-card">
-          <div class="data-card-header"><div class="data-card-title">Essay / Personal Statement</div></div>
-          <div id="essay-box" style="padding:1.25rem;white-space:pre-wrap;font-size:0.875rem;line-height:1.7"></div>
+        <div>
+          <div class="data-card" style="margin-bottom:1rem">
+            <div class="data-card-header"><div class="data-card-title">Essay / Personal Statement</div></div>
+            <div id="essay-box" style="padding:1.25rem;white-space:pre-wrap;font-size:0.875rem;line-height:1.7"></div>
+          </div>
+          <div class="data-card">
+            <div class="data-card-header"><div class="data-card-title">Status Timeline</div></div>
+            <div style="padding:1.25rem"><div class="timeline" id="timeline"></div></div>
+          </div>
         </div>
       </div>
     </div>
   </main>
 </div>
-<script src="/admin/js/admin-api.js?v=20260725h"></script><script src="/admin/js/admin-portal.js?v=20260725h"></script>
+<script src="/admin/js/admin-api.js?v=20260725i"></script><script src="/admin/js/admin-portal.js?v=20260725i"></script>
 <script>
   document.getElementById('sidebar-placeholder').outerHTML = getSidebarHtml();
   document.getElementById('topbar-placeholder').outerHTML = getTopbarHtml('Scholarship Application');
@@ -196,9 +203,22 @@
       if (canDecide && a.status === 'approved') {
         document.getElementById('paid-card').style.display = '';
       }
+      // Start Review is available to any admin role while still 'applied'.
+      if (a.status === 'applied') document.getElementById('review-btn').style.display = '';
+
+      const tl = document.getElementById('timeline');
+      tl.innerHTML = (a.timeline && a.timeline.length)
+        ? a.timeline.map(e=>`<div class="timeline-item status-${e.to_status}"><div class="timeline-dot"><i class="fas fa-circle" style="font-size:0.45rem"></i></div><div class="timeline-content"><div class="timeline-status">${escHtml((e.to_status||'').replace(/_/g,' '))}</div><div class="timeline-meta">${formatDateTime(e.created_at)} by ${escHtml(e.changed_by_type)}</div>${e.comment?`<div class="timeline-comment">${escHtml(e.comment)}</div>`:''}</div></div>`).join('')
+        : '<div style="color:var(--text-muted);font-size:0.85rem">No timeline entries yet.</div>';
     } catch (err) {
       showAlert('action-alert', err.message);
     }
+  }
+
+  async function startReview(){
+    if(!confirm('Mark this application as under review? The member will be notified.'))return;
+    try{ await adminApi.schApps.startReview(id); load(); }
+    catch(err){ showAlert('action-alert', err.message); }
   }
 
   async function decide(action) {

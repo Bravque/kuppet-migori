@@ -19,6 +19,22 @@ async function notifySafely(payload) {
   }
 }
 
+// Append a status-change row to the application's audit trail (mirrors BBF's
+// addTimeline). Best-effort: the timeline is an audit convenience, so a write
+// failure (e.g. migration #26 not yet run on live) is logged but never breaks
+// the status change it accompanies. ER_NO_SUCH_TABLE doesn't abort the InnoDB
+// transaction, so the enclosing commit still persists the status update.
+async function addTimeline(applicationId, fromStatus, toStatus, comment, adminId, conn = db) {
+  try {
+    await conn.query(
+      'INSERT INTO scholarship_application_timeline (application_id, from_status, to_status, comment, changed_by, changed_by_type) VALUES (?, ?, ?, ?, ?, "admin")',
+      [applicationId, fromStatus, toStatus, comment || null, adminId]
+    );
+  } catch (err) {
+    console.error('[timeline] scholarship timeline write skipped:', err.message);
+  }
+}
+
 const SCH_BASE = `FROM scholarship_applications sa
                   JOIN members m ON sa.member_id = m.id
                   JOIN scholarships s ON sa.scholarship_id = s.id`;
@@ -92,9 +108,57 @@ async function getOne(req, res) {
     );
     if (!app) return res.status(404).json({ success: false, message: 'Application not found' });
     const [docs] = await db.query('SELECT * FROM scholarship_application_documents WHERE application_id = ?', [app.id]);
-    res.json({ success: true, data: { ...app, documents: docs } });
+    let timeline = [];
+    try {
+      [timeline] = await db.query('SELECT * FROM scholarship_application_timeline WHERE application_id = ? ORDER BY created_at ASC', [app.id]);
+    } catch (err) { /* timeline table may not exist yet (migration #26) — non-fatal */ }
+    res.json({ success: true, data: { ...app, documents: docs, timeline } });
   } catch (err) {
     res.status(500).json({ success: false, message: 'Failed to fetch' });
+  }
+}
+
+// Move an application into "under review" (mirrors BBF startReview). Available to
+// every admin role — only the final approve/reject decision is restricted.
+async function startReview(req, res) {
+  try {
+    const [[app]] = await db.query(
+      'SELECT sa.*, s.title FROM scholarship_applications sa JOIN scholarships s ON sa.scholarship_id = s.id WHERE sa.id = ?',
+      [req.params.id]
+    );
+    if (!app) return res.status(404).json({ success: false, message: 'Application not found' });
+    if (app.status !== 'applied') {
+      return res.status(400).json({ success: false, message: `Cannot start review from status "${app.status}"` });
+    }
+    const conn = await db.getConnection();
+    try {
+      await conn.beginTransaction();
+      await conn.query('UPDATE scholarship_applications SET status = "under_review" WHERE id = ?', [app.id]);
+      await addTimeline(app.id, app.status, 'under_review', req.body.notes, req.user.id, conn);
+      await conn.commit();
+    } catch (err) {
+      await conn.rollback();
+      throw err;
+    } finally {
+      conn.release();
+    }
+    const msg = notificationService.renderNotification('scholarship_under_review', {
+      scholarship_title: app.title,
+      applicant_name: app.applicant_name,
+    });
+    await notifySafely({
+      memberId: app.member_id,
+      type: 'scholarship',
+      title: msg.title,
+      body: msg.body,
+      referenceId: app.id,
+      adminId: req.user.id,
+      email: true,
+      smsMessage: msg.sms,
+    });
+    res.json({ success: true, message: 'Application marked under review' });
+  } catch (err) {
+    res.status(500).json({ success: false, message: 'Failed to update' });
   }
 }
 
@@ -110,10 +174,21 @@ async function approve(req, res) {
     if (!DECIDABLE.includes(app.status)) {
       return res.status(400).json({ success: false, message: `Cannot approve an application with status "${app.status}"` });
     }
-    await db.query(
-      'UPDATE scholarship_applications SET status = "approved", amount_awarded = ?, reviewed_by = ?, reviewer_notes = ?, reviewed_at = NOW() WHERE id = ?',
-      [awarded, req.user.id, notes || null, app.id]
-    );
+    const conn = await db.getConnection();
+    try {
+      await conn.beginTransaction();
+      await conn.query(
+        'UPDATE scholarship_applications SET status = "approved", amount_awarded = ?, reviewed_by = ?, reviewer_notes = ?, reviewed_at = NOW() WHERE id = ?',
+        [awarded, req.user.id, notes || null, app.id]
+      );
+      await addTimeline(app.id, app.status, 'approved', notes, req.user.id, conn);
+      await conn.commit();
+    } catch (err) {
+      await conn.rollback();
+      throw err;
+    } finally {
+      conn.release();
+    }
     const msg = notificationService.renderNotification('scholarship_approved', {
       scholarship_title: app.title,
       applicant_name: app.applicant_name,
@@ -146,10 +221,21 @@ async function reject(req, res) {
     if (!DECIDABLE.includes(app.status)) {
       return res.status(400).json({ success: false, message: `Cannot reject an application with status "${app.status}"` });
     }
-    await db.query(
-      'UPDATE scholarship_applications SET status = "rejected", reviewed_by = ?, reviewer_notes = ?, reviewed_at = NOW() WHERE id = ?',
-      [req.user.id, notes || null, app.id]
-    );
+    const conn = await db.getConnection();
+    try {
+      await conn.beginTransaction();
+      await conn.query(
+        'UPDATE scholarship_applications SET status = "rejected", reviewed_by = ?, reviewer_notes = ?, reviewed_at = NOW() WHERE id = ?',
+        [req.user.id, notes || null, app.id]
+      );
+      await addTimeline(app.id, app.status, 'rejected', notes, req.user.id, conn);
+      await conn.commit();
+    } catch (err) {
+      await conn.rollback();
+      throw err;
+    } finally {
+      conn.release();
+    }
     const msg = notificationService.renderNotification('scholarship_rejected', {
       scholarship_title: app.title,
       applicant_name: app.applicant_name,
@@ -181,10 +267,21 @@ async function markPaid(req, res) {
     );
     if (!app) return res.status(404).json({ success: false, message: 'Application not found' });
     if (app.status !== 'approved') return res.status(400).json({ success: false, message: 'Only approved applications can be marked paid' });
-    await db.query(
-      'UPDATE scholarship_applications SET status = "paid", payment_reference = ?, payment_date = CURDATE() WHERE id = ?',
-      [ref || null, app.id]
-    );
+    const conn = await db.getConnection();
+    try {
+      await conn.beginTransaction();
+      await conn.query(
+        'UPDATE scholarship_applications SET status = "paid", payment_reference = ?, payment_date = CURDATE() WHERE id = ?',
+        [ref || null, app.id]
+      );
+      await addTimeline(app.id, 'approved', 'paid', `Payment reference: ${ref || 'N/A'}`, req.user.id, conn);
+      await conn.commit();
+    } catch (err) {
+      await conn.rollback();
+      throw err;
+    } finally {
+      conn.release();
+    }
     const msg = notificationService.renderNotification('scholarship_paid', {
       scholarship_title: app.title,
       applicant_name: app.applicant_name,
@@ -207,4 +304,4 @@ async function markPaid(req, res) {
   }
 }
 
-module.exports = { getAll, getOne, approve, reject, markPaid, exportExcel };
+module.exports = { getAll, getOne, startReview, approve, reject, markPaid, exportExcel };

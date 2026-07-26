@@ -61,6 +61,14 @@ const NOTIFICATION_TEMPLATES = {
     body: 'Your application {{app_number}} for "{{scholarship_title}}" has been submitted and is awaiting review.',
     sms: 'Dear member, your scholarship application {{app_number}} has been submitted for review. - KUPPET Migori',
   },
+  scholarship_under_review: {
+    label: 'Scholarship application under review', group: 'Scholarships',
+    description: 'Sent when an officer starts reviewing a scholarship application.',
+    variables: [{ name: 'scholarship_title', desc: 'scholarship title' }, { name: 'applicant_name', desc: "applicant's name" }],
+    title: 'Scholarship Application Under Review',
+    body: 'Your scholarship application for "{{scholarship_title}}" ({{applicant_name}}) is now under review. You will be notified once a decision is made.',
+    sms: 'Dear member, your scholarship application ({{scholarship_title}}) is now UNDER REVIEW. - KUPPET Migori',
+  },
   scholarship_approved: {
     label: 'Scholarship application approved', group: 'Scholarships',
     description: 'Sent when a scholarship application is approved. {{amount}} is shown only if an award amount was entered.',

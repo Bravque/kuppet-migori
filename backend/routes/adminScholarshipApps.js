@@ -17,6 +17,9 @@ router.get('/', authenticate, authorizeAdmin, ctrl.getAll);
 router.get('/:id', authenticate, authorizeAdmin, idParam, handleValidation, ctrl.getOne);
 const ref = body('ref').optional({ nullable: true }).trim().isLength({ max: 100 });
 
+// Start review is available to every admin role (like BBF); only the final
+// approve/reject/paid decisions are restricted to branch_officer + super_admin.
+router.put('/:id/review', authenticate, authorizeAdmin, idParam, notes, handleValidation, auditLog('schapp.review'), ctrl.startReview);
 router.put('/:id/approve', authenticate, authorizeDecision, idParam, notes, amount, handleValidation, auditLog('schapp.approve'), ctrl.approve);
 router.put('/:id/reject', authenticate, authorizeDecision, idParam, notes, handleValidation, auditLog('schapp.reject'), ctrl.reject);
 router.put('/:id/paid', authenticate, authorizeDecision, idParam, ref, handleValidation, auditLog('schapp.paid'), ctrl.markPaid);

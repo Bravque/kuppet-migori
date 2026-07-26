@@ -71,6 +71,15 @@ async function apply(req, res) {
         'INSERT INTO scholarship_application_documents (application_id, doc_type, file_url, file_name, file_size) VALUES ?',
         [docValues]
       );
+      // Open the audit trail (mirrors BBF's submit timeline entry). Best-effort:
+      // if the timeline table isn't there yet (migration #26 unrun on live), skip
+      // it rather than fail the application. ER_NO_SUCH_TABLE won't abort the txn.
+      try {
+        await conn.query(
+          'INSERT INTO scholarship_application_timeline (application_id, from_status, to_status, comment, changed_by, changed_by_type) VALUES (?, NULL, "applied", "Application submitted by member", ?, "member")',
+          [applicationId, req.member.id]
+        );
+      } catch (err) { console.error('[timeline] scholarship submit timeline skipped:', err.message); }
       await conn.commit();
     } catch (err) {
       await conn.rollback();
