@@ -6,6 +6,24 @@ guidance, architecture, schema, and pending tasks see `CLAUDE.md`.
 
 ---
 
+### Done in the 28 July 2026 session
+
+Error-handling review of three flows, then the fixes. Cache token `20260725j → 20260728c`. No migrations. Commits `8dacd04`…`a2add97`.
+
+**Demo member tooling** (`8dacd04`, `8d295d3`). `backend/scripts/create-demo-member.js` — offline generator (same phpMyAdmin-SQL approach as `import-members.js`, since Hostinger blocks remote MySQL) for one member shaped exactly like a bulk-imported one, so the forced first-login flow can be demoed. Takes the next `member_seq` inside the transaction; defaults the school to the first active `schools` row so it passes the curated-list check. `--reset` returns an existing demo member to that state without consuming a member number. Generated SQL is git-ignored (bcrypt hashes).
+
+**Member profile** (`bacd76d`). Two bugs. (1) The page branched on `onboarding_complete` — true for *every* onboarded member — so each ordinary profile edit reported "Profile complete!" and bounced the member to the dashboard; added `just_onboarded` and branched on that. (2) Empty strings were written as `NULL` while every validator was guarded with `value &&`, and the completeness flag only moves 0 → 1 — so a member could blank out phone/gender/job group and stay flagged complete. Required fields can now be corrected but not cleared. Flag left one-way on purpose: many live members predate `job_group` and would have been locked back into onboarding.
+
+**BBF claims** (`0fa713f`, then `a2add97`). Documents were uploadable against a claim in *any* status (ownership was the only check) — evidence could change after review with nothing in the timeline; now draft-only. Uploads were orphaned on every reject path: multer writes files before the handler and cleans up only its own failures, and nothing in `backend/` ever unlinked them → new `utils/uploads.js`, wired into `handleValidation`, the global error handler, and each controller's reject paths; the document inserts became transactional so blanket cleanup is safe. `submitClaim` raced with itself (two SMS + two emails on a double-tap) → conditional UPDATE + 409. Then the smaller items: `doc_type` validated against a new `BBF_DOC_SLOTS` (now the single source of truth for uploadable *and* required types), re-upload replaces instead of appending (old file unlinked after commit), the null guard `create` had but `update` didn't, and future `date_of_death` rejected.
+
+**Scholarship applications** (`2548884`, `a2add97`). The **deadline was never enforced** — only `is_active` was checked and the portal rendered "Apply Now" regardless, while the public site already marked the same scholarship expired. Upload cleanup added (the likeliest leak being the 409 "already applied" — a double-tap re-uploads both documents first). `reuploadDocument` leaked a file on the *success* path (row swapped, file never deleted) → `removeStoredFile`, plus the swap made transactional. Admin decisions given the same conditional-UPDATE treatment as BBF. Dead `req.body` destructuring removed from `apply`.
+
+**Security: uploader-controlled filenames reaching an admin JS context** (`5fb9421`). Six admin detail pages built `onclick="viewDoc('${escHtml(d.file_url)}')"`. `escHtml` is HTML-escaping, not JS-string escaping, and the browser decodes an attribute before parsing it as JS; the URL's extension came straight from the uploader (`path.extname` returns everything after the last dot; `fileFilter` only checks MIME type). So `x.pdf'-alert(1)-'` broke out of the string literal — **any member could run script in an admin's session** via a BBF/scholarship document or profile photo, with the admin token readable from `sessionStorage`. Verified end to end (escape → HTML-decode → evaluate). Fixed in two layers, since layer 1 can't help files already on disk: `safeExtension()` in `upload.js`, and `data-view-doc` + one delegated listener in `admin-portal.js`. Re-scanned `public/`: no other inline handler interpolates a string, no `javascript:` hrefs; the seven `onclick`s in `admin-portal.js` pass numeric ids only. A live check (`file_url REGEXP "['\"<>()]"` over both document tables) returned **zero rows** — never exploited.
+
+*Verification note:* there is no local MySQL, so all of the above was exercised against stubbed-DB harnesses (with real temp files, so the upload deletions were observed rather than inferred) rather than integration-tested. Live still wants: a profile edit, a BBF slot re-upload, and one **View** button click.
+
+---
+
 ### Done in the 17 July 2026 session
 
 **Bug-fix batch (from a full project review)** — all in the working tree, cache token `20260714c → 20260717a`.
