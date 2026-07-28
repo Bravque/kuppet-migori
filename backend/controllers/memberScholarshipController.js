@@ -65,7 +65,6 @@ async function apply(req, res) {
       return reject(400, `Missing required documents: ${missing.map(d => d.label).join(', ')}`);
     }
 
-    const { institution, course, year_of_study, academic_year, essay } = req.body;
     const appNumber = await nextSeq('schapp_seq', 'SAPP');
 
     // Persist the application and its documents atomically — one transaction plus a
@@ -75,12 +74,15 @@ async function apply(req, res) {
     let applicationId;
     try {
       await conn.beginTransaction();
+      // The study-detail columns (institution/course/year_of_study/academic_year/
+      // essay) were dropped from the form in July 2026 — the application is just
+      // the member plus the two documents — so they are left NULL by their
+      // column defaults rather than read from a body that never carries them.
       const [result] = await conn.query(
         `INSERT INTO scholarship_applications
-           (application_number, member_id, scholarship_id, applicant_name, institution, course, year_of_study, academic_year, essay)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-        [appNumber, req.member.id, id, member.full_name, institution || null, course || null,
-         year_of_study || null, academic_year || null, essay || null]
+           (application_number, member_id, scholarship_id, applicant_name)
+         VALUES (?, ?, ?, ?)`,
+        [appNumber, req.member.id, id, member.full_name]
       );
       applicationId = result.insertId;
       const docValues = REQUIRED_DOCS.map(({ field }) => {

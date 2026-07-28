@@ -1,7 +1,44 @@
 const db = require('../config/database');
 const { nextSeq } = require('./memberAuthController');
 const notificationService = require('../services/notificationService');
-const { removeUploadedFiles } = require('../utils/uploads');
+const { removeUploadedFiles, removeStoredFile } = require('../utils/uploads');
+
+// The document slots a claim can carry, per claim type — the single source of
+// truth for both "which types may be uploaded" and "which are required to
+// submit". Mirrors BBF_DOC_SLOTS_DEATH / _RETIREMENT in member-portal.js.
+const BBF_DOC_SLOTS = {
+  death: [
+    { type: 'tsc_slip',             label: 'TSC Slip',             required: true },
+    { type: 'burial_permit',        label: 'Burial Permit',        required: true },
+    { type: 'letter_from_principal', label: 'Letter From Principal', required: true },
+    { type: 'birth_notification',   label: 'Birth Notification',   required: false },
+  ],
+  retirement: [
+    { type: 'tsc_slip',                        label: 'TSC Slip',                        required: true },
+    { type: 'letter_of_compulsory_retirement', label: 'Letter of Compulsory Retirement', required: true },
+  ],
+};
+// Free-form extras sit outside the slots: several may coexist, so they are
+// appended rather than replaced.
+const EXTRA_DOC_TYPE = 'other';
+
+const slotsFor = (claimType) => BBF_DOC_SLOTS[claimType] || BBF_DOC_SLOTS.death;
+
+// A death claim records a real past event; a date in the future is a typo or a
+// bad client. Returns an error message, or null when the fields are acceptable.
+function deathFieldError(claim_type, deceased_name, relationship, date_of_death) {
+  if (claim_type !== 'death') return null;
+  if (!deceased_name || !relationship || !date_of_death) {
+    return 'Deceased name, relationship and date of death are required for a death claim';
+  }
+  const dod = new Date(date_of_death);
+  if (Number.isNaN(dod.getTime())) return 'Date of death is not a valid date';
+  // Compare against end-of-today so "today" is accepted in any timezone.
+  const endOfToday = new Date();
+  endOfToday.setHours(23, 59, 59, 999);
+  if (dod > endOfToday) return 'Date of death cannot be in the future';
+  return null;
+}
 
 async function getAll(req, res) {
   try {
@@ -23,9 +60,8 @@ async function create(req, res) {
     if (!['death', 'retirement'].includes(claim_type)) {
       return res.status(400).json({ success: false, message: 'Claim type must be death or retirement' });
     }
-    if (claim_type === 'death' && (!deceased_name || !relationship || !date_of_death)) {
-      return res.status(400).json({ success: false, message: 'Deceased name, relationship and date of death are required for a death claim' });
-    }
+    const deathErr = deathFieldError(claim_type, deceased_name, relationship, date_of_death);
+    if (deathErr) return res.status(400).json({ success: false, message: deathErr });
 
     // The member's own identifying details (incl. school category) come from their profile — never re-entered.
     const [[m]] = await db.query(
@@ -70,9 +106,8 @@ async function update(req, res) {
     if (!claim_type || !['death', 'retirement'].includes(claim_type)) {
       return res.status(400).json({ success: false, message: 'Claim type must be death or retirement' });
     }
-    if (claim_type === 'death' && (!deceased_name || !relationship || !date_of_death)) {
-      return res.status(400).json({ success: false, message: 'Deceased name, relationship and date of death are required for a death claim' });
-    }
+    const deathErr = deathFieldError(claim_type, deceased_name, relationship, date_of_death);
+    if (deathErr) return res.status(400).json({ success: false, message: deathErr });
 
     const [[claim]] = await db.query(
       'SELECT status FROM bbf_claims WHERE id = ? AND member_id = ?',
@@ -83,6 +118,7 @@ async function update(req, res) {
 
     // For a death claim the "name" is the deceased relative; for retirement it is the member (the retiree).
     const [[m]] = await db.query('SELECT full_name FROM members WHERE id = ?', [req.member.id]);
+    if (!m) return res.status(404).json({ success: false, message: 'Member profile not found' });
     const claimName = claim_type === 'death' ? deceased_name : m.full_name;
 
     await db.query(
@@ -132,21 +168,10 @@ async function submitClaim(req, res) {
       'SELECT doc_type FROM bbf_claim_documents WHERE claim_id = ?', [claim.id]
     );
     const uploaded = new Set(docs.map(d => d.doc_type));
-    // Required documents differ by claim type: retirement claims need the
-    // TSC slip + letter of compulsory retirement; death claims need the
-    // TSC slip, burial permit and letter from principal.
-    const required = claim.claim_type === 'retirement'
-      ? ['tsc_slip', 'letter_of_compulsory_retirement']
-      : ['tsc_slip', 'burial_permit', 'letter_from_principal'];
-    const labels = {
-      tsc_slip: 'TSC Slip',
-      burial_permit: 'Burial Permit',
-      letter_from_principal: 'Letter From Principal',
-      letter_of_compulsory_retirement: 'Letter of Compulsory Retirement',
-    };
-    const missing = required.filter(t => !uploaded.has(t));
+    // Required documents differ by claim type — see BBF_DOC_SLOTS.
+    const missing = slotsFor(claim.claim_type).filter(s => s.required && !uploaded.has(s.type));
     if (missing.length > 0) {
-      return res.status(400).json({ success: false, message: `Missing required documents: ${missing.map(t => labels[t]).join(', ')}` });
+      return res.status(400).json({ success: false, message: `Missing required documents: ${missing.map(s => s.label).join(', ')}` });
     }
 
     // Conditional on the status we just read: two overlapping submits (a
@@ -193,7 +218,7 @@ async function uploadDocuments(req, res) {
   };
   try {
     const [[claim]] = await db.query(
-      'SELECT id, status FROM bbf_claims WHERE id = ? AND member_id = ?',
+      'SELECT id, status, claim_type FROM bbf_claims WHERE id = ? AND member_id = ?',
       [req.params.id, req.member.id]
     );
     if (!claim) return reject(404, 'Claim not found');
@@ -206,12 +231,40 @@ async function uploadDocuments(req, res) {
     }
     if (!req.files || !req.files.length) return reject(400, 'No files uploaded');
 
-    const docType = req.body.doc_type || 'other';
-    // All-or-nothing: if one insert fails the rest roll back, so the catch can
-    // safely delete every file knowing none of them is referenced by a row.
+    // doc_type lands in an ENUM column. Unvalidated, an unrecognised value either
+    // errors (surfacing as a bare 500) or — on a non-strict server — is coerced to
+    // '', leaving a document that looks uploaded but can never satisfy the
+    // required-document check, so the member is stuck with nothing explaining why.
+    const docType = req.body.doc_type || EXTRA_DOC_TYPE;
+    const slot = slotsFor(claim.claim_type).find(s => s.type === docType);
+    if (!slot && docType !== EXTRA_DOC_TYPE) {
+      return reject(400, 'That document type does not apply to this claim');
+    }
+    // A slot holds exactly one document; "other" is a free-form bucket.
+    if (slot && req.files.length > 1) {
+      return reject(400, `Please upload a single file for ${slot.label}`);
+    }
+
+    // Re-uploading a slot replaces what was there — it used to append, leaving
+    // the member's page showing the first upload while an admin saw both with no
+    // way to tell which was current.
+    let superseded = [];
+    if (slot) {
+      const [existing] = await db.query(
+        'SELECT file_url FROM bbf_claim_documents WHERE claim_id = ? AND doc_type = ?',
+        [claim.id, docType]
+      );
+      superseded = existing.map(d => d.file_url);
+    }
+
+    // All-or-nothing: if one statement fails the rest roll back, so the catch can
+    // safely delete every uploaded file knowing no row references it.
     const conn = await db.getConnection();
     try {
       await conn.beginTransaction();
+      if (slot) {
+        await conn.query('DELETE FROM bbf_claim_documents WHERE claim_id = ? AND doc_type = ?', [claim.id, docType]);
+      }
       for (const file of req.files) {
         await conn.query(
           'INSERT INTO bbf_claim_documents (claim_id, doc_type, file_url, file_name, file_size, uploaded_by) VALUES (?, ?, ?, ?, ?, ?)',
@@ -225,6 +278,10 @@ async function uploadDocuments(req, res) {
     } finally {
       conn.release();
     }
+
+    // Committed — the replaced rows are gone, so their files can go too.
+    for (const url of superseded) await removeStoredFile(url);
+
     res.json({ success: true, message: `${req.files.length} document(s) uploaded` });
   } catch (err) {
     return reject(500, 'Upload failed');
