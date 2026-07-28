@@ -302,10 +302,12 @@ async function initMemberProfile() {
         job_group: document.getElementById('p-job-group').value,
         employment_number: document.getElementById('p-employment-number').value.trim(),
       });
-      if (res.onboarding_complete) {
+      // just_onboarded — not onboarding_complete, which is true for every
+      // already-onboarded member and so fired on every ordinary profile edit.
+      if (res.just_onboarded) {
         showMsg('profile-msg', 'Profile complete! Taking you to your dashboard…', 'success');
         setTimeout(() => window.location.href = '/member/dashboard.html', 1200);
-      } else if (res.profile_complete === false) {
+      } else if (res.onboarding_complete === false) {
         showOnboardingBanner(res.missing_fields || []);
         showMsg('profile-msg', 'Saved. Please fill the remaining required fields.', 'success');
       } else {
