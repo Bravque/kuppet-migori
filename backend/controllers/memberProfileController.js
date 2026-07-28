@@ -21,6 +21,12 @@ const FIELD_LABELS = {
 
 const isBlank = (v) => v === null || v === undefined || String(v).trim() === '';
 
+// Every rejection names the field it came from, so the profile page can point the
+// member at the input that needs fixing instead of only showing a message banner
+// at the top of a long form (easy to miss on a phone).
+const fieldError = (res, status, field, message) =>
+  res.status(status).json({ success: false, message, field });
+
 async function getProfile(req, res) {
   try {
     const [[m]] = await db.query(
@@ -72,36 +78,36 @@ async function updateProfile(req, res) {
       // so partial saves during first-login onboarding keep working.
       if (isBlank(value) && REQUIRED_EDITABLE.has(key)) {
         if (!isBlank(current[key])) {
-          return res.status(400).json({ success: false, message: `${FIELD_LABELS[key]} is required and cannot be cleared` });
+          return fieldError(res, 400, key, `${FIELD_LABELS[key]} is required and cannot be cleared`);
         }
         continue;
       }
 
       if (key === 'school_category' && value && !['senior_school','junior_school','tertiary_school'].includes(value)) {
-        return res.status(400).json({ success: false, message: 'Invalid school category' });
+        return fieldError(res, 400, key, 'Invalid school category');
       }
       if (key === 'job_group' && value && !JOB_GROUPS.includes(value)) {
-        return res.status(400).json({ success: false, message: 'Invalid job group' });
+        return fieldError(res, 400, key, 'Invalid job group');
       }
       if (key === 'gender' && value && !['male','female','other'].includes(value)) {
-        return res.status(400).json({ success: false, message: 'Invalid gender' });
+        return fieldError(res, 400, key, 'Invalid gender');
       }
       if (key === 'school_name' && value) {
         // Curated schools list is the source of truth — must be on it (canonical spelling stored).
         const school = await resolveSchool(value);
-        if (!school.ok) return res.status(400).json({ success: false, message: OFF_LIST_MESSAGE });
+        if (!school.ok) return fieldError(res, 400, key, OFF_LIST_MESSAGE);
         value = school.name;
       }
       if (key === 'date_of_birth' && value && !/^\d{4}-\d{2}-\d{2}$/.test(value)) {
-        return res.status(400).json({ success: false, message: 'Invalid date of birth' });
+        return fieldError(res, 400, key, 'Invalid date of birth');
       }
       if (key === 'email' && value) {
         value = String(value).trim().toLowerCase();
         if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(value)) {
-          return res.status(400).json({ success: false, message: 'Invalid email address' });
+          return fieldError(res, 400, key, 'Invalid email address');
         }
         const [[dupe]] = await db.query('SELECT id FROM members WHERE email = ? AND id <> ?', [value, req.member.id]);
-        if (dupe) return res.status(409).json({ success: false, message: 'That email is already in use' });
+        if (dupe) return fieldError(res, 409, key, 'That email is already in use');
       }
       fields.push(`${key} = ?`); params.push(isBlank(value) ? null : value);
     }

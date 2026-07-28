@@ -255,6 +255,31 @@ async function loadSchoolsDatalist(datalistId = 'schools-list') {
   } catch { /* autocomplete is a convenience; ignore failures */ }
 }
 
+// Attach a save error to the input it came from: red border + the message right
+// under the field + scroll it into view. Returns false when the field can't be
+// resolved, so the caller can fall back to a banner.
+function markProfileFieldError(field, message) {
+  clearProfileFieldError();
+  if (!field) return false;
+  const el = document.getElementById(`p-${String(field).replace(/_/g, '-')}`);
+  if (!el) return false;
+  el.classList.add('is-invalid');
+  const note = document.createElement('div');
+  note.className = 'field-error';
+  note.textContent = message;
+  (el.closest('.form-group') || el.parentElement).appendChild(note);
+  el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  el.focus({ preventScroll: true });
+  // Clear the moment they start fixing it.
+  ['input', 'change'].forEach(ev => el.addEventListener(ev, clearProfileFieldError, { once: true }));
+  return true;
+}
+
+function clearProfileFieldError() {
+  document.querySelectorAll('.form-control.is-invalid').forEach(el => el.classList.remove('is-invalid'));
+  document.querySelectorAll('.field-error').forEach(el => el.remove());
+}
+
 async function initMemberProfile() {
   if (!document.querySelector('.member-profile-page')) return;
   const member = requireMemberAuth(); if (!member) return;
@@ -290,6 +315,7 @@ async function initMemberProfile() {
   }
 
   document.getElementById('btn-save-profile')?.addEventListener('click', async () => {
+    clearProfileFieldError();
     try {
       const res = await memberApi.profile.update({
         phone: document.getElementById('p-phone').value.trim(),
@@ -305,15 +331,21 @@ async function initMemberProfile() {
       // just_onboarded — not onboarding_complete, which is true for every
       // already-onboarded member and so fired on every ordinary profile edit.
       if (res.just_onboarded) {
-        showMsg('profile-msg', 'Profile complete! Taking you to your dashboard…', 'success');
+        showMsg('profile-save-msg', 'Profile complete! Taking you to your dashboard…', 'success');
         setTimeout(() => window.location.href = '/member/dashboard.html', 1200);
       } else if (res.onboarding_complete === false) {
         showOnboardingBanner(res.missing_fields || []);
-        showMsg('profile-msg', 'Saved. Please fill the remaining required fields.', 'success');
+        showMsg('profile-save-msg', 'Saved. Please fill the remaining required fields.', 'success');
       } else {
-        showMsg('profile-msg', 'Profile updated successfully', 'success');
+        showMsg('profile-save-msg', 'Profile updated successfully', 'success');
       }
-    } catch (err) { showMsg('profile-msg', err.message); }
+    } catch (err) {
+      // Put the message on the offending input when the server names one — the
+      // banner at the top of the page is off-screen on a phone, so the member
+      // sees nothing but a form that didn't save. Falls back to the message
+      // beside the Save button.
+      if (!markProfileFieldError(err.field, err.message)) showMsg('profile-save-msg', err.message);
+    }
   });
 
   document.getElementById('photo-input')?.addEventListener('change', async function() {
@@ -889,7 +921,13 @@ function showMsg(id, msg, type = 'danger') {
   if (!el) return;
   el.className = `alert alert-${type}`;
   el.textContent = msg;
-  el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  // The portal topbar is fixed (60px tall), so block:'nearest' can park the
+  // alert underneath it — invisible. Only scroll when it isn't already fully in
+  // view, and centre it when we do.
+  const r = el.getBoundingClientRect();
+  if (r.top < 70 || r.bottom > window.innerHeight) {
+    el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
 }
 
 // ── Init ──────────────────────────────────────────────────────────────────────

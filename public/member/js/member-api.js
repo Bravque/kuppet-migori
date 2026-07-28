@@ -51,6 +51,9 @@ const memberApi = (() => {
       const e = new Error(data.message || firstErr || `Error ${res.status}`);
       e.code = data.code; e.status = res.status;
       e.errors = data.errors;
+      // Name of the input that was rejected, when the endpoint reports one — lets
+      // the page highlight/focus it instead of only showing a banner.
+      e.field = data.field || (Array.isArray(data.errors) && data.errors[0]?.path) || null;
       throw e;
     }
     return data;

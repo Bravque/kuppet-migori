@@ -10,7 +10,7 @@
   <title>My Profile — KUPPET Migori</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
-  <link rel="stylesheet" href="/css/style.css?v=20260728c"><link rel="stylesheet" href="/css/portal.css?v=20260728c">
+  <link rel="stylesheet" href="/css/style.css?v=20260728d"><link rel="stylesheet" href="/css/portal.css?v=20260728d">
 </head>
 <body class="portal-body member-profile-page">
 <div class="portal-layout">
@@ -110,6 +110,9 @@
               </select>
             </div>
           </div>
+          <!-- Save result shows here, right beside the button that was pressed —
+               #profile-msg at the top of the page is off-screen on a phone. -->
+          <div id="profile-save-msg" class="hidden"></div>
           <button id="btn-save-profile" class="btn btn-gold btn-sm"><i class="fas fa-save"></i> Save Changes</button>
         </div>
       </div>
@@ -129,7 +132,7 @@
     </div>
   </main>
 </div>
-<script src="/member/js/member-api.js?v=20260728c"></script><script src="/js/school-picker.js?v=20260728c"></script><script src="/member/js/member-portal.js?v=20260728c"></script>
+<script src="/member/js/member-api.js?v=20260728d"></script><script src="/js/school-picker.js?v=20260728d"></script><script src="/member/js/member-portal.js?v=20260728d"></script>
 <script>
   document.getElementById('sidebar-placeholder').outerHTML = getMemberSidebarHtml();
   document.getElementById('topbar-placeholder').outerHTML = getMemberTopbarHtml('My Profile');

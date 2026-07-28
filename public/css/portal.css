@@ -515,6 +515,23 @@
   cursor: not-allowed;
 }
 
+/* Rejected input — set alongside a .field-error note under the field, so a save
+   error is visible where it has to be fixed rather than only in a top banner. */
+.form-control.is-invalid {
+  border-color: var(--red, #C0392B);
+  background: rgba(192, 57, 43, 0.04);
+}
+.form-control.is-invalid:focus {
+  border-color: var(--red, #C0392B);
+  box-shadow: 0 0 0 3px rgba(192, 57, 43, 0.14);
+}
+.field-error {
+  margin-top: 0.35rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--red, #C0392B);
+}
+
 textarea.form-control { resize: vertical; min-height: 100px; }
 
 /* Rich-text toolbar (content editors) — sits above its textarea */
