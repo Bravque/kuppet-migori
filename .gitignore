@@ -12,3 +12,6 @@ public/images/uploads/
 # Member uploads (sensitive documents)
 public/uploads/
 
+# Generated member SQL (contains password hashes — paste into phpMyAdmin, don't commit)
+demo-member.sql
+members-import.sql
