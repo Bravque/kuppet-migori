@@ -1,4 +1,6 @@
 const fs = require('fs/promises');
+const path = require('path');
+const { UPLOAD_ROOT } = require('../config/paths');
 
 // Multer (diskStorage) writes every accepted file before the route handler runs,
 // and cleans up after itself only when *it* is the one that fails (size limit,
@@ -24,4 +26,24 @@ async function removeUploadedFiles(req) {
   }));
 }
 
-module.exports = { removeUploadedFiles };
+// Delete a file that is already recorded in the DB, given the stored URL path
+// (`/uploads/<subdir>/<name>`). Used when a stored document is superseded, so
+// the replaced file doesn't linger on the upload dir forever.
+//
+// Only ever call this once the DB no longer references the file. Best-effort:
+// a failed unlink is logged, never thrown — the row is already gone, and
+// reporting a failure would wrongly invite the caller to retry.
+async function removeStoredFile(fileUrl) {
+  const m = /^\/uploads\/([^/]+)\/(.+)$/.exec(fileUrl || '');
+  if (!m) return;
+  // basename both segments: these come from our own DB, but a stored value must
+  // never be able to walk out of the upload root.
+  const target = path.join(UPLOAD_ROOT, path.basename(m[1]), path.basename(m[2]));
+  try {
+    await fs.unlink(target);
+  } catch (err) {
+    if (err.code !== 'ENOENT') console.error('[uploads] could not remove replaced file', target, '-', err.message);
+  }
+}
+
+module.exports = { removeUploadedFiles, removeStoredFile };

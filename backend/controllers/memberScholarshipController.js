@@ -1,11 +1,17 @@
 const db = require('../config/database');
 const { nextSeq } = require('./memberAuthController');
 const notificationService = require('../services/notificationService');
+const { removeUploadedFiles, removeStoredFile } = require('../utils/uploads');
+
+// A scholarship is closed once its deadline has passed. The deadline day itself
+// still counts as open, and a null deadline means open-ended. Evaluated by the
+// database (CURDATE()) so the site and the API can't disagree about "today".
+const IS_CLOSED_SQL = '(application_deadline IS NOT NULL AND application_deadline < CURDATE())';
 
 async function getAvailable(req, res) {
   try {
     const [scholarships] = await db.query(
-      'SELECT * FROM scholarships WHERE is_active = 1 ORDER BY is_featured DESC, application_deadline ASC'
+      `SELECT *, ${IS_CLOSED_SQL} AS is_closed FROM scholarships WHERE is_active = 1 ORDER BY is_featured DESC, application_deadline ASC`
     );
     res.json({ success: true, data: scholarships });
   } catch (err) {
@@ -21,28 +27,42 @@ const REQUIRED_DOCS = [
 ];
 
 async function apply(req, res) {
+  // The documents are uploaded before this handler runs, so every path that
+  // rejects the application must discard them — otherwise they sit on the
+  // upload dir unreferenced. The likeliest case is a member tapping Apply twice:
+  // the second attempt re-uploads both files and then 409s.
+  const reject = async (status, message) => {
+    await removeUploadedFiles(req);
+    return res.status(status).json({ success: false, message });
+  };
   try {
     const id = req.params.id;
 
-    const [[scholarship]] = await db.query('SELECT id, title FROM scholarships WHERE id = ? AND is_active = 1', [id]);
-    if (!scholarship) return res.status(404).json({ success: false, message: 'Scholarship not found' });
+    const [[scholarship]] = await db.query(
+      `SELECT id, title, ${IS_CLOSED_SQL} AS is_closed FROM scholarships WHERE id = ? AND is_active = 1`,
+      [id]
+    );
+    if (!scholarship) return reject(404, 'Scholarship not found');
+    if (scholarship.is_closed) {
+      return reject(400, 'Applications for this scholarship have closed. Contact the branch office if you believe this is an error.');
+    }
 
     const [[existing]] = await db.query(
       'SELECT id FROM scholarship_applications WHERE member_id = ? AND scholarship_id = ?',
       [req.member.id, id]
     );
-    if (existing) return res.status(409).json({ success: false, message: 'You have already applied for this scholarship' });
+    if (existing) return reject(409, 'You have already applied for this scholarship');
 
     // The applicant is the logged-in member (scholarships fund members' own studies) —
     // identity comes from their account, never re-entered on the form.
     const [[member]] = await db.query('SELECT full_name FROM members WHERE id = ?', [req.member.id]);
-    if (!member) return res.status(404).json({ success: false, message: 'Member profile not found' });
+    if (!member) return reject(404, 'Member profile not found');
 
     // Both required documents must be present.
     const files = req.files || {};
     const missing = REQUIRED_DOCS.filter(d => !files[d.field]?.[0]);
     if (missing.length) {
-      return res.status(400).json({ success: false, message: `Missing required documents: ${missing.map(d => d.label).join(', ')}` });
+      return reject(400, `Missing required documents: ${missing.map(d => d.label).join(', ')}`);
     }
 
     const { institution, course, year_of_study, academic_year, essay } = req.body;
@@ -111,9 +131,9 @@ async function apply(req, res) {
     // above and reach the INSERT. The UNIQUE(member_id, scholarship_id) key (migration #17)
     // makes the DB reject the loser here.
     if (err.code === 'ER_DUP_ENTRY' && /uq_member_scholarship/.test(err.message || '')) {
-      return res.status(409).json({ success: false, message: 'You have already applied for this scholarship' });
+      return reject(409, 'You have already applied for this scholarship');
     }
-    res.status(500).json({ success: false, message: 'Application failed' });
+    return reject(500, 'Application failed');
   }
 }
 
@@ -148,34 +168,61 @@ async function getApplications(req, res) {
 // review (status "applied"). Once an admin starts reviewing (or a decision is
 // made) the documents lock.
 async function reuploadDocument(req, res) {
+  const reject = async (status, message) => {
+    await removeUploadedFiles(req);
+    return res.status(status).json({ success: false, message });
+  };
   try {
     const docType = req.body.doc_type;
     if (!REQUIRED_DOCS.find(d => d.field === docType)) {
-      return res.status(400).json({ success: false, message: 'Invalid document type' });
+      return reject(400, 'Invalid document type');
     }
-    if (!req.file) return res.status(400).json({ success: false, message: 'No file uploaded' });
+    if (!req.file) return reject(400, 'No file uploaded');
 
     const [[app]] = await db.query(
       'SELECT id, status FROM scholarship_applications WHERE id = ? AND member_id = ?',
       [req.params.id, req.member.id]
     );
-    if (!app) return res.status(404).json({ success: false, message: 'Application not found' });
+    if (!app) return reject(404, 'Application not found');
     if (app.status !== 'applied') {
-      return res.status(400).json({ success: false, message: 'Documents can only be changed while the application is awaiting review' });
+      return reject(400, 'Documents can only be changed while the application is awaiting review');
     }
 
-    // Swap the existing document of this type for the new upload.
-    await db.query(
-      'DELETE FROM scholarship_application_documents WHERE application_id = ? AND doc_type = ?',
+    // Note the outgoing file before the swap so it can be deleted afterwards —
+    // replacing a document used to drop the row but leave the file on disk.
+    const [[old]] = await db.query(
+      'SELECT file_url FROM scholarship_application_documents WHERE application_id = ? AND doc_type = ? LIMIT 1',
       [app.id, docType]
     );
-    await db.query(
-      'INSERT INTO scholarship_application_documents (application_id, doc_type, file_url, file_name, file_size) VALUES (?, ?, ?, ?, ?)',
-      [app.id, docType, `/uploads/scholarships/${req.file.filename}`, req.file.originalname, req.file.size]
-    );
+
+    // Swap the existing document of this type for the new upload, atomically —
+    // a failure between the two would leave the application missing a required
+    // document while an admin might already be looking at it.
+    const conn = await db.getConnection();
+    try {
+      await conn.beginTransaction();
+      await conn.query(
+        'DELETE FROM scholarship_application_documents WHERE application_id = ? AND doc_type = ?',
+        [app.id, docType]
+      );
+      await conn.query(
+        'INSERT INTO scholarship_application_documents (application_id, doc_type, file_url, file_name, file_size) VALUES (?, ?, ?, ?, ?)',
+        [app.id, docType, `/uploads/scholarships/${req.file.filename}`, req.file.originalname, req.file.size]
+      );
+      await conn.commit();
+    } catch (err) {
+      await conn.rollback();
+      throw err;
+    } finally {
+      conn.release();
+    }
+
+    // Committed — the old row is gone, so its file is now safe to remove.
+    if (old?.file_url) await removeStoredFile(old.file_url);
+
     res.json({ success: true, message: 'Document replaced' });
   } catch (err) {
-    res.status(500).json({ success: false, message: 'Re-upload failed' });
+    return reject(500, 'Re-upload failed');
   }
 }
 

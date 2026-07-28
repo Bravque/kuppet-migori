@@ -653,24 +653,37 @@ async function initMemberScholarships() {
   try {
     const res = await memberApi.scholarships.getAvailable();
     if (!res.data.length) { el.innerHTML = `<div class="portal-empty"><i class="fas fa-award"></i><h3>No scholarships available</h3><p>Check back later for new opportunities.</p></div>`; return; }
+    availableScholarships = res.data;
     el.innerHTML = res.data.map(s => `
       <div class="data-card" style="margin-bottom:1rem">
         <div style="padding:1.25rem">
           <div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:0.5rem;margin-bottom:0.75rem">
             <div><div style="font-size:1rem;font-weight:700">${escHtml(s.title)}</div><div style="font-size:0.8rem;color:var(--text-muted)">${escHtml(s.provider)}</div></div>
-            ${s.application_deadline ? `<span style="font-size:0.78rem;color:var(--red);font-weight:600"><i class="fas fa-clock"></i> Deadline: ${formatDate(s.application_deadline)}</span>` : ''}
+            ${s.application_deadline ? `<span style="font-size:0.78rem;color:var(--red);font-weight:600"><i class="fas fa-clock"></i> ${s.is_closed ? 'Closed' : 'Deadline'}: ${formatDate(s.application_deadline)}</span>` : ''}
           </div>
           <p style="font-size:0.85rem;margin:0 0 0.75rem">${escHtml(s.description)}</p>
-          <button class="btn btn-gold btn-sm" onclick="openApplyModal(${s.id},'${escHtml(s.title)}')"><i class="fas fa-paper-plane"></i> Apply Now</button>
+          ${s.is_closed
+            ? `<button class="btn btn-sm" disabled title="The deadline for this scholarship has passed"><i class="fas fa-ban"></i> Applications closed</button>`
+            : `<button class="btn btn-gold btn-sm" onclick="openApplyModal(${Number(s.id)})"><i class="fas fa-paper-plane"></i> Apply Now</button>`}
         </div>
       </div>`).join('');
   } catch (err) { el.innerHTML = `<div class="alert alert-danger">${escHtml(err.message)}</div>`; }
 }
 
 let applyScholarshipId = null;
-async function openApplyModal(id, title) {
+// The rendered list, kept so the modal can look a scholarship up by id. The
+// title is deliberately NOT passed through the onclick attribute: HTML-escaping
+// is not JS-string escaping, so an apostrophe in a title ("Governor's Bursary")
+// would break out of the string literal — silently killing the button, and
+// letting admin-entered text run as script in every member's session.
+let availableScholarships = [];
+
+async function openApplyModal(id) {
+  const scholarship = availableScholarships.find(s => Number(s.id) === Number(id));
+  if (!scholarship) return;
+  if (scholarship.is_closed) { showMsg('sch-msg', 'Applications for this scholarship have closed.'); return; }
   applyScholarshipId = id;
-  document.getElementById('apply-scholarship-title').textContent = title;
+  document.getElementById('apply-scholarship-title').textContent = scholarship.title;
   document.getElementById('apply-form').reset();
   document.getElementById('apply-modal').classList.add('open');
   // Applicant identity comes in full from the member's profile — read-only, never re-entered.

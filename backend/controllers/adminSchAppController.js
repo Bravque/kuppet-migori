@@ -8,6 +8,13 @@ const notificationService = require('../services/notificationService');
 // one back to approved, etc. (state-machine guard).
 const DECIDABLE = ['applied', 'under_review'];
 
+// Thrown when a conditional status UPDATE matches no rows: another admin (or a
+// double-submitted click) already moved the application on between our SELECT
+// and our UPDATE. Surfaces as a 409 so the admin reloads instead of seeing a 500.
+class StaleApplication extends Error {
+  constructor() { super('This application was just updated by someone else. Reload the page and try again.'); }
+}
+
 // Member notifications are best-effort: the decision is already committed, so a
 // notification-delivery failure must not roll it back or make the API report a
 // failure the admin would (wrongly) retry.
@@ -133,7 +140,8 @@ async function startReview(req, res) {
     const conn = await db.getConnection();
     try {
       await conn.beginTransaction();
-      await conn.query('UPDATE scholarship_applications SET status = "under_review" WHERE id = ?', [app.id]);
+      const [upd] = await conn.query('UPDATE scholarship_applications SET status = "under_review" WHERE id = ? AND status = ?', [app.id, app.status]);
+      if (!upd.affectedRows) throw new StaleApplication();
       await addTimeline(app.id, app.status, 'under_review', req.body.notes, req.user.id, conn);
       await conn.commit();
     } catch (err) {
@@ -158,6 +166,7 @@ async function startReview(req, res) {
     });
     res.json({ success: true, message: 'Application marked under review' });
   } catch (err) {
+    if (err instanceof StaleApplication) return res.status(409).json({ success: false, message: err.message });
     res.status(500).json({ success: false, message: 'Failed to update' });
   }
 }
@@ -177,10 +186,11 @@ async function approve(req, res) {
     const conn = await db.getConnection();
     try {
       await conn.beginTransaction();
-      await conn.query(
-        'UPDATE scholarship_applications SET status = "approved", amount_awarded = ?, reviewed_by = ?, reviewer_notes = ?, reviewed_at = NOW() WHERE id = ?',
-        [awarded, req.user.id, notes || null, app.id]
+      const [upd] = await conn.query(
+        'UPDATE scholarship_applications SET status = "approved", amount_awarded = ?, reviewed_by = ?, reviewer_notes = ?, reviewed_at = NOW() WHERE id = ? AND status = ?',
+        [awarded, req.user.id, notes || null, app.id, app.status]
       );
+      if (!upd.affectedRows) throw new StaleApplication();
       await addTimeline(app.id, app.status, 'approved', notes, req.user.id, conn);
       await conn.commit();
     } catch (err) {
@@ -206,6 +216,7 @@ async function approve(req, res) {
     });
     res.json({ success: true, message: 'Application approved' });
   } catch (err) {
+    if (err instanceof StaleApplication) return res.status(409).json({ success: false, message: err.message });
     res.status(500).json({ success: false, message: 'Failed to approve' });
   }
 }
@@ -224,10 +235,11 @@ async function reject(req, res) {
     const conn = await db.getConnection();
     try {
       await conn.beginTransaction();
-      await conn.query(
-        'UPDATE scholarship_applications SET status = "rejected", reviewed_by = ?, reviewer_notes = ?, reviewed_at = NOW() WHERE id = ?',
-        [req.user.id, notes || null, app.id]
+      const [upd] = await conn.query(
+        'UPDATE scholarship_applications SET status = "rejected", reviewed_by = ?, reviewer_notes = ?, reviewed_at = NOW() WHERE id = ? AND status = ?',
+        [req.user.id, notes || null, app.id, app.status]
       );
+      if (!upd.affectedRows) throw new StaleApplication();
       await addTimeline(app.id, app.status, 'rejected', notes, req.user.id, conn);
       await conn.commit();
     } catch (err) {
@@ -253,6 +265,7 @@ async function reject(req, res) {
     });
     res.json({ success: true, message: 'Application rejected' });
   } catch (err) {
+    if (err instanceof StaleApplication) return res.status(409).json({ success: false, message: err.message });
     res.status(500).json({ success: false, message: 'Failed to reject' });
   }
 }
@@ -270,10 +283,11 @@ async function markPaid(req, res) {
     const conn = await db.getConnection();
     try {
       await conn.beginTransaction();
-      await conn.query(
-        'UPDATE scholarship_applications SET status = "paid", payment_reference = ?, payment_date = CURDATE() WHERE id = ?',
+      const [upd] = await conn.query(
+        'UPDATE scholarship_applications SET status = "paid", payment_reference = ?, payment_date = CURDATE() WHERE id = ? AND status = "approved"',
         [ref || null, app.id]
       );
+      if (!upd.affectedRows) throw new StaleApplication();
       await addTimeline(app.id, 'approved', 'paid', `Payment reference: ${ref || 'N/A'}`, req.user.id, conn);
       await conn.commit();
     } catch (err) {
@@ -300,6 +314,7 @@ async function markPaid(req, res) {
     });
     res.json({ success: true, message: 'Application marked as paid' });
   } catch (err) {
+    if (err instanceof StaleApplication) return res.status(409).json({ success: false, message: err.message });
     res.status(500).json({ success: false, message: 'Failed to mark paid' });
   }
 }
