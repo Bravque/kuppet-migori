@@ -9,6 +9,13 @@ const VALID_TRANSITIONS = {
   approved:     ['paid'],
 };
 
+// Thrown when a conditional status UPDATE matches no rows: another admin (or a
+// double-submitted click) already moved the claim on between our SELECT and our
+// UPDATE. Surfaces as a 409 so the admin reloads instead of seeing a bare 500.
+class StaleClaim extends Error {
+  constructor() { super('This claim was just updated by someone else. Reload the page and try again.'); }
+}
+
 // Runs on the pool by default, or on a supplied connection when the caller is
 // wrapping the status change + timeline row in one transaction.
 async function addTimeline(claimId, fromStatus, toStatus, comment, adminId, conn = db) {
@@ -98,7 +105,8 @@ async function startReview(req, res) {
     const conn = await db.getConnection();
     try {
       await conn.beginTransaction();
-      await conn.query('UPDATE bbf_claims SET status = "under_review", assigned_to = ?, reviewed_at = NOW() WHERE id = ?', [req.user.id, claim.id]);
+      const [r] = await conn.query('UPDATE bbf_claims SET status = "under_review", assigned_to = ?, reviewed_at = NOW() WHERE id = ? AND status = ?', [req.user.id, claim.id, claim.status]);
+      if (!r.affectedRows) throw new StaleClaim();
       await addTimeline(claim.id, claim.status, 'under_review', req.body.notes, req.user.id, conn);
       await conn.commit();
     } catch (err) {
@@ -120,6 +128,7 @@ async function startReview(req, res) {
     });
     res.json({ success: true, message: 'Claim marked under review' });
   } catch (err) {
+    if (err instanceof StaleClaim) return res.status(409).json({ success: false, message: err.message });
     res.status(500).json({ success: false, message: 'Failed to update' });
   }
 }
@@ -135,10 +144,11 @@ async function approveClaim(req, res) {
     const conn = await db.getConnection();
     try {
       await conn.beginTransaction();
-      await conn.query(
-        'UPDATE bbf_claims SET status = "approved", amount_approved = ?, reviewed_by = ?, reviewer_notes = ?, resolved_at = NOW() WHERE id = ?',
-        [amount || null, req.user.id, notes || null, claim.id]
+      const [upd] = await conn.query(
+        'UPDATE bbf_claims SET status = "approved", amount_approved = ?, reviewed_by = ?, reviewer_notes = ?, resolved_at = NOW() WHERE id = ? AND status = ?',
+        [amount || null, req.user.id, notes || null, claim.id, claim.status]
       );
+      if (!upd.affectedRows) throw new StaleClaim();
       await addTimeline(claim.id, claim.status, 'approved', notes, req.user.id, conn);
       await conn.commit();
     } catch (err) {
@@ -163,6 +173,7 @@ async function approveClaim(req, res) {
     });
     res.json({ success: true, message: 'Claim approved' });
   } catch (err) {
+    if (err instanceof StaleClaim) return res.status(409).json({ success: false, message: err.message });
     res.status(500).json({ success: false, message: 'Failed to approve' });
   }
 }
@@ -178,10 +189,11 @@ async function rejectClaim(req, res) {
     const conn = await db.getConnection();
     try {
       await conn.beginTransaction();
-      await conn.query(
-        'UPDATE bbf_claims SET status = "rejected", reviewed_by = ?, reviewer_notes = ?, resolved_at = NOW() WHERE id = ?',
-        [req.user.id, notes || null, claim.id]
+      const [upd] = await conn.query(
+        'UPDATE bbf_claims SET status = "rejected", reviewed_by = ?, reviewer_notes = ?, resolved_at = NOW() WHERE id = ? AND status = ?',
+        [req.user.id, notes || null, claim.id, claim.status]
       );
+      if (!upd.affectedRows) throw new StaleClaim();
       await addTimeline(claim.id, claim.status, 'rejected', notes, req.user.id, conn);
       await conn.commit();
     } catch (err) {
@@ -206,6 +218,7 @@ async function rejectClaim(req, res) {
     });
     res.json({ success: true, message: 'Claim rejected' });
   } catch (err) {
+    if (err instanceof StaleClaim) return res.status(409).json({ success: false, message: err.message });
     res.status(500).json({ success: false, message: 'Failed to reject' });
   }
 }
@@ -219,10 +232,11 @@ async function markPaid(req, res) {
     const conn = await db.getConnection();
     try {
       await conn.beginTransaction();
-      await conn.query(
-        'UPDATE bbf_claims SET status = "paid", payment_reference = ?, payment_date = CURDATE() WHERE id = ?',
+      const [upd] = await conn.query(
+        'UPDATE bbf_claims SET status = "paid", payment_reference = ?, payment_date = CURDATE() WHERE id = ? AND status = "approved"',
         [ref || null, claim.id]
       );
+      if (!upd.affectedRows) throw new StaleClaim();
       await addTimeline(claim.id, 'approved', 'paid', `Payment reference: ${ref || 'N/A'}`, req.user.id, conn);
       await conn.commit();
     } catch (err) {
@@ -247,6 +261,7 @@ async function markPaid(req, res) {
     });
     res.json({ success: true, message: 'Claim marked as paid' });
   } catch (err) {
+    if (err instanceof StaleClaim) return res.status(409).json({ success: false, message: err.message });
     res.status(500).json({ success: false, message: 'Failed to mark paid' });
   }
 }

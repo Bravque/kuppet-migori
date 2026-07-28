@@ -1,6 +1,7 @@
 const db = require('../config/database');
 const { nextSeq } = require('./memberAuthController');
 const notificationService = require('../services/notificationService');
+const { removeUploadedFiles } = require('../utils/uploads');
 
 async function getAll(req, res) {
   try {
@@ -148,10 +149,17 @@ async function submitClaim(req, res) {
       return res.status(400).json({ success: false, message: `Missing required documents: ${missing.map(t => labels[t]).join(', ')}` });
     }
 
-    await db.query(
-      'UPDATE bbf_claims SET status = "submitted", submitted_at = NOW() WHERE id = ?',
+    // Conditional on the status we just read: two overlapping submits (a
+    // double-tap on a slow connection) would otherwise both pass the check
+    // above and each write a timeline row and fire a notification — meaning two
+    // SMS messages and two emails for one claim. Only the first update matches.
+    const [result] = await db.query(
+      'UPDATE bbf_claims SET status = "submitted", submitted_at = NOW() WHERE id = ? AND status = "draft"',
       [claim.id]
     );
+    if (result.affectedRows === 0) {
+      return res.status(409).json({ success: false, message: 'This claim has already been submitted' });
+    }
     await db.query(
       'INSERT INTO bbf_claim_timeline (claim_id, from_status, to_status, comment, changed_by, changed_by_type) VALUES (?, ?, ?, ?, ?, "member")',
       [claim.id, 'draft', 'submitted', 'Claim submitted by member', req.member.id]
@@ -177,24 +185,49 @@ async function submitClaim(req, res) {
 }
 
 async function uploadDocuments(req, res) {
+  // Any path that rejects the request must discard the files multer already
+  // wrote, or they sit on the upload dir forever with nothing referencing them.
+  const reject = async (status, message) => {
+    await removeUploadedFiles(req);
+    return res.status(status).json({ success: false, message });
+  };
   try {
     const [[claim]] = await db.query(
-      'SELECT id FROM bbf_claims WHERE id = ? AND member_id = ?',
+      'SELECT id, status FROM bbf_claims WHERE id = ? AND member_id = ?',
       [req.params.id, req.member.id]
     );
-    if (!claim) return res.status(404).json({ success: false, message: 'Claim not found' });
-    if (!req.files || !req.files.length) return res.status(400).json({ success: false, message: 'No files uploaded' });
+    if (!claim) return reject(404, 'Claim not found');
+    // Documents are the basis the claim is decided on, so they are locked once
+    // it leaves draft — otherwise the evidence could change after review, with
+    // nothing in the timeline recording it. The member UI hides the upload
+    // controls for a non-draft claim; this is the guard behind that.
+    if (claim.status !== 'draft') {
+      return reject(400, 'This claim has already been submitted, so its documents can no longer be changed. Contact the branch office if a document needs correcting.');
+    }
+    if (!req.files || !req.files.length) return reject(400, 'No files uploaded');
 
     const docType = req.body.doc_type || 'other';
-    for (const file of req.files) {
-      await db.query(
-        'INSERT INTO bbf_claim_documents (claim_id, doc_type, file_url, file_name, file_size, uploaded_by) VALUES (?, ?, ?, ?, ?, ?)',
-        [claim.id, docType, `/uploads/bbf/${file.filename}`, file.originalname, file.size, req.member.id]
-      );
+    // All-or-nothing: if one insert fails the rest roll back, so the catch can
+    // safely delete every file knowing none of them is referenced by a row.
+    const conn = await db.getConnection();
+    try {
+      await conn.beginTransaction();
+      for (const file of req.files) {
+        await conn.query(
+          'INSERT INTO bbf_claim_documents (claim_id, doc_type, file_url, file_name, file_size, uploaded_by) VALUES (?, ?, ?, ?, ?, ?)',
+          [claim.id, docType, `/uploads/bbf/${file.filename}`, file.originalname, file.size, req.member.id]
+        );
+      }
+      await conn.commit();
+    } catch (err) {
+      await conn.rollback();
+      throw err;
+    } finally {
+      conn.release();
     }
     res.json({ success: true, message: `${req.files.length} document(s) uploaded` });
   } catch (err) {
-    res.status(500).json({ success: false, message: 'Upload failed' });
+    return reject(500, 'Upload failed');
   }
 }
 

@@ -11,6 +11,7 @@ require('express-async-errors'); // forwards rejected async-handler promises to 
 const db = require('./config/database');
 const { sendErrorAlert } = require('./services/alertService');
 const { csrfProtection, issueCsrfCookie } = require('./middleware/csrf');
+const { removeUploadedFiles } = require('./utils/uploads');
 
 const isProd = process.env.NODE_ENV === 'production';
 
@@ -347,6 +348,9 @@ app.get('*', (req, res) => {
 
 // Global error handler (catches multer errors too)
 app.use((err, req, res, next) => {
+  // The request failed after multer wrote its files (multer cleans up only its
+  // own failures), so discard them rather than leave orphans on the upload dir.
+  removeUploadedFiles(req).catch(() => {});
   if (err.code === 'LIMIT_FILE_SIZE') {
     return res.status(400).json({ success: false, message: 'File too large' });
   }
