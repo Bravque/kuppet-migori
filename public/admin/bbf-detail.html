@@ -10,7 +10,7 @@
   <title>BBF Claim Detail — KUPPET Migori Admin</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
-  <link rel="stylesheet" href="/css/style.css?v=20260728b"><link rel="stylesheet" href="/css/portal.css?v=20260728b">
+  <link rel="stylesheet" href="/css/style.css?v=20260728c"><link rel="stylesheet" href="/css/portal.css?v=20260728c">
 </head>
 <body class="portal-body admin-bbf-detail-page">
 <div class="portal-layout">
@@ -73,7 +73,7 @@
   </div>
 </div>
 
-<script src="/admin/js/admin-api.js?v=20260728b"></script><script src="/admin/js/admin-portal.js?v=20260728b"></script>
+<script src="/admin/js/admin-api.js?v=20260728c"></script><script src="/admin/js/admin-portal.js?v=20260728c"></script>
 <script>
   document.getElementById('sidebar-placeholder').outerHTML = getSidebarHtml();
   document.getElementById('topbar-placeholder').outerHTML = getTopbarHtml('BBF Claim Detail');
@@ -155,7 +155,7 @@
       document.getElementById('claim-details').innerHTML = detailsHtml;
       CURRENT = c;
       document.getElementById('print-btn').disabled = false;
-      document.getElementById('doc-list').innerHTML = c.documents.length ? c.documents.map(d=>`<li class="doc-item"><i class="fas fa-file doc-icon"></i><span class="doc-name">${escHtml(d.file_name||d.file_url)}</span><span class="doc-size">${escHtml(DOC_LABELS[d.doc_type]||d.doc_type)}</span><button type="button" onclick="viewDoc('${escHtml(d.file_url)}')" class="btn btn-outline btn-xs">View</button></li>`).join('') : '<li style="padding:0.5rem;color:var(--text-muted)">No documents</li>';
+      document.getElementById('doc-list').innerHTML = c.documents.length ? c.documents.map(d=>`<li class="doc-item"><i class="fas fa-file doc-icon"></i><span class="doc-name">${escHtml(d.file_name||d.file_url)}</span><span class="doc-size">${escHtml(DOC_LABELS[d.doc_type]||d.doc_type)}</span><button type="button" data-view-doc="${escHtml(d.file_url)}" class="btn btn-outline btn-xs">View</button></li>`).join('') : '<li style="padding:0.5rem;color:var(--text-muted)">No documents</li>';
       document.getElementById('timeline').innerHTML = c.timeline.map(e=>`<div class="timeline-item status-${e.to_status}"><div class="timeline-dot"><i class="fas fa-circle" style="font-size:0.45rem"></i></div><div class="timeline-content"><div class="timeline-status">${escHtml(e.to_status.replace(/_/g,' '))}</div><div class="timeline-meta">${formatDateTime(e.created_at)} by ${escHtml(e.changed_by_type)}</div>${e.comment?`<div class="timeline-comment">${escHtml(e.comment)}</div>`:''}</div></div>`).join('');
 
       // Action buttons based on status

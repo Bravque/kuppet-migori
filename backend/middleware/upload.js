@@ -3,12 +3,24 @@ const path = require('path');
 const crypto = require('crypto');
 const { UPLOAD_ROOT } = require('../config/paths');
 
+// The uploader controls the original filename, and path.extname() returns
+// everything after the last dot — including quotes and other syntax characters
+// (`x.pdf'-alert(1)-'` yields `.pdf'-alert(1)-'`). That extension ends up in the
+// stored file_url, so anything rendered from it inherits whatever the uploader
+// put there. Accept only a plain alphanumeric extension and otherwise store the
+// file without one; the type is enforced by fileFilter on the MIME type anyway.
+// (Traversal was never possible here — extname returns '' when the last path
+// segment has no dot — but the quotes were enough to break out of a JS string.)
+function safeExtension(originalname) {
+  const ext = path.extname(originalname || '').toLowerCase();
+  return /^\.[a-z0-9]{1,10}$/.test(ext) ? ext : '';
+}
+
 function storage(subdir) {
   return multer.diskStorage({
     destination: path.join(UPLOAD_ROOT, subdir),
     filename: (_req, file, cb) => {
-      const ext = path.extname(file.originalname).toLowerCase();
-      cb(null, crypto.randomUUID() + ext);
+      cb(null, crypto.randomUUID() + safeExtension(file.originalname));
     },
   });
 }

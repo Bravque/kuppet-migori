@@ -10,7 +10,7 @@
   <title>Member Detail — KUPPET Migori Admin</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
-  <link rel="stylesheet" href="/css/style.css?v=20260728b"><link rel="stylesheet" href="/css/portal.css?v=20260728b">
+  <link rel="stylesheet" href="/css/style.css?v=20260728c"><link rel="stylesheet" href="/css/portal.css?v=20260728c">
 </head>
 <body class="portal-body admin-member-detail-page">
 <div class="portal-layout">
@@ -58,7 +58,7 @@
   </div>
 </div>
 
-<script src="/admin/js/admin-api.js?v=20260728b"></script><script src="/admin/js/admin-portal.js?v=20260728b"></script>
+<script src="/admin/js/admin-api.js?v=20260728c"></script><script src="/admin/js/admin-portal.js?v=20260728c"></script>
 <script>
   document.getElementById('sidebar-placeholder').outerHTML = getSidebarHtml();
   document.getElementById('topbar-placeholder').outerHTML = getTopbarHtml('Member Detail');
@@ -86,8 +86,8 @@
       // Documents are no longer collected at registration; show this card only for
       // legacy/imported members that still have uploaded files on record.
       const docsHtml = [
-        m.passport_photo_url ? `<div class="doc-item"><i class="fas fa-camera doc-icon"></i><span class="doc-name">Passport Photo</span><button type="button" onclick="viewDoc('${escHtml(m.passport_photo_url)}')" class="btn btn-outline btn-xs">View</button></div>` : '',
-        m.national_id_url ? `<div class="doc-item"><i class="fas fa-id-card doc-icon"></i><span class="doc-name">National ID Copy</span><button type="button" onclick="viewDoc('${escHtml(m.national_id_url)}')" class="btn btn-outline btn-xs">View</button></div>` : '',
+        m.passport_photo_url ? `<div class="doc-item"><i class="fas fa-camera doc-icon"></i><span class="doc-name">Passport Photo</span><button type="button" data-view-doc="${escHtml(m.passport_photo_url)}" class="btn btn-outline btn-xs">View</button></div>` : '',
+        m.national_id_url ? `<div class="doc-item"><i class="fas fa-id-card doc-icon"></i><span class="doc-name">National ID Copy</span><button type="button" data-view-doc="${escHtml(m.national_id_url)}" class="btn btn-outline btn-xs">View</button></div>` : '',
       ].join('');
       if(docsHtml){
         document.getElementById('doc-section').innerHTML = docsHtml;

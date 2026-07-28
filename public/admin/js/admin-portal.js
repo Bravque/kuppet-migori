@@ -53,6 +53,20 @@ async function viewDoc(fileUrlOrName) {
 }
 window.viewDoc = viewDoc;
 
+// Open a document from `data-view-doc="<file_url>"` on any button, anywhere in
+// the portal. Detail pages use this instead of onclick="viewDoc('<url>')":
+// escHtml() is HTML-escaping, not JS-string escaping, and the browser decodes an
+// attribute *before* parsing it as JavaScript — so a URL containing a quote
+// (which an uploader could arrange via the file extension) broke out of the
+// string literal and ran as script in the admin's session. Read back through
+// getAttribute the value is data, never code.
+document.addEventListener('click', (e) => {
+  const el = e.target.closest('[data-view-doc]');
+  if (!el) return;
+  e.preventDefault();
+  viewDoc(el.getAttribute('data-view-doc'));
+});
+
 // Populate a <datalist> with active school names, for the school autocomplete on
 // the admin filter inputs. Uses the public schools endpoint (names aren't sensitive).
 async function loadSchoolsDatalist(datalistId = 'schools-list') {
