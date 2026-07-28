@@ -15,6 +15,13 @@
  *   --year YYYY        Year used in MBR-YYYY-NNNNNN. Default: current year.
  *   --cost N           bcrypt cost for the password. Default 10 (matches app).
  *   --out FILE         Write SQL to FILE instead of stdout.
+ *   --reset            Emit SQL that RESETS the existing demo member (matched by
+ *                      --tsc) back to its just-imported state instead of
+ *                      inserting a new one: password back to the national ID,
+ *                      must_change_password=1, onboarding_complete=0, and the
+ *                      onboarding-filled fields cleared. Keeps the same row and
+ *                      member number, so it does NOT consume another member_seq.
+ *                      Use this to walk the first-login demo again.
  *
  * The demo member is created EXACTLY like a bulk-imported one: ACTIVE
  * (status='approved') with the **national ID as the default password** and
@@ -41,6 +48,7 @@ const opts = {
   year: new Date().getFullYear(),
   cost: 10,
   out: null,
+  reset: false,
 };
 for (let i = 0; i < argv.length; i++) {
   const a = argv[i];
@@ -52,9 +60,10 @@ for (let i = 0; i < argv.length; i++) {
   else if (a === '--year') opts.year = parseInt(argv[++i], 10) || opts.year;
   else if (a === '--cost') opts.cost = parseInt(argv[++i], 10) || 10;
   else if (a === '--out') opts.out = argv[++i];
+  else if (a === '--reset') opts.reset = true;
   else {
     console.error(`Unknown option: ${a}`);
-    console.error('Usage: node backend/scripts/create-demo-member.js [--name N] [--tsc N] [--id N] [--school N] [--sub-county N] [--year YYYY] [--cost N] [--out FILE]');
+    console.error('Usage: node backend/scripts/create-demo-member.js [--name N] [--tsc N] [--id N] [--school N] [--sub-county N] [--year YYYY] [--cost N] [--out FILE] [--reset]');
     process.exit(1);
   }
 }
@@ -68,6 +77,80 @@ const sql = (s) => (s === null || s === undefined)
   : `'${String(s).replace(/\\/g, '\\\\').replace(/'/g, "''")}'`;
 
 const password = bcrypt.hashSync(String(opts.national_id), opts.cost);
+
+function write(sqlText, summary) {
+  if (opts.out) {
+    fs.writeFileSync(opts.out, sqlText);
+    console.error(`SQL written to ${opts.out}`);
+  } else {
+    process.stdout.write(sqlText);
+  }
+  summary.forEach((l) => console.error(l));
+  console.error('Next: hPanel → phpMyAdmin → u735599564_KuppetMigori44 → SQL tab → paste the file → Go.');
+  console.error('Then log in at https://kuppetmigori.co.ke/member/login.html');
+}
+
+// ── reset mode ───────────────────────────────────────────────────────────────
+// Put the existing demo member back to its just-imported state so the forced
+// first-login flow can be demoed again. Deliberately leaves member_number,
+// school_name and sub_county alone (an imported member has those) and does not
+// touch member_seq.
+if (opts.reset) {
+  const r = [];
+  r.push('-- KUPPET Migori — RESET the demo member to its just-imported state');
+  r.push(`-- Generated ${new Date().toISOString()} by backend/scripts/create-demo-member.js --reset`);
+  r.push(`-- Target: members.tsc_number = ${opts.tsc}`);
+  r.push(`-- After this, log in with TSC ${opts.tsc} / password ${opts.national_id} and the`);
+  r.push('-- forced first-login flow (set password → complete profile) runs from the top again.');
+  r.push('');
+  r.push('UPDATE members SET');
+  r.push(`  password             = ${sql(password)},   -- bcrypt of the national ID`);
+  r.push('  must_change_password = 1,');
+  r.push('  onboarding_complete  = 0,');
+  r.push('  -- clear what the member filled in during onboarding');
+  r.push('  phone                = NULL,');
+  r.push('  email                = NULL,');
+  r.push('  gender               = NULL,');
+  r.push('  date_of_birth        = NULL,');
+  r.push('  school_category      = NULL,');
+  r.push('  job_group            = NULL,');
+  r.push('  passport_photo_url   = NULL,');
+  r.push('  national_id_url      = NULL,');
+  r.push('  -- clear login state');
+  r.push('  last_login           = NULL,');
+  r.push('  failed_login_attempts = 0,');
+  r.push('  locked_until         = NULL');
+  r.push(`WHERE tsc_number = ${sql(opts.tsc)};`);
+  r.push('');
+  r.push('-- Verify (expect 1 row: must_change_password=1, onboarding_complete=0, email NULL):');
+  r.push('SELECT id, member_number, full_name, tsc_number, school_name, sub_county, email,');
+  r.push('       status, must_change_password, onboarding_complete');
+  r.push(`FROM members WHERE tsc_number = ${sql(opts.tsc)};`);
+  r.push('');
+  r.push('-- OPTIONAL — also wipe anything the demo member created (claims, applications,');
+  r.push('-- notifications). There are no FKs on member_id, so these must be deleted by hand.');
+  r.push('-- Uncomment to run:');
+  r.push(`-- SET @mid := (SELECT id FROM members WHERE tsc_number = ${sql(opts.tsc)});`);
+  r.push('-- DELETE FROM bbf_claim_documents WHERE claim_id IN (SELECT id FROM bbf_claims WHERE member_id = @mid);');
+  r.push('-- DELETE FROM bbf_claim_timeline  WHERE claim_id IN (SELECT id FROM bbf_claims WHERE member_id = @mid);');
+  r.push('-- DELETE FROM bbf_claims WHERE member_id = @mid;');
+  r.push('-- DELETE FROM scholarship_application_documents WHERE application_id IN (SELECT id FROM scholarship_applications WHERE member_id = @mid);');
+  r.push('-- DELETE FROM scholarship_application_timeline  WHERE application_id IN (SELECT id FROM scholarship_applications WHERE member_id = @mid);');
+  r.push('-- DELETE FROM scholarship_applications WHERE member_id = @mid;');
+  r.push('-- DELETE FROM notifications WHERE member_id = @mid;');
+  r.push('');
+
+  write(r.join('\n'), [
+    '\n──────── demo member RESET ────────',
+    `  Target (TSC): ${opts.tsc}`,
+    `  Password back to: ${opts.national_id}   (national ID — must be changed on first login)`,
+    '  Flags reset : must_change_password=1 · onboarding_complete=0',
+    '  Cleared     : phone, email, gender, DOB, school_category, job_group, photos, login state',
+    '  Kept        : member_number, school_name, sub_county (no member_seq consumed)',
+    '───────────────────────────────────',
+  ]);
+  process.exit(0);
+}
 
 // ── emit SQL ─────────────────────────────────────────────────────────────────
 const out = [];
@@ -120,22 +203,14 @@ out.push('-- To remove the demo member afterwards:');
 out.push(`-- DELETE FROM members WHERE tsc_number = ${sql(opts.tsc)};`);
 out.push('');
 
-const sqlText = out.join('\n');
-if (opts.out) {
-  fs.writeFileSync(opts.out, sqlText);
-  console.error(`SQL written to ${opts.out}`);
-} else {
-  process.stdout.write(sqlText);
-}
-
-console.error('\n──────── demo member ────────');
-console.error(`  Name       : ${opts.name}`);
-console.error(`  Login (TSC): ${opts.tsc}`);
-console.error(`  Password   : ${opts.national_id}   (national ID — must be changed on first login)`);
-console.error(`  School     : ${opts.school || '(first active school on the curated list)'}`);
-console.error(`  Sub-county : ${opts.sub_county || '(from that school, else Rongo)'}`);
-console.error(`  Member no. : MBR-${opts.year}-<next member_seq>  (counter advances in the transaction)`);
-console.error('  Status     : approved · must_change_password=1 · onboarding_complete=0');
-console.error('─────────────────────────────');
-console.error('Next: hPanel → phpMyAdmin → u735599564_KuppetMigori44 → SQL tab → paste the file → Go.');
-console.error('Then log in at https://kuppetmigori.co.ke/member/login.html');
+write(out.join('\n'), [
+  '\n──────── demo member ────────',
+  `  Name       : ${opts.name}`,
+  `  Login (TSC): ${opts.tsc}`,
+  `  Password   : ${opts.national_id}   (national ID — must be changed on first login)`,
+  `  School     : ${opts.school || '(first active school on the curated list)'}`,
+  `  Sub-county : ${opts.sub_county || '(from that school, else Rongo)'}`,
+  `  Member no. : MBR-${opts.year}-<next member_seq>  (counter advances in the transaction)`,
+  '  Status     : approved · must_change_password=1 · onboarding_complete=0',
+  '─────────────────────────────',
+]);
