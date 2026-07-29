@@ -73,7 +73,9 @@
         </div>
 
         <div>
-          <div class="data-card" style="margin-bottom:1rem">
+          <!-- Legacy only: the form stopped collecting an essay in July 2026, so
+               this card is revealed only for older applications that have one. -->
+          <div class="data-card" id="essay-card" style="margin-bottom:1rem;display:none">
             <div class="data-card-header"><div class="data-card-title">Essay / Personal Statement</div></div>
             <div id="essay-box" style="padding:1.25rem;white-space:pre-wrap;font-size:0.875rem;line-height:1.7"></div>
           </div>
@@ -100,6 +102,11 @@
   const DOC_LABELS = { letter_of_application:'Letter of Application', tsc_slip:'TSC Slip', kcse_certificate:'KCSE Certificate', kcse_cert:'KCSE Certificate', admission_letter:'Admission Letter', fee_structure:'Fee Structure', recommendation:'Recommendation', id_copy:'ID Copy', other:'Other' };
   let CURRENT = null;   // the loaded application, used by printApp()
 
+  // True only for pre-July-2026 applications: the form no longer collects any of
+  // these, so on a current application they are all null and the section would be
+  // four em-dashes. Screen + print both gate on this.
+  const hasStudyDetails = a => !!(a.institution || a.course || a.year_of_study || a.academic_year);
+
   // Print a clean, details-only record of the application (attachments are
   // viewed on-screen, not printed).
   function printApp(){
@@ -124,15 +131,15 @@
         ['School', escHtml(a.school_name||'—')],
         ['Category', escHtml(bbfSchoolCatLabel(a.school_category))],
       ]},
-      { title:'Study Details', rows:[
+      ...(hasStudyDetails(a) ? [{ title:'Study Details', rows:[
         ['Institution', escHtml(a.institution||'—')],
         ['Course', escHtml(a.course||'—')],
         ['Year of Study', a.year_of_study ? escHtml(String(a.year_of_study)) : '—'],
         ['Academic Year', escHtml(a.academic_year||'—')],
-      ]},
-      { title:'Essay / Personal Statement', rows:[
-        ['Statement', a.essay ? escHtml(a.essay).replace(/\n/g,'<br>') : '—'],
-      ]},
+      ]}] : []),
+      ...(a.essay ? [{ title:'Essay / Personal Statement', rows:[
+        ['Statement', escHtml(a.essay).replace(/\n/g,'<br>')],
+      ]}] : []),
     ];
     printApplication({ heading:'Scholarship Application — '+(a.application_number||''), subheading:escHtml(a.scholarship_title||''), sections });
   }
@@ -179,16 +186,23 @@
         ['School', escHtml(a.school_name || '—')],
         ['Category', escHtml(bbfSchoolCatLabel(a.school_category))],
       ];
-      const studyRows = [
+      // Study details are legacy — the form was simplified to the two required
+      // uploads in July 2026, so these columns are null on every new application.
+      // Show the section only for older applications that actually carry them.
+      const studyRows = hasStudyDetails(a) ? [
         ['Institution', escHtml(a.institution || '—')],
         ['Course', escHtml(a.course || '—')],
         ['Year of Study', a.year_of_study ? escHtml(String(a.year_of_study)) : '—'],
         ['Academic Year', escHtml(a.academic_year || '—')],
-      ];
+      ] : null;
       document.getElementById('app-details').innerHTML =
-        section('Application', appRows) + section("Applicant's Details", applicantRows) + section('Study Details', studyRows);
+        section('Application', appRows) + section("Applicant's Details", applicantRows) +
+        (studyRows ? section('Study Details', studyRows) : '');
 
-      document.getElementById('essay-box').innerHTML = a.essay ? escHtml(a.essay) : '<span style="color:var(--text-muted)">No essay provided.</span>';
+      if (a.essay) {
+        document.getElementById('essay-card').style.display = '';
+        document.getElementById('essay-box').innerHTML = escHtml(a.essay);
+      }
 
       document.getElementById('doc-list').innerHTML = a.documents && a.documents.length
         ? a.documents.map(d=>`<li class="doc-item"><i class="fas fa-file doc-icon"></i><span class="doc-name">${escHtml(d.file_name||d.file_url)}</span><span class="doc-size">${escHtml(DOC_LABELS[d.doc_type]||d.doc_type||'')}</span><button type="button" data-view-doc="${escHtml(d.file_url)}" class="btn btn-outline btn-xs">View</button></li>`).join('')
