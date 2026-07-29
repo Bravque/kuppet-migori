@@ -22,11 +22,11 @@
         <div class="page-heading-text"><h1 id="app-number">Scholarship Application</h1><div id="app-status"></div></div>
         <div class="page-heading-actions">
           <a href="/admin/scholarship-apps.html" class="btn btn-outline btn-sm"><i class="fas fa-arrow-left"></i> Back</a>
-          <button type="button" id="review-btn" class="btn btn-outline btn-sm" style="display:none" onclick="startReview()"><i class="fas fa-search"></i> Start Review</button>
           <button type="button" id="print-btn" class="btn btn-outline btn-sm" disabled onclick="printApp()"><i class="fas fa-print"></i> Print</button>
         </div>
       </div>
       <div id="action-alert" class="hidden" style="margin-bottom:1rem"></div>
+      <div id="action-buttons" style="display:flex;gap:0.5rem;flex-wrap:wrap;margin-bottom:1rem"></div>
 
       <div class="grid-2" style="gap:1rem">
         <div>
@@ -38,37 +38,6 @@
           <div class="data-card" style="margin-bottom:1rem">
             <div class="data-card-header"><div class="data-card-title">Documents</div></div>
             <div style="padding:1.25rem"><ul class="doc-list" id="doc-list"></ul></div>
-          </div>
-
-          <!-- Review decision -->
-          <div class="data-card" id="review-card" style="display:none">
-            <div class="data-card-header"><div class="data-card-title">Review Decision</div></div>
-            <div style="padding:1.25rem">
-              <div class="form-group">
-                <label>Award amount (KES) <span style="color:var(--text-muted);font-weight:400">(optional — set when approving)</span></label>
-                <input type="number" id="review-amount" class="form-control" min="0" step="0.01" placeholder="e.g. 20000">
-              </div>
-              <div class="form-group">
-                <label>Reviewer notes <span style="color:var(--text-muted);font-weight:400">(optional for approval, recommended for rejection)</span></label>
-                <textarea id="review-notes" class="form-control" rows="3" placeholder="Add any notes for the member…"></textarea>
-              </div>
-              <div style="display:flex;gap:0.5rem;flex-wrap:wrap">
-                <button class="btn btn-sm" style="background:#DCFCE7;color:#166534" onclick="decide('approve')"><i class="fas fa-check"></i> Approve</button>
-                <button class="btn btn-sm" style="background:#FEE2E2;color:#991B1B" onclick="decide('reject')"><i class="fas fa-times"></i> Reject</button>
-              </div>
-            </div>
-          </div>
-
-          <!-- Mark as paid (approved applications only) -->
-          <div class="data-card" id="paid-card" style="display:none">
-            <div class="data-card-header"><div class="data-card-title">Payment</div></div>
-            <div style="padding:1.25rem">
-              <div class="form-group">
-                <label>Payment reference <span style="color:var(--text-muted);font-weight:400">(optional)</span></label>
-                <input type="text" id="pay-ref" class="form-control" placeholder="e.g. MPESA / cheque / voucher reference">
-              </div>
-              <button class="btn btn-sm" style="background:#DBEAFE;color:#1E40AF" onclick="markPaid()"><i class="fas fa-money-bill-wave"></i> Mark as Paid</button>
-            </div>
           </div>
         </div>
 
@@ -88,6 +57,33 @@
     </div>
   </main>
 </div>
+
+<!-- Action modal (same shape as the BBF claim detail page) -->
+<div class="portal-modal-overlay" id="action-modal">
+  <div class="portal-modal" style="max-width:460px">
+    <div class="portal-modal-header"><h3 id="action-modal-title">Action</h3><button class="modal-close-btn"><i class="fas fa-times"></i></button></div>
+    <div class="portal-modal-body">
+      <p id="action-modal-intro" style="font-size:0.85rem;color:var(--text-muted);margin-bottom:1rem"></p>
+      <div class="form-group" id="amount-row" style="display:none">
+        <label>Award amount (KES)</label>
+        <input type="number" id="m-amount" class="form-control" min="0" step="0.01" placeholder="e.g. 20000 (optional)">
+      </div>
+      <div class="form-group" id="ref-row" style="display:none">
+        <label>Payment reference</label>
+        <input type="text" id="m-ref" class="form-control" placeholder="e.g. MPESA / cheque / voucher reference (optional)">
+      </div>
+      <div class="form-group" id="notes-row">
+        <label id="notes-label">Notes (optional)</label>
+        <textarea id="m-notes" class="form-control" rows="3"></textarea>
+      </div>
+    </div>
+    <div class="portal-modal-footer">
+      <button class="modal-close-btn btn btn-outline btn-sm">Cancel</button>
+      <button id="action-confirm-btn" class="btn btn-gold btn-sm"><i class="fas fa-check"></i> Confirm</button>
+    </div>
+  </div>
+</div>
+
 <script src="/admin/js/admin-api.js?v=20260728d"></script><script src="/admin/js/admin-portal.js?v=20260728d"></script>
 <script>
   document.getElementById('sidebar-placeholder').outerHTML = getSidebarHtml();
@@ -208,17 +204,20 @@
         ? a.documents.map(d=>`<li class="doc-item"><i class="fas fa-file doc-icon"></i><span class="doc-name">${escHtml(d.file_name||d.file_url)}</span><span class="doc-size">${escHtml(DOC_LABELS[d.doc_type]||d.doc_type||'')}</span><button type="button" data-view-doc="${escHtml(d.file_url)}" class="btn btn-outline btn-xs">View</button></li>`).join('')
         : '<li style="padding:0.5rem;color:var(--text-muted)">No documents</li>';
 
-      // Show the review card only while the application is still actionable, and
-      // only to roles that can decide (branch_officer + super_admin).
+      // Action buttons based on status (mirrors bbf-detail.html). Start Review is
+      // open to every admin role; approve/reject/mark-paid are decisions, so they
+      // are shown only to branch_officer + super_admin (the backend enforces it).
+      let bhtml = '';
+      if (a.status === 'applied') bhtml = `<button id="act-review" class="btn btn-outline btn-sm"><i class="fas fa-search"></i> Start Review</button>`;
       if (canDecide && (a.status === 'applied' || a.status === 'under_review')) {
-        document.getElementById('review-card').style.display = '';
+        bhtml += `<button id="act-approve" class="btn btn-sm" style="background:#DCFCE7;color:#166534"><i class="fas fa-check"></i> Approve</button><button id="act-reject" class="btn btn-sm" style="background:#FEE2E2;color:#991B1B"><i class="fas fa-times"></i> Reject</button>`;
       }
-      // Approved applications can be marked paid.
-      if (canDecide && a.status === 'approved') {
-        document.getElementById('paid-card').style.display = '';
-      }
-      // Start Review is available to any admin role while still 'applied'.
-      if (a.status === 'applied') document.getElementById('review-btn').style.display = '';
+      if (canDecide && a.status === 'approved') bhtml = `<button id="act-paid" class="btn btn-gold btn-sm"><i class="fas fa-money-bill"></i> Mark as Paid</button>`;
+      document.getElementById('action-buttons').innerHTML = bhtml;
+      document.getElementById('act-review')?.addEventListener('click', () => openAction('review'));
+      document.getElementById('act-approve')?.addEventListener('click', () => openAction('approve'));
+      document.getElementById('act-reject')?.addEventListener('click', () => openAction('reject'));
+      document.getElementById('act-paid')?.addEventListener('click', () => openAction('paid'));
 
       const tl = document.getElementById('timeline');
       tl.innerHTML = (a.timeline && a.timeline.length)
@@ -229,40 +228,47 @@
     }
   }
 
-  async function startReview(){
-    if(!confirm('Mark this application as under review? The member will be notified.'))return;
-    try{ await adminApi.schApps.startReview(id); load(); }
-    catch(err){ showAlert('action-alert', err.message); }
+  // Every status change goes through one modal, so each action — Start Review
+  // included — can carry a note that lands in the status timeline.
+  const INTRO = {
+    review:  'Move this application into review. You may add an internal note.',
+    approve: 'Approve this application. Optionally set an award amount and a note for the member.',
+    reject:  'Reject this application. Please give a reason — it is shared with the member.',
+    paid:    'Mark this approved award as paid and record the payment reference.',
+  };
+  const TITLES = { review:'Start Review', approve:'Approve Application', reject:'Reject Application', paid:'Mark as Paid' };
+
+  function openAction(action){
+    const modal = document.getElementById('action-modal');
+    document.getElementById('action-modal-title').textContent = TITLES[action];
+    document.getElementById('action-modal-intro').textContent = INTRO[action];
+    document.getElementById('amount-row').style.display = action==='approve' ? '' : 'none';
+    document.getElementById('ref-row').style.display    = action==='paid'    ? '' : 'none';
+    document.getElementById('notes-row').style.display  = action==='paid'    ? 'none' : '';
+    document.getElementById('notes-label').textContent  = action==='reject' ? 'Reason for rejection' : 'Notes (optional)';
+    document.getElementById('m-amount').value='';
+    document.getElementById('m-ref').value='';
+    document.getElementById('m-notes').value='';
+    document.getElementById('action-confirm-btn').onclick = () => submitAction(action);
+    modal.classList.add('open');
   }
 
-  async function decide(action) {
-    const notes = document.getElementById('review-notes').value.trim();
-    const amount = document.getElementById('review-amount').value.trim();
-    if (action === 'reject' && !notes) {
-      if (!confirm('Reject without a reason note? The member will not be told why.')) return;
-    } else {
-      if (!confirm(`Are you sure you want to ${action} this application?`)) return;
-    }
+  async function submitAction(action){
+    const notes  = document.getElementById('m-notes').value.trim();
+    const amount = document.getElementById('m-amount').value || null;
+    const ref    = document.getElementById('m-ref').value.trim();
+    if(action==='reject' && !notes){ showAlert('action-alert','A rejection reason is required.'); return; }
+    const btn = document.getElementById('action-confirm-btn');
+    btn.disabled = true;
     try {
-      if (action === 'approve') await adminApi.schApps.approve(id, notes, amount || null);
-      if (action === 'reject')  await adminApi.schApps.reject(id, notes);
-      showAlert('action-alert', `Application ${action}d successfully.`, 'success');
+      if(action==='review')  await adminApi.schApps.startReview(id, notes);
+      if(action==='approve') await adminApi.schApps.approve(id, notes, amount);
+      if(action==='reject')  await adminApi.schApps.reject(id, notes);
+      if(action==='paid')    await adminApi.schApps.markPaid(id, ref || null);
+      document.getElementById('action-modal').classList.remove('open');
+      showAlert('action-alert','Action completed successfully','success');
       setTimeout(() => window.location.reload(), 1200);
-    } catch (err) {
-      showAlert('action-alert', err.message);
-    }
-  }
-
-  async function markPaid() {
-    const ref = document.getElementById('pay-ref').value.trim();
-    if (!confirm('Mark this scholarship award as paid? The member will be notified.')) return;
-    try {
-      await adminApi.schApps.markPaid(id, ref || null);
-      showAlert('action-alert', 'Application marked as paid.', 'success');
-      setTimeout(() => window.location.reload(), 1200);
-    } catch (err) {
-      showAlert('action-alert', err.message);
-    }
+    } catch(err){ showAlert('action-alert', err.message); btn.disabled = false; }
   }
 
   load();
