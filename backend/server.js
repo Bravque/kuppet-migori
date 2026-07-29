@@ -117,6 +117,32 @@ const forgotPwLimiter = rateLimit({
   message: { success: false, message: 'Too many password reset requests. Please try again in an hour.' },
 });
 
+// Backstop behind regLimiter. regLimiter deliberately skips failed requests so a
+// member fumbling the form can't lock themselves out — but that leaves failing
+// registrations bounded only by the global ceiling, and each one runs multer,
+// writing the uploaded files to disk before validation rejects them (they are
+// cleaned up by removeUploadedFiles, so it's disk churn rather than a leak).
+// This counts every attempt, at a threshold no honest signup session reaches.
+const regAttemptLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  max: parseInt(process.env.REG_ATTEMPT_RATE_MAX, 10) || 40,
+  message: { success: false, message: 'Too many registration attempts. Please try again in an hour.' },
+});
+
+// Global ceiling over EVERYTHING — static files, the SPA fallback and /sitemap.xml
+// included, none of which apiLimiter (mounted at /api/) ever touched. Sized well
+// above real browsing: one page view is ~25-35 requests once subresources and the
+// homepage API calls are counted, so 600/5min is roughly 20 page views a minute.
+// ⚠ Keyed on req.ip like every other limiter, so a whole school behind one NATed
+// public IP shares this bucket — raise GLOBAL_RATE_MAX if a site reports lockouts.
+const globalLimiter = rateLimit({
+  windowMs: (parseInt(process.env.GLOBAL_RATE_WINDOW_MIN, 10) || 5) * 60 * 1000,
+  max: parseInt(process.env.GLOBAL_RATE_MAX, 10) || 600,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { success: false, message: 'Too many requests, please try again later.' },
+});
+
 const smsLimiter = rateLimit({
   windowMs: 60 * 1000,
   max: 20,
@@ -151,8 +177,12 @@ app.use('/api/contact', (req, res, next) => {
 });
 app.use('/api/auth', authLimiter);
 app.use('/api/member/auth/login', authLimiter);
-app.use('/api/member/auth/register', regLimiter);
+app.use('/api/member/auth/register', regAttemptLimiter, regLimiter);
 app.use('/api/member/auth/forgot-password', forgotPwLimiter);
+
+// Everything from here down — uploads, static assets, the API routers, the
+// sitemap and the SPA fallback — passes the global ceiling first.
+app.use(globalLimiter);
 
 // Block direct static access to sensitive document directories — these contain
 // member PII (National IDs, passport photos), claim/scholarship attachments, and
@@ -301,7 +331,19 @@ app.get('/admin/*', (req, res) => {
 // Dynamic sitemap — static public pages + every published news & advocacy article,
 // so new content gets discovered and indexed automatically. Referenced by robots.txt.
 const SITE_URL = (process.env.APP_URL || 'https://kuppetmigori.co.ke').replace(/\/$/, '');
+
+// Memoised for an hour. Building this runs two unbounded SELECTs over news +
+// advocacy, and the route sits outside /api/, so before the global limiter it was
+// the cheapest amplification target on the site: one HTTP request, two table
+// scans. An hour of staleness costs nothing — a new article is reachable and
+// indexable immediately either way; only its sitemap entry waits.
+const SITEMAP_TTL_MS = 60 * 60 * 1000;
+let sitemapCache = null;        // { body, expires }
+
 app.get('/sitemap.xml', async (req, res) => {
+  if (sitemapCache && sitemapCache.expires > Date.now()) {
+    return res.type('application/xml').send(sitemapCache.body);
+  }
   const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
   const urls = [
@@ -313,6 +355,7 @@ app.get('/sitemap.xml', async (req, res) => {
     { loc: '/pages/scholarships.html', priority: '0.7', changefreq: 'weekly' },
     { loc: '/pages/contact.html', priority: '0.6', changefreq: 'monthly' },
   ];
+  let complete = true;
   try {
     const [news] = await db.query(
       'SELECT slug, updated_at FROM news WHERE is_published = 1 ORDER BY updated_at DESC');
@@ -326,6 +369,7 @@ app.get('/sitemap.xml', async (req, res) => {
     }
   } catch (err) {
     console.error('Sitemap DB query failed, serving static pages only:', err.message);
+    complete = false;
   }
   const body = `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
@@ -336,6 +380,10 @@ ${urls.map(u => `  <url>
     <priority>${u.priority}</priority>
   </url>`).join('\n')}
 </urlset>`;
+  // Only cache a complete sitemap — a transient DB failure degrades this to the 7
+  // static pages, and pinning that for an hour would drop every article from the
+  // sitemap long after the database recovered.
+  if (complete) sitemapCache = { body, expires: Date.now() + SITEMAP_TTL_MS };
   res.type('application/xml').send(body);
 });
 

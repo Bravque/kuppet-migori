@@ -149,7 +149,7 @@ Still placeholder in the codebase:
 - DONE: ✓ address ✓ email ✓ social links (WhatsApp) ✓ Google Maps embed ✓ schema.org telephone ✓ mission/vision ✓ org structure
 
 **Task 4 — SEO files**
-- ✓ **`/sitemap.xml` is generated dynamically** by a route in `server.js` — the 7 static public pages **plus** every published news + advocacy article (`?slug=…`, with `lastmod` from `updated_at`), so new content is discovered automatically. Referenced by `robots.txt`. (14 July 2026; **made live 17 July 2026** — the static `public/sitemap.xml` was deleted because `express.static` shadowed the dynamic route, so only the 7-page static file had ever been served. **Do not re-add a static `public/sitemap.xml`** or it will shadow the route again.)
+- ✓ **`/sitemap.xml` is generated dynamically** by a route in `server.js` — the 7 static public pages **plus** every published news + advocacy article (`?slug=…`, with `lastmod` from `updated_at`), so new content is discovered automatically. Referenced by `robots.txt`. (14 July 2026; **made live 17 July 2026** — the static `public/sitemap.xml` was deleted because `express.static` shadowed the dynamic route, so only the 7-page static file had ever been served. **Do not re-add a static `public/sitemap.xml`** or it will shadow the route again.) **Memoised for 1 hour** (28 July 2026) — building it runs two unbounded SELECTs over `news` + `advocacy` and the route sits outside `/api/`, so it was the cheapest amplification target on the site. A new article is reachable and indexable immediately either way; only its sitemap entry waits. A **degraded** render (DB query failed → the 7 static pages only) is deliberately **not** cached, or a transient DB blip would drop every article from the sitemap for an hour after recovery.
 - ✓ `public/robots.txt` — allow all, disallow portals/api/private uploads, points to sitemap
 - ✓ Favicons for Google search — added 48/96/192/512px PNGs generated from `kuppetlogo.png` (Google needs ≥48px); `<link rel="icon" sizes="48x48"/"192x192">` added to all public pages. (14 July 2026)
 - Still TODO: branded `og:image` 1200×630 px (currently reuses the square logo); canonical + full `og:url` on inner pages
@@ -379,13 +379,16 @@ DB stores URL paths (`/uploads/<sub>/<file>`); these are served from the filesys
 ### Rate limiting
 **All limits are per client IP.** The limiters (`express-rate-limit` v7, `backend/server.js`) set no custom `keyGenerator`, so they use the default key = `req.ip`; each IP gets its own independent counter per limiter. `app.set('trust proxy', 1)` (server.js:47) makes `req.ip` the **real client IP** from `X-Forwarded-For` (first hop = Hostinger's nginx/Passenger), not the proxy's — required, or every request would share one bucket. Caveats: (1) the store is **in-memory**, so counts reset on restart/redeploy and aren't shared across multiple instances/workers (fine on single-instance Hostinger; use a shared store like Redis if ever scaled out); (2) users behind one shared/NATed public IP (e.g. a whole school) share a bucket.
 
+**The global ceiling (28 July 2026)** sits in front of the upload/static mounts, so it is the first limiter to cover static assets, the `app.get('*')` SPA fallback and `/sitemap.xml` — `apiLimiter` is mounted at `/api/`, so none of those were metered at all. It is sized for browsing, not for one endpoint: a single page view is ~25–35 requests once subresources and the homepage API calls are counted, so 600/5min is roughly 20 page views a minute. ⚠ **If Cloudflare (or any second proxy) is ever put in front of the site, fix `trust proxy` in the same change** — with two hops `req.ip` resolves to the *proxy's* address, every visitor collapses into this one bucket, and the site locks itself out. `req.ip` also feeds `audit_logs.ip_address`, `login_history.ip_address` and `contacts.ip_address`, which would silently record the proxy instead of the visitor.
+
 | Endpoint | Limit (per IP) |
 |----------|-------|
+| **Everything** (global ceiling) | 600 req / 5 min (tune via `GLOBAL_RATE_MAX` / `GLOBAL_RATE_WINDOW_MIN`) |
 | All `/api/*` | 200 req / 15 min |
 | `POST /api/contact` | 5 req / hr |
 | `POST /api/auth/login` | 20 req / 15 min |
 | `POST /api/member/auth/login` | 20 req / 15 min |
-| `POST /api/member/auth/register` | 8 req / hr (only **successful** registrations count — `skipFailedRequests`) |
+| `POST /api/member/auth/register` | 8 req / hr (only **successful** registrations count — `skipFailedRequests`) **+ a 40/hr backstop counting every attempt** (`regAttemptLimiter`, tune via `REG_ATTEMPT_RATE_MAX`) — without it, failing registrations were bounded only by the global ceiling, and each one runs multer, writing the uploads to disk before validation rejects them |
 | `POST /api/member/auth/forgot-password` | 5 req / hr |
 | `POST /api/member/scholarships/:id/apply` | 30 req / 15 min (tune via `SCH_APPLY_RATE_MAX`; runs before the upload; the `UNIQUE(member,scholarship)` key blocks true duplicates) |
 | `POST /api/admin/sms/send` | 20 req / min |
