@@ -8,7 +8,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 # First-time setup
 cp .env.example .env          # Fill in DB credentials + set JWT secrets
 npm install                   # Install all dependencies
-npm run init-db               # Create MySQL schema (32 tables) and seed data
+npm run init-db               # Create MySQL schema (34 tables) and seed data
 
 # Development
 npm run dev                   # Start with nodemon auto-reload (port 3000)
@@ -42,7 +42,7 @@ There are no tests or linting scripts configured yet.
 | Layer | Status |
 |-------|--------|
 | Express server + all REST API routes | ✓ Complete |
-| MySQL schema (32 tables) + seed data | ✓ Complete |
+| MySQL schema (34 tables) + seed data | ✓ Complete |
 | Homepage (`index.html`) | ✓ Complete |
 | About Us page | ✓ Complete |
 | Teachers Notice Board (news.html) | ✓ Complete |
@@ -59,7 +59,7 @@ There are no tests or linting scripts configured yet.
 | **Member login (by TSC number) + JWT auth + account lockout + forgot/reset password** | ✓ Complete |
 | **Member portal — dashboard, profile, BBF claims, scholarships, notifications, history** | ✓ Complete |
 | **Admin login with optional TOTP 2FA** | ✓ Complete |
-| **Admin portal — 26 pages (all CRUD/actions wired)** | ✓ Complete |
+| **Admin portal — 31 pages (all CRUD/actions wired)** | ✓ Complete |
 | **Court cases tracker (branch officers) — list, detail, updates log, dashboard summary** | ✓ Complete |
 | **Disciplinary cases tracker (branch officers) — teacher discipline: list, detail, updates log, documents** | ✓ Complete (17 Jul 2026; ⚠ needs migration #13 on live) |
 | **Admin member management — approve / reject / suspend** | ✓ Complete |
@@ -115,6 +115,10 @@ WHERE email = 'admin@kuppetmigori.co.ke';
 > Account lockout triggers after repeated failed attempts — `locked_until` and `failed_login_attempts` columns on the `users` table. The app uses `bcryptjs` (not `bcrypt`).
 
 ---
+
+### Developer onboarding
+
+**`docs/DEVELOPER-GUIDE.md`** is the standalone guide for a developer new to the repo — architecture, conventions, the auth/role model, the three workflows, upload rules, integrations and the gotcha list, written to be read end-to-end without this file. Keep it in step when a convention changes (it duplicates the *rules*, not the change history). This file remains authoritative for current state and per-change history.
 
 ### Session history
 
@@ -182,13 +186,13 @@ Code is done and correct (verified 21–22 June 2026):
 ### Backend layout
 - **`backend/server.js`** — Express entry; mounts all middleware, registers all routes, bootstraps upload directories at startup
 - **`backend/config/database.js`** — exports a single `mysql2/promise` connection pool
-- **`backend/config/init.sql`** — authoritative schema (32 tables) + seed data; re-runnable
+- **`backend/config/init.sql`** — authoritative schema (34 tables) + seed data; re-runnable
 - **`backend/controllers/*.js`** — async functions; parameterised queries; `{ success, data, message }` responses. **All list endpoints clamp pagination** via `backend/utils/pagination.js` (`clampLimit`/`clampOffset`) — never bind raw `parseInt(req.query.limit)` to `LIMIT` (NaN → 500; unbounded → full-table dump).
 - **`backend/utils/*.js`** — shared helpers: `pagination.js` (`clampLimit(v, def, max=100)` / `clampOffset(v)` — clamp `?limit`/`?offset` to `[1,100]` / `≥0`, NaN or missing → default), `sanitizeHtml.js` (rich-text XSS allowlist), `memberProfile.js` (required-profile-field list), `excel.js` (XLSX export), `schools.js` (`resolveSchool` curated-list check), `uploads.js` (`removeUploadedFiles(req)` / `removeStoredFile(fileUrl)` — orphan cleanup, see File uploads)
 - **`backend/routes/*.js`** — thin routers with `express-validator` on mutation routes
 - **`backend/middleware/auth.js`** — `authenticate` (admin JWT), `authenticateMember` (member JWT), `authorizeAdmin`, `authorizeSuperAdmin`, `auditLog(action)` factory
 - **`backend/middleware/csrf.js`** — double-submit cookie CSRF protection
-- **`backend/middleware/upload.js`** — multer instances: `photo`, `document`, `bbfDocs`, `scholarshipDocs`, `memberDocs`
+- **`backend/middleware/upload.js`** — 9 multer instances (destination · cap · accepts): `photo` (photos/ · 2MB · images), `memberPhoto` (members/ · 2MB · images), `document` (documents/ · 10MB · docs), `bbfDocs` (bbf/ · 10MB · PDF+img), `scholarshipDocs` (scholarships/ · 5MB · PDF+img), `memberDocs` (members/ · 5MB · PDF+img), `courtDocs` (court/ · 10MB · docs), `disciplinaryDocs` (disciplinary/ · 10MB · docs), `newsMedia` (news/ · 10MB · img+doc)
 - **`backend/services/smsService.js`** — TalkSasa wrapper; `sendSms()`, `sendBulk()`; always logs to `sms_logs`; never throws
 - **`backend/services/notificationService.js`** — `createNotification()` inserts into `notifications` + optionally triggers SMS/email; also owns the editable **application-notification templates** (`NOTIFICATION_TEMPLATES` defaults + `renderNotification(key, vars)` + `loadNotificationCache()`) for BBF/scholarship status messages
 - **`backend/services/mailerService.js`** — nodemailer wrapper with email templates; fails gracefully
@@ -200,16 +204,16 @@ Code is done and correct (verified 21–22 June 2026):
 - **`public/js/main.js`** — body-class guards, `DOMContentLoaded`, `escHtml()`, render helpers. Interpolate **all** attribute values through `escHtml()` — including image `src` and any admin-supplied URL; for `href`s use `safeUrl()` (allows only http/https/mailto/tel + relative paths, else `#`), since `escHtml()` alone doesn't neutralise a `javascript:` URL. Image tags carry an `onerror` icon fallback.
 
 **Admin portal (`/public/admin/`):**
-- **`admin/js/admin-api.js`** — `window.adminApi`; injects `adminToken` from localStorage; 401 → redirect to login
+- **`admin/js/admin-api.js`** — `window.adminApi`; injects `adminToken` from **`sessionStorage`** (cleared when the last tab closes, alongside an `adminLastActivity` timestamp that forces logout after 30 min idle — `ADMIN_IDLE_MS`; each portal HTML also carries an inline `<head>` guard that redirects before any content renders); 401 → redirect to login
 - **`admin/js/admin-portal.js`** — auth guard, sidebar init, page `init*()` functions, Chart.js integration, and the shared **`renderAdminPager(elId, {total, offset, limit, onPage})`** helper (a "N–M of T" + Prev/Next pager; each list page has a `<div id="…-pager">` and calls it after rendering rows, resetting `offset` to 0 when a filter changes). List controllers return `total` for this. SMS Logs uses its own inline pager.
 - **Button loading state (automatic) —** `admin-api.js` tracks the last-clicked `button`/`.btn` (capturing listener) and, for the duration of the `request()`/`download()` it triggers, marks it busy via ref-counted **`setButtonBusy`/`clearButtonBusy`** (exposed on `window`): a CSS spinner (`.is-loading` in `portal.css`) replaces the label and the button is disabled + `pointer-events:none`, so double-clicks can't fire a duplicate request. **Zero per-button wiring** — any button that hits the API gets it; opt out with `data-no-busy`. `submitOnce(btn, fn)` (modal saves) uses the same helpers, so the two compose (ref-count) when a handler makes its own call. Spinner colour is captured from the button's text colour into `--btn-spinner` so it's legible on every variant. Added 20 July 2026.
 - **List-table action cells (gotcha):** put the `display:flex` button wrapper on an **inner `<div>`, not the `<td>`**. A flex `<td>` leaves table layout, so the cell no longer stretches to the row height and its `border-bottom` renders misaligned from the rest of the row (most visible when the first column is two lines tall). Standard shape: `<td><div style="display:flex;gap:.3rem;flex-wrap:wrap">…buttons…</div></td>` (members / court-cases / disciplinary-cases, fixed 17 July 2026).
-- 24 HTML pages — each uses `getSidebarHtml()` + `getTopbarHtml()` injected at runtime
+- 31 HTML pages — each uses `getSidebarHtml()` + `getTopbarHtml()` injected at runtime
 
 **Member portal (`/public/member/`):**
-- **`member/js/member-api.js`** — `window.memberApi`; injects `memberToken`; 401 → redirect to login
+- **`member/js/member-api.js`** — `window.memberApi`; injects `memberToken` from **`sessionStorage`** (same 30-min idle logout as admin — `MEMBER_IDLE_MS`); 401 → redirect to login
 - **`member/js/member-portal.js`** — auth guard, sidebar, all `initMember*()` functions
-- 12 HTML pages (incl. `forgot-password.html`, `reset-password.html`)
+- 13 HTML pages (incl. `first-login.html`, `forgot-password.html`, `reset-password.html`)
 
 ### Body-class convention (public pages)
 Every `<body>` tag carries a class that gates the matching `init*` function in `main.js`:
@@ -297,7 +301,7 @@ Rosters are imported as **active** members via an offline script → SQL for php
 
 > ⚠ **Rate-limit scoping (10 July 2026):** `contactLimiter` (5/hr) is now applied only to `POST /api/contact` (the public form) — previously `app.use('/api/contact', contactLimiter)` covered the whole path, so admins loading the Contact Inbox (`GET /api/contact`) a handful of times hit the limit and saw the public "Too many contact submissions" message. The admin reads/replies/status are no longer rate-limited by it.
 
-### Database schema (32 tables)
+### Database schema (34 tables)
 **Core (public site):** `users`, `leadership`, `news`, `events`, `resources`, `scholarships`, `advocacy`, `contacts`, `settings`, `announcements`
 
 > `announcements` — the homepage scrolling ticker items (`text`, optional `link`, `sort_order`, `is_active`). Public `GET /api/announcements` returns active items in order; admin CRUD at `POST/PUT/DELETE /api/announcements` (both roles) via the **Ticker Announcements** content page (`content-announcements.html`). The homepage renders them in `main.js` `loadAnnouncements()` (items duplicated for the -50% CSS marquee loop). **The admin page is the single source of truth — there is no hardcoded fallback:** `#ticker-bar` in `index.html` starts `display:none` with an empty `#ticker-content`; `loadAnnouncements()` reveals the bar only when there are active items and keeps it hidden on empty/failed fetch. (Removed the old hardcoded `<span class="ticker-item">` fallback on 17 July 2026 — combined with the HTML no-cache fix, it was showing stale placeholder items on the live homepage.)
