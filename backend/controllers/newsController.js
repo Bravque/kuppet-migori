@@ -39,10 +39,13 @@ const getOne = async (req, res) => {
   }
 };
 
+// Homepage "Latest from the Notice Board" — always returns up to 3 so the row
+// never looks short. Featured articles float to the top; the rest is topped up
+// with the most recent published news, so 2 featured + 1 latest still fills 3.
 const getFeatured = async (req, res) => {
   try {
     const [rows] = await db.query(
-      'SELECT id, title, slug, excerpt, category, featured_image, author, published_at FROM news WHERE is_published = 1 AND is_featured = 1 ORDER BY published_at DESC LIMIT 3'
+      'SELECT id, title, slug, excerpt, category, featured_image, author, published_at FROM news WHERE is_published = 1 ORDER BY is_featured DESC, published_at DESC LIMIT 3'
     );
     res.json({ success: true, data: rows });
   } catch (err) {
