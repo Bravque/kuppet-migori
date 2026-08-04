@@ -55,7 +55,13 @@ async function register(req, res) {
       full_name, tsc_number, national_id, employment_number,
       phone, email, password, gender, date_of_birth,
       school_name, sub_county, school_category, job_group,
+      has_disability, disability_description,
     } = req.body;
+
+    // Checkbox arrives as "1"/"on"/"true" when ticked, absent otherwise. The
+    // description is only kept when the flag is set.
+    const hasDisability = ['1','on','true','yes'].includes(String(has_disability).toLowerCase());
+    const disabilityDesc = hasDisability ? (String(disability_description || '').trim() || null) : null;
 
     // Already a member (e.g. bulk-imported) with this exact TSC + national ID?
     // They have an account — send them to log in instead of erroring.
@@ -102,11 +108,13 @@ async function register(req, res) {
     await db.query(
       `INSERT INTO members
          (member_number, full_name, tsc_number, national_id, employment_number, phone, email,
-          password, gender, date_of_birth, school_name, sub_county, school_category, job_group)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          password, gender, date_of_birth, school_name, sub_county, school_category, job_group,
+          has_disability, disability_description)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [memberNumber, full_name, tsc_number, national_id, employment_number || null,
        phone, email.toLowerCase(), hashedPassword, gender, date_of_birth,
-       school.name, sub_county, school_category, job_group || null]
+       school.name, sub_county, school_category, job_group || null,
+       hasDisability ? 1 : 0, disabilityDesc]
     );
 
     // Send confirmation email (non-blocking)

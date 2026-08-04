@@ -32,6 +32,7 @@ async function getProfile(req, res) {
     const [[m]] = await db.query(
       `SELECT id, member_number, full_name, tsc_number, national_id, employment_number,
               phone, email, gender, date_of_birth, school_name, sub_county, school_category, job_group,
+              has_disability, disability_description,
               passport_photo_url, status, created_at, approved_at,
               must_change_password, onboarding_complete
        FROM members WHERE id = ?`,
@@ -43,6 +44,7 @@ async function getProfile(req, res) {
       success: true,
       data: {
         ...m,
+        has_disability: !!m.has_disability,
         must_change_password: !!m.must_change_password,
         onboarding_complete: !!m.onboarding_complete,
         profile_complete: missing.length === 0,
@@ -60,7 +62,8 @@ async function updateProfile(req, res) {
     // "clear a field that has a value", and to recompute completeness after.
     const [[current]] = await db.query(
       `SELECT full_name, tsc_number, national_id, phone, email, gender, date_of_birth,
-              school_name, sub_county, school_category, job_group, onboarding_complete
+              school_name, sub_county, school_category, job_group,
+              has_disability, disability_description, onboarding_complete
        FROM members WHERE id = ?`,
       [req.member.id]
     );
@@ -111,6 +114,28 @@ async function updateProfile(req, res) {
       }
       fields.push(`${key} = ?`); params.push(isBlank(value) ? null : value);
     }
+
+    // Person With Disability (PWD) — handled as a pair, outside the loop above:
+    // a description is required when the flag is set, and cleared when it isn't.
+    // Only touched when the client actually sent one of the two keys.
+    if (req.body.has_disability !== undefined || req.body.disability_description !== undefined) {
+      const hasDisability = req.body.has_disability !== undefined
+        ? ['1','on','true','yes'].includes(String(req.body.has_disability).toLowerCase())
+        : !!current.has_disability;
+      if (hasDisability) {
+        const desc = req.body.disability_description !== undefined
+          ? String(req.body.disability_description || '').trim()
+          : String(current.disability_description || '').trim();
+        if (!desc) return fieldError(res, 400, 'disability_description', 'Please describe your disability');
+        if (desc.length > 1000) return fieldError(res, 400, 'disability_description', 'Description too long');
+        fields.push('has_disability = ?'); params.push(1);
+        fields.push('disability_description = ?'); params.push(desc);
+      } else {
+        fields.push('has_disability = ?'); params.push(0);
+        fields.push('disability_description = ?'); params.push(null);
+      }
+    }
+
     if (!fields.length) return res.status(400).json({ success: false, message: 'No fields to update' });
     params.push(req.member.id);
     await db.query(`UPDATE members SET ${fields.join(', ')} WHERE id = ?`, params);
