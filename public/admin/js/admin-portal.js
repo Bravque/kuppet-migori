@@ -538,6 +538,7 @@ function renderSummaryCards(d) {
     { id: 'stat-total-members',    value: d.total_members || 0,    label: 'Total Members',          icon: 'users',           color: 'blue' },
     { id: 'stat-active-members',   value: d.active_members || 0,   label: 'Active Members',         icon: 'user-check',      color: 'green' },
     { id: 'stat-pending',          value: d.pending_members || 0,  label: 'Member Requests',         icon: 'user-clock',      color: 'gold' },
+    { id: 'stat-disability',       value: d.members_with_disability || 0, label: 'Members With Disability', icon: 'wheelchair', color: 'teal' },
     { id: 'stat-bbf-submitted',    value: d.bbf_submitted || 0,    label: 'BBF Claims Submitted',   icon: 'file-medical',    color: 'purple' },
     { id: 'stat-bbf-approved',     value: d.bbf_approved || 0,     label: 'BBF Claims Approved',    icon: 'check-circle',    color: 'green' },
     { id: 'stat-sch-applications', value: d.sch_applications || 0, label: 'Scholarship Applications',icon: 'award',          color: 'teal' },

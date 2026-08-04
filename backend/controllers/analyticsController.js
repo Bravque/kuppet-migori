@@ -11,7 +11,10 @@ async function getSummary(req, res) {
         SUM(status IN ('approved','suspended')) as total_members,
         SUM(status = 'approved') as active_members,
         SUM(status = 'pending_approval') as pending_members,
-        SUM(status = 'rejected') as rejected_members
+        SUM(status = 'rejected') as rejected_members,
+        -- Persons With Disability among actual members (approved/suspended), so it
+        -- lines up with Total Members rather than counting pending/rejected rows.
+        SUM(has_disability = 1 AND status IN ('approved','suspended')) as members_with_disability
       FROM members
     `);
     // JOIN members (and scholarships) so counts match the admin lists exactly —
@@ -100,6 +103,7 @@ async function exportPdf(req, res) {
         (SELECT COUNT(*) FROM members WHERE status IN ('approved','suspended')) as total_members,
         (SELECT COUNT(*) FROM members WHERE status='approved') as approved_members,
         (SELECT COUNT(*) FROM members WHERE status='pending_approval') as pending_members,
+        (SELECT COUNT(*) FROM members WHERE has_disability=1 AND status IN ('approved','suspended')) as members_with_disability,
         (SELECT COUNT(*) FROM bbf_claims bc JOIN members m ON bc.member_id=m.id WHERE bc.status!='draft') as total_bbf,
         (SELECT COUNT(*) FROM bbf_claims bc JOIN members m ON bc.member_id=m.id WHERE bc.status='approved') as approved_bbf,
         (SELECT COUNT(*) FROM scholarship_applications sa JOIN members m ON sa.member_id=m.id JOIN scholarships s ON sa.scholarship_id=s.id) as total_sch,
@@ -123,6 +127,7 @@ async function exportPdf(req, res) {
     row('Total Members', summary.total_members);
     row('Approved Members', summary.approved_members);
     row('Member Requests', summary.pending_members);
+    row('Members With Disability', summary.members_with_disability);
     doc.moveDown();
 
     section('BBF Claims');
