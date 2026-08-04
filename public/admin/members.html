@@ -44,6 +44,11 @@
           <option value="female">Female</option>
           <option value="other">Other</option>
         </select>
+        <select class="form-control" id="disability-filter">
+          <option value="">Disability: All</option>
+          <option value="1">With Disability</option>
+          <option value="0">No Disability</option>
+        </select>
       </div>
       <div class="data-card">
         <div class="data-table-wrap">
@@ -79,13 +84,13 @@
   // Approve/reject are branch_officer + super_admin decisions; branch_secretary
   // is view-only (backend enforces). Hide the inline action buttons for them.
   const canDecide = !!user && ['super_admin','branch_officer'].includes(user.role);
-  let currentStatus='', currentSearch='', currentSubCounty='', currentGender='', currentSchool='', memberOffset=0, rejectingId=null;
+  let currentStatus='', currentSearch='', currentSubCounty='', currentGender='', currentSchool='', currentDisability='', memberOffset=0, rejectingId=null;
   const MEMBER_LIMIT=25;
   async function loadMembers() {
     const tbody = document.getElementById('members-tbody');
     tbody.innerHTML = '<tr><td colspan="8">'+renderLoading()+'</td></tr>';
     try {
-      const res = await adminApi.members.getAll({status:currentStatus,search:currentSearch,sub_county:currentSubCounty,gender:currentGender,school:currentSchool,limit:MEMBER_LIMIT,offset:memberOffset});
+      const res = await adminApi.members.getAll({status:currentStatus,search:currentSearch,sub_county:currentSubCounty,gender:currentGender,school:currentSchool,has_disability:currentDisability,limit:MEMBER_LIMIT,offset:memberOffset});
       if(!res.data.length){tbody.innerHTML='<tr><td colspan="8">'+renderEmpty()+'</td></tr>';renderAdminPager('members-pager',{total:res.total||0,offset:memberOffset,limit:MEMBER_LIMIT,onPage:o=>{memberOffset=o;loadMembers();}});return;}
       tbody.innerHTML = res.data.map(m=>`<tr>
         <td><strong>${escHtml(m.full_name)}</strong><br><small>${escHtml(m.member_number)}</small></td>
@@ -116,8 +121,9 @@
   let sst;document.getElementById('school-search').addEventListener('input',function(){clearTimeout(sst);sst=setTimeout(()=>{currentSchool=this.value;memberOffset=0;loadMembers();},400);});
   document.getElementById('subcounty-filter').addEventListener('change',function(){currentSubCounty=this.value;memberOffset=0;loadMembers();});
   document.getElementById('gender-filter').addEventListener('change',function(){currentGender=this.value;memberOffset=0;loadMembers();});
-  // Export mirrors the active filters (status/search/sub-county/gender), not the whole table.
-  document.getElementById('btn-export').addEventListener('click',function(){adminApi.members.exportExcel({status:currentStatus,search:currentSearch,sub_county:currentSubCounty,gender:currentGender,school:currentSchool}).catch(e=>alert(e.message));});
+  document.getElementById('disability-filter').addEventListener('change',function(){currentDisability=this.value;memberOffset=0;loadMembers();});
+  // Export mirrors the active filters (status/search/sub-county/gender/disability), not the whole table.
+  document.getElementById('btn-export').addEventListener('click',function(){adminApi.members.exportExcel({status:currentStatus,search:currentSearch,sub_county:currentSubCounty,gender:currentGender,school:currentSchool,has_disability:currentDisability}).catch(e=>alert(e.message));});
   const urlTab=new URLSearchParams(window.location.search).get('tab');
   if(urlTab==='pending'){document.querySelector('[data-status="pending_approval"]').click();}else{loadMembers();}
 </script>

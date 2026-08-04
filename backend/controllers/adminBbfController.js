@@ -38,7 +38,7 @@ async function notifySafely(payload) {
 
 // Build the claims filter once (status, search) so the list, its count and the
 // Excel export all stay in sync. Returns { where, params }.
-function buildBbfFilter({ status, search, school_category, sub_county, school, gender, claim_type, date_from, date_to } = {}) {
+function buildBbfFilter({ status, search, school_category, sub_county, school, gender, has_disability, claim_type, date_from, date_to } = {}) {
   // Drafts are a member's unsubmitted work-in-progress — they never appear in the
   // admin queue (list, count or export), regardless of any status filter passed.
   let where = "WHERE bc.status <> 'draft'";
@@ -49,6 +49,8 @@ function buildBbfFilter({ status, search, school_category, sub_county, school, g
   if (sub_county) { where += ' AND m.sub_county = ?'; params.push(sub_county); }
   if (school) { where += ' AND m.school_name LIKE ?'; params.push(`%${school}%`); }
   if (gender) { where += ' AND m.gender = ?'; params.push(gender); }
+  // Person With Disability — '1' (yes) / '0' (no); any other value means "all".
+  if (has_disability === '1' || has_disability === '0') { where += ' AND m.has_disability = ?'; params.push(has_disability); }
   // Date range on the submitted date (the "Submitted" column). Inclusive; either
   // bound is optional, so a single date, a month or a whole year can be selected.
   if (date_from) { where += ' AND DATE(bc.submitted_at) >= ?'; params.push(date_from); }

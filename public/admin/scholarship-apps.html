@@ -56,6 +56,11 @@
           <option value="female">Female</option>
           <option value="other">Other</option>
         </select>
+        <select class="form-control" id="disability-filter">
+          <option value="">Disability: All</option>
+          <option value="1">With Disability</option>
+          <option value="0">No Disability</option>
+        </select>
         <div style="display:flex;align-items:center;gap:.35rem">
           <span style="font-size:.8rem;color:var(--text-muted)">Applied</span>
           <input type="date" class="form-control" id="date-from" aria-label="Applied from" title="Applied from (inclusive)">
@@ -84,9 +89,9 @@
   loadSchoolsDatalist();
   // Honour a ?status= deep-link (e.g. from the dashboard Quick Actions).
   let currentStatus=new URLSearchParams(window.location.search).get('status')||'', schOffset=0; const SCH_LIMIT=30;
-  let currentCategory='', currentSubCounty='', currentGender='', currentSchool='';
+  let currentCategory='', currentSubCounty='', currentGender='', currentSchool='', currentDisability='';
   let currentType='', currentFrom='', currentTo='';
-  const schFilters=()=>({status:currentStatus,scholarship_type:currentType,school_category:currentCategory,sub_county:currentSubCounty,gender:currentGender,school:currentSchool,date_from:currentFrom,date_to:currentTo});
+  const schFilters=()=>({status:currentStatus,scholarship_type:currentType,school_category:currentCategory,sub_county:currentSubCounty,gender:currentGender,school:currentSchool,has_disability:currentDisability,date_from:currentFrom,date_to:currentTo});
   async function loadApps(){
     const tbody=document.getElementById('sch-tbody');
     tbody.innerHTML='<tr><td colspan="7">'+renderLoading()+'</td></tr>';
@@ -117,6 +122,7 @@
   document.getElementById('category-filter').addEventListener('change',function(){currentCategory=this.value;schOffset=0;loadApps();});
   document.getElementById('subcounty-filter').addEventListener('change',function(){currentSubCounty=this.value;schOffset=0;loadApps();});
   document.getElementById('gender-filter').addEventListener('change',function(){currentGender=this.value;schOffset=0;loadApps();});
+  document.getElementById('disability-filter').addEventListener('change',function(){currentDisability=this.value;schOffset=0;loadApps();});
   document.getElementById('date-from').addEventListener('change',function(){currentFrom=this.value;schOffset=0;loadApps();});
   document.getElementById('date-to').addEventListener('change',function(){currentTo=this.value;schOffset=0;loadApps();});
   document.getElementById('date-clear').addEventListener('click',function(){currentFrom='';currentTo='';document.getElementById('date-from').value='';document.getElementById('date-to').value='';schOffset=0;loadApps();});
