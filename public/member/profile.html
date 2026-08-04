@@ -10,7 +10,7 @@
   <title>My Profile — KUPPET Migori</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
-  <link rel="stylesheet" href="/css/style.css?v=20260804a"><link rel="stylesheet" href="/css/portal.css?v=20260804a">
+  <link rel="stylesheet" href="/css/style.css?v=20260804b"><link rel="stylesheet" href="/css/portal.css?v=20260804b">
 </head>
 <body class="portal-body member-profile-page">
 <div class="portal-layout">
@@ -110,10 +110,15 @@
               </select>
             </div>
             <div class="form-group" style="grid-column:1/-1">
-              <label style="display:flex;align-items:center;gap:.5rem;cursor:pointer">
-                <input type="checkbox" id="p-has-disability" style="width:auto;margin:0">
-                Person With Disability
-              </label>
+              <label>Person With Disability?</label>
+              <div style="display:flex;gap:1.5rem;margin-top:.35rem">
+                <label style="display:flex;align-items:center;gap:.4rem;cursor:pointer">
+                  <input type="radio" name="p-has-disability" value="1" style="width:auto;margin:0"> Yes
+                </label>
+                <label style="display:flex;align-items:center;gap:.4rem;cursor:pointer">
+                  <input type="radio" name="p-has-disability" value="0" style="width:auto;margin:0"> No
+                </label>
+              </div>
             </div>
             <div class="form-group hidden" id="p-disability-desc-group" style="grid-column:1/-1">
               <label>Please describe your disability</label>
@@ -142,7 +147,7 @@
     </div>
   </main>
 </div>
-<script src="/member/js/member-api.js?v=20260804a"></script><script src="/js/school-picker.js?v=20260804a"></script><script src="/member/js/member-portal.js?v=20260804a"></script>
+<script src="/member/js/member-api.js?v=20260804b"></script><script src="/js/school-picker.js?v=20260804b"></script><script src="/member/js/member-portal.js?v=20260804b"></script>
 <script>
   document.getElementById('sidebar-placeholder').outerHTML = getMemberSidebarHtml();
   document.getElementById('topbar-placeholder').outerHTML = getMemberTopbarHtml('My Profile');

@@ -12,8 +12,8 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
-  <link rel="stylesheet" href="/css/style.css?v=20260804a">
-  <link rel="stylesheet" href="/css/portal.css?v=20260804a">
+  <link rel="stylesheet" href="/css/style.css?v=20260804b">
+  <link rel="stylesheet" href="/css/portal.css?v=20260804b">
   <style>
     .pw-wrap { position: relative; }
     .pw-wrap .form-control { padding-right: 2.6rem; }
@@ -96,11 +96,15 @@
         </div>
       </div>
       <div class="form-group">
-        <label style="display:flex;align-items:center;gap:.5rem;cursor:pointer;font-weight:600">
-          <input type="checkbox" name="has_disability" id="has-disability" value="1" style="width:auto;margin:0">
-          Person With Disability
-        </label>
-        <small style="color:var(--text-muted);font-size:0.78rem">Tick if you are a person living with a disability, then describe it below.</small>
+        <label>Person With Disability? <span class="required">*</span></label>
+        <div style="display:flex;gap:1.5rem;margin-top:.35rem">
+          <label style="display:flex;align-items:center;gap:.4rem;cursor:pointer;font-weight:500">
+            <input type="radio" name="has_disability" value="1" style="width:auto;margin:0"> Yes
+          </label>
+          <label style="display:flex;align-items:center;gap:.4rem;cursor:pointer;font-weight:500">
+            <input type="radio" name="has_disability" value="0" style="width:auto;margin:0"> No
+          </label>
+        </div>
       </div>
       <div class="form-group hidden" id="disability-desc-group">
         <label>Please describe your disability <span class="required">*</span></label>
@@ -193,8 +197,8 @@
 </div>
 </div>
 
-<script src="/member/js/member-api.js?v=20260804a"></script>
-<script src="/js/school-picker.js?v=20260804a"></script>
+<script src="/member/js/member-api.js?v=20260804b"></script>
+<script src="/js/school-picker.js?v=20260804b"></script>
 <script>
   // Keep a lowercase set of valid schools so we can enforce "must be on the list"
   // (matches the server). Sourced from the same cached list the picker uses.
@@ -214,14 +218,16 @@
     });
   });
 
-  // Person With Disability — reveal the description box only when ticked.
-  const disabilityCb = document.getElementById('has-disability');
+  // Person With Disability — reveal the description box only when "Yes" is chosen.
+  const disabilityRadios = document.querySelectorAll('input[name=has_disability]');
   const disabilityGroup = document.getElementById('disability-desc-group');
   const disabilityDesc = document.getElementById('disability-description');
-  disabilityCb.addEventListener('change', () => {
-    disabilityGroup.classList.toggle('hidden', !disabilityCb.checked);
-    if (!disabilityCb.checked) disabilityDesc.value = '';
-  });
+  const disabilityYes = () => document.querySelector('input[name=has_disability]:checked')?.value === '1';
+  disabilityRadios.forEach(r => r.addEventListener('change', () => {
+    const yes = disabilityYes();
+    disabilityGroup.classList.toggle('hidden', !yes);
+    if (!yes) disabilityDesc.value = '';
+  }));
 
   let currentStep = 1;
   const totalSteps = 2;
@@ -259,7 +265,11 @@
         return false;
       }
       if (pw !== cpw) { showReg('Passwords do not match', 'danger'); return false; }
-      if (disabilityCb.checked && !disabilityDesc.value.trim()) {
+      if (!document.querySelector('input[name=has_disability]:checked')) {
+        showReg('Please indicate whether you are a person with disability', 'danger');
+        return false;
+      }
+      if (disabilityYes() && !disabilityDesc.value.trim()) {
         disabilityDesc.focus();
         showReg('Please describe your disability', 'danger');
         return false;

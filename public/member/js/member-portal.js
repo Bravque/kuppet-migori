@@ -302,18 +302,20 @@ async function initMemberProfile() {
       const opt = new Option(`${m.sub_county} — please reselect`, m.sub_county, true, true);
       scEl.add(opt, scEl.firstChild);
     }
-    // Person With Disability — reveal the description only when ticked.
-    const hd = document.getElementById('p-has-disability');
+    // Person With Disability — Yes/No radios; description shows only for "Yes".
+    const hdRadios = document.querySelectorAll('input[name=p-has-disability]');
     const hdGroup = document.getElementById('p-disability-desc-group');
     const hdDesc = document.getElementById('p-disability-description');
-    if (hd) {
-      hd.checked = !!m.has_disability;
+    const hdYes = () => document.querySelector('input[name=p-has-disability]:checked')?.value === '1';
+    if (hdRadios.length) {
+      const val = m.has_disability ? '1' : '0';
+      hdRadios.forEach(r => { r.checked = r.value === val; });
       hdDesc.value = m.disability_description || '';
-      hdGroup.classList.toggle('hidden', !hd.checked);
-      hd.addEventListener('change', () => {
-        hdGroup.classList.toggle('hidden', !hd.checked);
-        if (!hd.checked) hdDesc.value = '';
-      });
+      hdGroup.classList.toggle('hidden', !hdYes());
+      hdRadios.forEach(r => r.addEventListener('change', () => {
+        hdGroup.classList.toggle('hidden', !hdYes());
+        if (!hdYes()) hdDesc.value = '';
+      }));
     }
     document.getElementById('p-member-number').textContent = m.member_number;
     document.getElementById('p-status').innerHTML = statusBadge(m.status);
@@ -329,7 +331,7 @@ async function initMemberProfile() {
 
   document.getElementById('btn-save-profile')?.addEventListener('click', async () => {
     clearProfileFieldError();
-    const hasDisability = document.getElementById('p-has-disability').checked;
+    const hasDisability = document.querySelector('input[name=p-has-disability]:checked')?.value === '1';
     const disabilityDesc = document.getElementById('p-disability-description').value.trim();
     if (hasDisability && !disabilityDesc) {
       markProfileFieldError('disability_description', 'Please describe your disability');

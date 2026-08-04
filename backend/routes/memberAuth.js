@@ -28,6 +28,7 @@ router.post('/register',
     body('sub_county').trim().notEmpty().withMessage('Sub-county required').isLength({ max: 150 }),
     body('school_category').isIn(['senior_school','junior_school','tertiary_school']).withMessage('Category (senior, junior or tertiary school) required'),
     body('job_group').isIn(['B5','C1','C2','C3','C4','C5','D1','D2','D3','D4','D5']).withMessage('Job group required'),
+    body('has_disability').isIn(['0','1','yes','no','true','false']).withMessage('Please indicate whether you are a person with disability'),
     body('disability_description').isLength({ max: 1000 }).withMessage('Description too long')
       .custom((v, { req }) => {
         const has = ['1','on','true','yes'].includes(String(req.body.has_disability || '').toLowerCase());
