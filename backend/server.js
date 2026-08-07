@@ -81,9 +81,12 @@ app.use(express.json({ limit: '50kb' }));
 app.use(express.urlencoded({ extended: true, limit: '50kb' }));
 
 // Rate limiting
+// Defaults unchanged (200/15min); env-tunable so a controlled event (e.g. a 50-person
+// demo where the whole room shares one hotel-WiFi public IP) can raise them temporarily
+// and revert after. Keyed on req.ip, so everyone behind one NATed IP shares this bucket.
 const apiLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 200,
+  windowMs: (parseInt(process.env.API_RATE_WINDOW_MIN, 10) || 15) * 60 * 1000,
+  max: parseInt(process.env.API_RATE_MAX, 10) || 200,
   standardHeaders: true,
   legacyHeaders: false,
   message: { success: false, message: 'Too many requests, please try again later.' },
@@ -95,15 +98,20 @@ const contactLimiter = rateLimit({
   message: { success: false, message: 'Too many contact submissions. Please try again in an hour.' },
 });
 
+// Defaults unchanged (20/15min). Env-tunable: a room of members logging in live from
+// one shared IP would otherwise exhaust 20 attempts fast — raise AUTH_RATE_MAX for the event.
 const authLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 20,
+  windowMs: (parseInt(process.env.AUTH_RATE_WINDOW_MIN, 10) || 15) * 60 * 1000,
+  max: parseInt(process.env.AUTH_RATE_MAX, 10) || 20,
   message: { success: false, message: 'Too many login attempts. Please try again later.' },
 });
 
+// Defaults unchanged (8 successful/hr). Env-tunable via REG_RATE_MAX for an event where
+// many members register at once from one shared IP. Its backstop, regAttemptLimiter
+// below, is already env-tunable (REG_ATTEMPT_RATE_MAX) — raise BOTH for such an event.
 const regLimiter = rateLimit({
   windowMs: 60 * 60 * 1000,
-  max: 8,
+  max: parseInt(process.env.REG_RATE_MAX, 10) || 8,
   // Only count successful registrations. Validation errors and duplicate-TSC
   // rejections (status >= 400) don't burn the quota, so a member fumbling the
   // form can't lock themselves out without ever actually registering.
@@ -113,7 +121,7 @@ const regLimiter = rateLimit({
 
 const forgotPwLimiter = rateLimit({
   windowMs: 60 * 60 * 1000,
-  max: 5,
+  max: parseInt(process.env.FORGOT_PW_RATE_MAX, 10) || 5,
   message: { success: false, message: 'Too many password reset requests. Please try again in an hour.' },
 });
 
