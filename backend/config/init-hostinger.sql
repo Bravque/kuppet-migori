@@ -248,7 +248,7 @@ CREATE TABLE IF NOT EXISTS bbf_claims (
 CREATE TABLE IF NOT EXISTS bbf_claim_documents (
   id INT PRIMARY KEY AUTO_INCREMENT,
   claim_id INT NOT NULL,
-  doc_type ENUM('tsc_slip','burial_permit','birth_notification','letter_from_principal','letter_of_compulsory_retirement','other') NOT NULL,
+  doc_type ENUM('tsc_slip','burial_permit','birth_notification','letter_from_principal','bbf_claim_form','letter_of_compulsory_retirement','other') NOT NULL,
   file_url VARCHAR(500) NOT NULL,
   file_name VARCHAR(255),
   file_size INT,

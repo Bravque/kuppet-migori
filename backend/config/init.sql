@@ -563,7 +563,7 @@ UPDATE users SET role = 'branch_officer' WHERE role IN ('editor','viewer');
 ALTER TABLE users MODIFY COLUMN role ENUM('super_admin','branch_officer','branch_secretary','content_admin') NOT NULL DEFAULT 'branch_officer';
 
 -- Update BBF claim document types to official required attachments
-ALTER TABLE bbf_claim_documents MODIFY COLUMN doc_type ENUM('tsc_slip','burial_permit','birth_notification','letter_from_principal','letter_of_compulsory_retirement','other') NOT NULL;
+ALTER TABLE bbf_claim_documents MODIFY COLUMN doc_type ENUM('tsc_slip','burial_permit','birth_notification','letter_from_principal','bbf_claim_form','letter_of_compulsory_retirement','other') NOT NULL;
 
 -- Scholarship application documents: the two required member attachments
 -- (Letter of Application + TSC Slip); legacy types kept for existing rows.

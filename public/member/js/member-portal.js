@@ -498,7 +498,7 @@ const BBF_DOC_SLOTS_DEATH = [
   { type: 'tsc_slip',              label: 'TSC Slip',             required: true,  note: null },
   { type: 'burial_permit',         label: 'Burial Permit',        required: true,  note: null },
   { type: 'birth_notification',    label: 'Birth Notification',   required: false, note: "Optional — only for a child's death" },
-  { type: 'letter_from_principal', label: 'Letter From Principal',required: true,  note: null },
+  { type: 'bbf_claim_form',        label: 'BBF Claim Form',       required: true,  note: null },
 ];
 const BBF_DOC_SLOTS_RETIREMENT = [
   { type: 'tsc_slip',                        label: 'TSC Slip',                        required: true, note: null },

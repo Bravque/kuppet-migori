@@ -10,7 +10,7 @@ const BBF_DOC_SLOTS = {
   death: [
     { type: 'tsc_slip',             label: 'TSC Slip',             required: true },
     { type: 'burial_permit',        label: 'Burial Permit',        required: true },
-    { type: 'letter_from_principal', label: 'Letter From Principal', required: true },
+    { type: 'bbf_claim_form',       label: 'BBF Claim Form',       required: true },
     { type: 'birth_notification',   label: 'Birth Notification',   required: false },
   ],
   retirement: [
