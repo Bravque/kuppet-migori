@@ -21,7 +21,6 @@ const createClaimDocs = upload.bbfDocs.fields([
   { name: 'tsc_slip', maxCount: 1 },
   { name: 'burial_permit', maxCount: 1 },
   { name: 'bbf_claim_form', maxCount: 1 },
-  { name: 'birth_notification', maxCount: 1 },
 ]);
 const createClaimRules = [
   body('member_id').isInt({ min: 1 }).withMessage('Select a member'),
@@ -30,7 +29,6 @@ const createClaimRules = [
   body('next_of_kin_phone').trim().notEmpty().withMessage('Next of kin phone is required').isLength({ max: 30 }),
   body('next_of_kin_relationship').optional({ nullable: true, checkFalsy: true }).trim().isLength({ max: 100 }),
   body('next_of_kin_email').optional({ nullable: true, checkFalsy: true }).isEmail().withMessage('Next of kin email is invalid').isLength({ max: 255 }),
-  body('amount_requested').optional({ nullable: true, checkFalsy: true }).isFloat({ min: 0 }).withMessage('Amount must be a non-negative number'),
 ];
 
 router.get('/export', authenticate, authorizeAdmin, ctrl.exportExcel);

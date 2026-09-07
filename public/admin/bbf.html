@@ -104,15 +104,9 @@
         <input type="hidden" id="claim-member-id">
       </div>
 
-      <div class="grid-2" style="gap:.75rem">
-        <div class="form-group">
-          <label>Date of death <span style="color:var(--red)">*</span></label>
-          <input type="date" class="form-control" id="claim-dod">
-        </div>
-        <div class="form-group">
-          <label>Amount requested (KES)</label>
-          <input type="number" class="form-control" id="claim-amount" min="0" placeholder="Optional">
-        </div>
+      <div class="form-group">
+        <label>Date of death <span style="color:var(--red)">*</span></label>
+        <input type="date" class="form-control" id="claim-dod">
       </div>
 
       <div style="font-size:.72rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--text-muted);border-bottom:2px solid var(--gold);display:inline-block;padding-bottom:.25rem;margin:.5rem 0 .75rem">Next of Kin (claimant)</div>
@@ -148,10 +142,6 @@
         <div class="form-group">
           <label>BBF Claim Form <span style="color:var(--red)">*</span></label>
           <input type="file" class="form-control" id="doc-bbf_claim_form" accept="application/pdf,image/jpeg,image/png">
-        </div>
-        <div class="form-group">
-          <label>Birth Notification</label>
-          <input type="file" class="form-control" id="doc-birth_notification" accept="application/pdf,image/jpeg,image/png">
         </div>
       </div>
       <p style="font-size:.75rem;color:var(--text-muted)">PDF or image, up to 10 MB each.</p>
@@ -220,8 +210,8 @@
     const pickedText = document.getElementById('member-picked-text');
     const searchWrap = document.getElementById('member-search-wrap');
     const memberIdInput = document.getElementById('claim-member-id');
-    const FIELD_IDS = ['claim-member-id','member-search','claim-dod','claim-amount','nok-name','nok-relationship','nok-phone','nok-email'];
-    const DOC_IDS = ['doc-tsc_slip','doc-burial_permit','doc-bbf_claim_form','doc-birth_notification'];
+    const FIELD_IDS = ['claim-member-id','member-search','claim-dod','nok-name','nok-relationship','nok-phone','nok-email'];
+    const DOC_IDS = ['doc-tsc_slip','doc-burial_permit','doc-bbf_claim_form'];
 
     function reset(){
       FIELD_IDS.concat(DOC_IDS).forEach(id=>{const el=document.getElementById(id); if(el) el.value='';});
@@ -278,7 +268,6 @@
       const fd = new FormData();
       fd.append('member_id', memberId);
       fd.append('date_of_death', dod);
-      const amt = document.getElementById('claim-amount').value; if(amt) fd.append('amount_requested', amt);
       fd.append('next_of_kin_name', nokName);
       fd.append('next_of_kin_relationship', document.getElementById('nok-relationship').value.trim());
       fd.append('next_of_kin_phone', nokPhone);
@@ -286,7 +275,6 @@
       fd.append('tsc_slip', tsc);
       fd.append('burial_permit', burial);
       fd.append('bbf_claim_form', bbfForm);
-      const birth = document.getElementById('doc-birth_notification').files[0]; if(birth) fd.append('birth_notification', birth);
 
       try {
         const res = await adminApi.bbf.create(fd);
