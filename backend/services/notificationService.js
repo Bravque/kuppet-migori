@@ -132,7 +132,13 @@ async function loadNotificationCache() {
   }
 }
 
-async function createNotification({ memberId, type, title, body, referenceId = null, smsMessage = null, email = false, adminId = 1 }) {
+// `smsPhone` / `emailTo` / `recipientName` optionally route the SMS/email to
+// someone other than the member. Used for death-of-member BBF claims, where the
+// member's own phone/email are defunct and the next of kin is the recipient. The
+// in-app `notifications` row is still logged against the member for the record.
+// When omitted (the default for every other caller) delivery falls back to the
+// member's own contacts, so existing behaviour is unchanged.
+async function createNotification({ memberId, type, title, body, referenceId = null, smsMessage = null, email = false, adminId = 1, smsPhone = null, emailTo = null, recipientName = null }) {
   await db.query(
     `INSERT INTO notifications (member_id, type, title, body, reference_id)
      VALUES (?, ?, ?, ?, ?)`,
@@ -146,9 +152,13 @@ async function createNotification({ memberId, type, title, body, referenceId = n
   const [[member]] = await db.query('SELECT full_name, phone, email FROM members WHERE id = ?', [memberId]);
   if (!member) return;
 
-  if (wantsSms) {
+  const toPhone = smsPhone || member.phone;
+  const toEmail = emailTo || member.email;
+  const toName = recipientName || member.full_name;
+
+  if (wantsSms && toPhone) {
     await smsService.sendSms({
-      phone: member.phone,
+      phone: toPhone,
       message: smsMessage,
       memberId,
       sentBy: adminId,
@@ -156,9 +166,9 @@ async function createNotification({ memberId, type, title, body, referenceId = n
   }
 
   // Email uses the notification title/body; mailerService fails gracefully if SMTP is unset.
-  if (email && member.email) {
-    const tpl = mailerService.templates.memberNotice(member.full_name, title, body);
-    await mailerService.sendMail({ to: member.email, ...tpl });
+  if (email && toEmail) {
+    const tpl = mailerService.templates.memberNotice(toName, title, body);
+    await mailerService.sendMail({ to: toEmail, ...tpl });
   }
 }
 

@@ -10,7 +10,7 @@
   <title>BBF Claim Detail — KUPPET Migori Admin</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
-  <link rel="stylesheet" href="/css/style.css?v=20260810a"><link rel="stylesheet" href="/css/portal.css?v=20260810a">
+  <link rel="stylesheet" href="/css/style.css?v=20260907a"><link rel="stylesheet" href="/css/portal.css?v=20260907a">
 </head>
 <body class="portal-body admin-bbf-detail-page">
 <div class="portal-layout">
@@ -73,7 +73,7 @@
   </div>
 </div>
 
-<script src="/admin/js/admin-api.js?v=20260810a"></script><script src="/admin/js/admin-portal.js?v=20260810a"></script>
+<script src="/admin/js/admin-api.js?v=20260907a"></script><script src="/admin/js/admin-portal.js?v=20260907a"></script>
 <script>
   document.getElementById('sidebar-placeholder').outerHTML = getSidebarHtml();
   document.getElementById('topbar-placeholder').outerHTML = getTopbarHtml('BBF Claim Detail');
@@ -104,7 +104,7 @@
         ['Reviewer Notes', escHtml(c.reviewer_notes||'—')],
         ['Payment Ref', escHtml(c.payment_reference||'—')],
       ]},
-      { title:"Applicant's Details", rows:[
+      { title: c.deceased_is_member ? "Deceased Member's Details" : "Applicant's Details", rows:[
         ['Name', escHtml(c.full_name||'—')],
         ['Member No', escHtml(c.member_number||'—')],
         ['Phone', escHtml(c.phone||'—')],
@@ -115,7 +115,18 @@
         ['Category', escHtml(bbfSchoolCatLabel(c.school_category))],
       ]},
     ];
-    if(c.claim_type==='death'){
+    if(c.deceased_is_member){
+      sections.push({ title:'Deceased', rows:[
+        ['Name', escHtml(c.deceased_name||'—')],
+        ['Date of Death', formatDate(c.date_of_death)],
+      ]});
+      sections.push({ title:'Next of Kin (Claimant)', rows:[
+        ['Name', escHtml(c.next_of_kin_name||'—')],
+        ['Relationship', escHtml(c.next_of_kin_relationship||'—')],
+        ['Phone', escHtml(c.next_of_kin_phone||'—')],
+        ['Email', escHtml(c.next_of_kin_email||'—')],
+      ]});
+    } else if(c.claim_type==='death'){
       sections.push({ title:'Deceased Person Details', rows:[
         ['Name', escHtml(c.deceased_name||'—')],
         ['Relationship with Applicant', escHtml(c.relationship||'—')],
@@ -129,7 +140,8 @@
       const res = await adminApi.bbf.getOne(id);
       const c = res.data;
       document.getElementById('claim-number').textContent = c.claim_number;
-      document.getElementById('claim-status').innerHTML = statusBadge(c.status);
+      document.getElementById('claim-status').innerHTML = statusBadge(c.status)
+        + (c.deceased_is_member ? ' <span class="status-badge" style="background:#FEE2E2;color:#991B1B">Death of member</span>' : '');
       const section = (title, rows) => `
         <div style="margin-bottom:1.25rem">
           <div style="font-size:0.72rem;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;color:var(--text-muted);border-bottom:2px solid var(--gold);display:inline-block;padding-bottom:0.25rem;margin-bottom:0.75rem">${title}</div>
@@ -147,8 +159,15 @@
         ['Phone',escHtml(c.phone||'—')],['Email',escHtml(c.email||'—')],['TSC No',escHtml(c.tsc_no||'—')],
         ['Sub-County',escHtml(c.sub_county||'—')],['School',escHtml(c.school||'—')],['Category',bbfSchoolCatLabel(c.school_category)]];
 
-      let detailsHtml = section('Claim', claimRows) + section("Applicant's Details", applicantRows);
-      if (c.claim_type==='death') {
+      let detailsHtml = section('Claim', claimRows)
+        + section(c.deceased_is_member ? "Deceased Member's Details" : "Applicant's Details", applicantRows);
+      if (c.deceased_is_member) {
+        // The member is the deceased; the next of kin is the claimant/recipient.
+        detailsHtml += section('Deceased', [['Name',escHtml(c.deceased_name||'—')],['Date of Death',formatDate(c.date_of_death)]]);
+        detailsHtml += section('Next of Kin (Claimant)', [['Name',escHtml(c.next_of_kin_name||'—')],
+          ['Relationship',escHtml(c.next_of_kin_relationship||'—')],['Phone',escHtml(c.next_of_kin_phone||'—')],
+          ['Email',escHtml(c.next_of_kin_email||'—')]]);
+      } else if (c.claim_type==='death') {
         detailsHtml += section('Deceased Person Details', [['Name',escHtml(c.deceased_name||'—')],
           ['Relationship with Applicant',escHtml(c.relationship||'—')],['Date of Death',formatDate(c.date_of_death)]]);
       }

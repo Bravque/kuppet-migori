@@ -2,12 +2,48 @@ const db = require('../config/database');
 const { clampLimit, clampOffset } = require('../utils/pagination');
 const { sendXlsx } = require('../utils/excel');
 const notificationService = require('../services/notificationService');
+const { nextSeq } = require('./memberAuthController');
+const { removeUploadedFiles } = require('../utils/uploads');
 
 const VALID_TRANSITIONS = {
   submitted:    ['under_review'],
   under_review: ['approved', 'rejected'],
   approved:     ['paid'],
 };
+
+// Document slots for an admin-filed death-of-member claim. Mirrors
+// BBF_DOC_SLOTS.death in memberBbfController — the first three are required.
+const DEATH_DOC_SLOTS = [
+  { type: 'tsc_slip',           label: 'TSC Slip',           required: true },
+  { type: 'burial_permit',      label: 'Burial Permit',      required: true },
+  { type: 'bbf_claim_form',     label: 'BBF Claim Form',     required: true },
+  { type: 'birth_notification', label: 'Birth Notification', required: false },
+];
+
+// A death claim records a past event; a future date is a typo or a bad client.
+function dodError(date_of_death) {
+  if (!date_of_death) return 'Date of death is required';
+  const dod = new Date(date_of_death);
+  if (Number.isNaN(dod.getTime())) return 'Date of death is not a valid date';
+  const endOfToday = new Date();
+  endOfToday.setHours(23, 59, 59, 999);
+  if (dod > endOfToday) return 'Date of death cannot be in the future';
+  return null;
+}
+
+// Recipient overrides so a death-of-member claim's status notifications reach the
+// next of kin instead of the deceased member's own (defunct) phone/email. Returns
+// {} for a normal member-filed claim, leaving createNotification's default
+// (notify the member). Spread this into the notifySafely payload.
+function nokTarget(claim) {
+  if (!claim || !claim.deceased_is_member) return {};
+  return {
+    smsPhone: claim.next_of_kin_phone || null,
+    emailTo: claim.next_of_kin_email || null,
+    recipientName: claim.next_of_kin_name || null,
+    email: !!claim.next_of_kin_email,
+  };
+}
 
 // Thrown when a conditional status UPDATE matches no rows: another admin (or a
 // double-submitted click) already moved the claim on between our SELECT and our
@@ -97,9 +133,119 @@ async function getOne(req, res) {
   }
 }
 
+// Admin files a death-benefit claim on behalf of a member who has died. The
+// deceased IS the member, so the identity snapshot (name, TSC, sub-county,
+// school, category) is taken from the member's own row — never re-keyed — and a
+// next of kin is recorded as the claimant. The claim is created complete
+// (documents attached) and lands straight at `submitted`; the member's account
+// is flagged deceased in the same transaction, and the submitted-notification
+// goes to the next of kin, not the deceased member.
+async function createForMember(req, res) {
+  // Any reject path must discard the files multer already wrote. Only ever
+  // called before the commit below, so it can never delete a stored file.
+  const reject = async (status, message) => {
+    await removeUploadedFiles(req);
+    return res.status(status).json({ success: false, message });
+  };
+  try {
+    const {
+      member_id, date_of_death, amount_requested,
+      next_of_kin_name, next_of_kin_relationship, next_of_kin_phone, next_of_kin_email,
+    } = req.body;
+
+    const dodErr = dodError(date_of_death);
+    if (dodErr) return reject(400, dodErr);
+
+    const [[m]] = await db.query(
+      'SELECT id, full_name, tsc_number, sub_county, school_name, school_category FROM members WHERE id = ?',
+      [member_id]
+    );
+    if (!m) return reject(404, 'Member not found');
+    if (!m.school_category) {
+      return reject(400, "This member has no school category set — set it on their profile before filing a claim.");
+    }
+
+    // One death-of-member claim per member (a rejected one may be refiled).
+    const [[existing]] = await db.query(
+      "SELECT id FROM bbf_claims WHERE member_id = ? AND deceased_is_member = 1 AND status <> 'rejected'",
+      [member_id]
+    );
+    if (existing) return reject(409, 'A death claim for this member is already on file.');
+
+    // Required documents must all be present — parity with the member submit flow.
+    const files = req.files || {};
+    const missing = DEATH_DOC_SLOTS.filter(s => s.required && !(files[s.type] && files[s.type].length));
+    if (missing.length) {
+      return reject(400, `Missing required documents: ${missing.map(s => s.label).join(', ')}`);
+    }
+
+    const claimNumber = await nextSeq('bbf_seq', 'BBF');
+    // Rendered before the transaction so nothing that can throw runs after commit.
+    const msg = notificationService.renderNotification('bbf_submitted', { claim_number: claimNumber });
+
+    let claimId;
+    const conn = await db.getConnection();
+    try {
+      await conn.beginTransaction();
+      const [result] = await conn.query(
+        `INSERT INTO bbf_claims
+           (claim_number, member_id, claim_type, deceased_is_member, deceased_name, tsc_no, sub_county, school,
+            school_category, date_of_death, amount_requested, next_of_kin_name, next_of_kin_relationship,
+            next_of_kin_phone, next_of_kin_email, filed_by, status, submitted_at)
+         VALUES (?, ?, 'death', 1, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'submitted', NOW())`,
+        [claimNumber, m.id, m.full_name, m.tsc_number, m.sub_county, m.school_name, m.school_category,
+         date_of_death, amount_requested || null, next_of_kin_name, next_of_kin_relationship || null,
+         next_of_kin_phone, next_of_kin_email || null, req.user.id]
+      );
+      claimId = result.insertId;
+
+      for (const slot of DEATH_DOC_SLOTS) {
+        const arr = files[slot.type];
+        if (arr && arr.length) {
+          const f = arr[0];
+          await conn.query(
+            'INSERT INTO bbf_claim_documents (claim_id, doc_type, file_url, file_name, file_size, uploaded_by) VALUES (?, ?, ?, ?, ?, ?)',
+            [claimId, slot.type, `/uploads/bbf/${f.filename}`, f.originalname, f.size, req.user.id]
+          );
+        }
+      }
+
+      await addTimeline(claimId, null, 'submitted', 'Claim filed by admin on behalf of the deceased member', req.user.id, conn);
+      // Flag the account: the member has died — blocks login, excludes from active workflows.
+      await conn.query('UPDATE members SET is_deceased = 1 WHERE id = ?', [m.id]);
+      await conn.commit();
+    } catch (err) {
+      await conn.rollback();
+      throw err;
+    } finally {
+      conn.release();
+    }
+
+    // Committed — notify the next of kin (never the deceased member).
+    await notifySafely({
+      memberId: m.id,
+      type: 'bbf_claim',
+      title: msg.title,
+      body: msg.body,
+      referenceId: claimId,
+      adminId: req.user.id,
+      smsMessage: msg.sms,
+      smsPhone: next_of_kin_phone,
+      emailTo: next_of_kin_email || null,
+      recipientName: next_of_kin_name,
+      email: !!next_of_kin_email,
+    });
+
+    res.status(201).json({ success: true, message: `Claim ${claimNumber} filed`, claim_number: claimNumber, id: claimId });
+  } catch (err) {
+    console.error('BBF admin create failed:', err);
+    return reject(500, 'Failed to file claim');
+  }
+}
+
 async function startReview(req, res) {
   try {
-    const [[claim]] = await db.query('SELECT id, status, member_id, claim_number FROM bbf_claims WHERE id = ?', [req.params.id]);
+    const [[claim]] = await db.query('SELECT id, status, member_id, claim_number, deceased_is_member, next_of_kin_name, next_of_kin_phone, next_of_kin_email FROM bbf_claims WHERE id = ?', [req.params.id]);
     if (!claim) return res.status(404).json({ success: false, message: 'Claim not found' });
     if (!VALID_TRANSITIONS[claim.status]?.includes('under_review')) {
       return res.status(400).json({ success: false, message: `Cannot move from ${claim.status} to under_review` });
@@ -127,6 +273,8 @@ async function startReview(req, res) {
       adminId: req.user.id,
       email: true,
       smsMessage: msg.sms,
+      // Route to the next of kin when this is a death-of-member claim; no-op otherwise.
+      ...nokTarget(claim),
     });
     res.json({ success: true, message: 'Claim marked under review' });
   } catch (err) {
@@ -138,7 +286,7 @@ async function startReview(req, res) {
 async function approveClaim(req, res) {
   try {
     const { amount, notes } = req.body;
-    const [[claim]] = await db.query('SELECT id, status, member_id, claim_number FROM bbf_claims WHERE id = ?', [req.params.id]);
+    const [[claim]] = await db.query('SELECT id, status, member_id, claim_number, deceased_is_member, next_of_kin_name, next_of_kin_phone, next_of_kin_email FROM bbf_claims WHERE id = ?', [req.params.id]);
     if (!claim) return res.status(404).json({ success: false, message: 'Claim not found' });
     if (!VALID_TRANSITIONS[claim.status]?.includes('approved')) {
       return res.status(400).json({ success: false, message: `Cannot approve from status ${claim.status}` });
@@ -172,6 +320,8 @@ async function approveClaim(req, res) {
       adminId: req.user.id,
       email: true,
       smsMessage: msg.sms,
+      // Route to the next of kin when this is a death-of-member claim; no-op otherwise.
+      ...nokTarget(claim),
     });
     res.json({ success: true, message: 'Claim approved' });
   } catch (err) {
@@ -183,7 +333,7 @@ async function approveClaim(req, res) {
 async function rejectClaim(req, res) {
   try {
     const { notes } = req.body;
-    const [[claim]] = await db.query('SELECT id, status, member_id, claim_number FROM bbf_claims WHERE id = ?', [req.params.id]);
+    const [[claim]] = await db.query('SELECT id, status, member_id, claim_number, deceased_is_member, next_of_kin_name, next_of_kin_phone, next_of_kin_email FROM bbf_claims WHERE id = ?', [req.params.id]);
     if (!claim) return res.status(404).json({ success: false, message: 'Claim not found' });
     if (!VALID_TRANSITIONS[claim.status]?.includes('rejected')) {
       return res.status(400).json({ success: false, message: `Cannot reject from status ${claim.status}` });
@@ -217,6 +367,8 @@ async function rejectClaim(req, res) {
       adminId: req.user.id,
       email: true,
       smsMessage: msg.sms,
+      // Route to the next of kin when this is a death-of-member claim; no-op otherwise.
+      ...nokTarget(claim),
     });
     res.json({ success: true, message: 'Claim rejected' });
   } catch (err) {
@@ -228,7 +380,7 @@ async function rejectClaim(req, res) {
 async function markPaid(req, res) {
   try {
     const { ref } = req.body;
-    const [[claim]] = await db.query('SELECT id, status, member_id, claim_number FROM bbf_claims WHERE id = ?', [req.params.id]);
+    const [[claim]] = await db.query('SELECT id, status, member_id, claim_number, deceased_is_member, next_of_kin_name, next_of_kin_phone, next_of_kin_email FROM bbf_claims WHERE id = ?', [req.params.id]);
     if (!claim) return res.status(404).json({ success: false, message: 'Claim not found' });
     if (claim.status !== 'approved') return res.status(400).json({ success: false, message: 'Only approved claims can be marked paid' });
     const conn = await db.getConnection();
@@ -260,6 +412,8 @@ async function markPaid(req, res) {
       adminId: req.user.id,
       email: true,
       smsMessage: msg.sms,
+      // Route to the next of kin when this is a death-of-member claim; no-op otherwise.
+      ...nokTarget(claim),
     });
     res.json({ success: true, message: 'Claim marked as paid' });
   } catch (err) {
@@ -288,4 +442,4 @@ async function exportExcel(req, res) {
   }
 }
 
-module.exports = { getAll, getOne, startReview, approveClaim, rejectClaim, markPaid, exportExcel };
+module.exports = { getAll, getOne, createForMember, startReview, approveClaim, rejectClaim, markPaid, exportExcel };
