@@ -11,13 +11,14 @@ const VALID_TRANSITIONS = {
   approved:     ['paid'],
 };
 
-// Document slots for an admin-filed death-of-member claim. Mirrors
-// BBF_DOC_SLOTS.death in memberBbfController — the first three are required.
+// Document slots for an admin-filed death-of-member claim — all required. The
+// member-side death flow also carries an optional Birth Notification (for a
+// deceased child), but that never applies here: the deceased is always the
+// member, so it is intentionally omitted.
 const DEATH_DOC_SLOTS = [
-  { type: 'tsc_slip',           label: 'TSC Slip',           required: true },
-  { type: 'burial_permit',      label: 'Burial Permit',      required: true },
-  { type: 'bbf_claim_form',     label: 'BBF Claim Form',     required: true },
-  { type: 'birth_notification', label: 'Birth Notification', required: false },
+  { type: 'tsc_slip',       label: 'TSC Slip',       required: true },
+  { type: 'burial_permit',  label: 'Burial Permit',  required: true },
+  { type: 'bbf_claim_form', label: 'BBF Claim Form',  required: true },
 ];
 
 // A death claim records a past event; a future date is a typo or a bad client.
@@ -149,7 +150,7 @@ async function createForMember(req, res) {
   };
   try {
     const {
-      member_id, date_of_death, amount_requested,
+      member_id, date_of_death,
       next_of_kin_name, next_of_kin_relationship, next_of_kin_phone, next_of_kin_email,
     } = req.body;
 
@@ -190,11 +191,11 @@ async function createForMember(req, res) {
       const [result] = await conn.query(
         `INSERT INTO bbf_claims
            (claim_number, member_id, claim_type, deceased_is_member, deceased_name, tsc_no, sub_county, school,
-            school_category, date_of_death, amount_requested, next_of_kin_name, next_of_kin_relationship,
+            school_category, date_of_death, next_of_kin_name, next_of_kin_relationship,
             next_of_kin_phone, next_of_kin_email, filed_by, status, submitted_at)
-         VALUES (?, ?, 'death', 1, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'submitted', NOW())`,
+         VALUES (?, ?, 'death', 1, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'submitted', NOW())`,
         [claimNumber, m.id, m.full_name, m.tsc_number, m.sub_county, m.school_name, m.school_category,
-         date_of_death, amount_requested || null, next_of_kin_name, next_of_kin_relationship || null,
+         date_of_death, next_of_kin_name, next_of_kin_relationship || null,
          next_of_kin_phone, next_of_kin_email || null, req.user.id]
       );
       claimId = result.insertId;
