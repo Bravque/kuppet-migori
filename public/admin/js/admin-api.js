@@ -240,6 +240,10 @@ const adminApi = (() => {
     bbf: {
       getAll: (p = {}) => request('/admin/bbf?' + new URLSearchParams(p)),
       getOne: (id) => request(`/admin/bbf/${id}`),
+      // Admin files a death-of-member claim. `fd` is a FormData carrying the
+      // member/next-of-kin fields plus the death documents (request() strips the
+      // JSON Content-Type for FormData so the browser sets the multipart boundary).
+      create: (fd) => request('/admin/bbf', { method: 'POST', body: fd }),
       startReview: (id, notes) => request(`/admin/bbf/${id}/review`, { method: 'PUT', body: JSON.stringify({ notes }) }),
       approve: (id, amount, notes) => request(`/admin/bbf/${id}/approve`, { method: 'PUT', body: JSON.stringify({ amount, notes }) }),
       reject: (id, notes) => request(`/admin/bbf/${id}/reject`, { method: 'PUT', body: JSON.stringify({ notes }) }),

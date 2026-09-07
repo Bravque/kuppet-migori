@@ -209,6 +209,9 @@ CREATE TABLE IF NOT EXISTS members (
   passport_photo_url VARCHAR(500),
   national_id_url VARCHAR(500),
   status ENUM('pending_approval','approved','rejected','suspended') DEFAULT 'pending_approval',
+  -- Set when a death-of-member BBF claim is filed; blocks login and excludes the
+  -- account from active-member workflows. See migration-bbf-next-of-kin.sql.
+  is_deceased TINYINT(1) NOT NULL DEFAULT 0,
   rejection_reason TEXT,
   approved_by INT,
   approved_at TIMESTAMP NULL,
@@ -225,6 +228,9 @@ CREATE TABLE IF NOT EXISTS bbf_claims (
   claim_number VARCHAR(20) UNIQUE NOT NULL,
   member_id INT NOT NULL,
   claim_type ENUM('death','retirement') NOT NULL,
+  -- 1 when the deceased IS the member (admin-filed death-of-member claim); 0 for
+  -- the normal case where a living member claims for a deceased relative.
+  deceased_is_member TINYINT(1) NOT NULL DEFAULT 0,
   deceased_name VARCHAR(200),
   tsc_no VARCHAR(50),
   sub_county VARCHAR(100),
@@ -232,6 +238,13 @@ CREATE TABLE IF NOT EXISTS bbf_claims (
   school_category ENUM('senior_school','junior_school','tertiary_school'),
   relationship VARCHAR(100),
   date_of_death DATE,
+  -- Next of kin (the claimant) — populated for death-of-member claims; all claim
+  -- notifications route here instead of the deceased member's own contacts.
+  next_of_kin_name VARCHAR(200),
+  next_of_kin_relationship VARCHAR(100),
+  next_of_kin_phone VARCHAR(30),
+  next_of_kin_email VARCHAR(255),
+  filed_by INT,  -- users.id of the admin who filed it; NULL for member-filed claims
   description TEXT,
   amount_requested DECIMAL(12,2),
   amount_approved DECIMAL(12,2),

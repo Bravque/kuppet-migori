@@ -159,7 +159,7 @@ async function login(req, res) {
 
   try {
     const [[member]] = await db.query(
-      'SELECT id, full_name, member_number, email, password, status, failed_login_attempts, locked_until, must_change_password, onboarding_complete FROM members WHERE tsc_number = ?',
+      'SELECT id, full_name, member_number, email, password, status, is_deceased, failed_login_attempts, locked_until, must_change_password, onboarding_complete FROM members WHERE tsc_number = ?',
       [tsc_number]
     );
 
@@ -183,6 +183,11 @@ async function login(req, res) {
     }
     if (member.status === 'suspended') {
       return res.status(403).json({ success: false, message: 'Your account has been suspended. Please contact the branch office.' });
+    }
+    // Account flagged deceased (a death-of-member BBF claim was filed) — closed.
+    if (member.is_deceased) {
+      await logLogin(member.id, ip, ua, 'failed');
+      return res.status(403).json({ success: false, message: 'This account has been closed. Please contact the branch office.' });
     }
 
     const passwordOk = await bcrypt.compare(password, member.password);

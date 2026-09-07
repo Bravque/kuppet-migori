@@ -10,7 +10,7 @@
   <title>BBF Claims — KUPPET Migori Admin</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
-  <link rel="stylesheet" href="/css/style.css?v=20260810a"><link rel="stylesheet" href="/css/portal.css?v=20260810a">
+  <link rel="stylesheet" href="/css/style.css?v=20260907a"><link rel="stylesheet" href="/css/portal.css?v=20260907a">
 </head>
 <body class="portal-body admin-bbf-page">
 <div class="portal-layout">
@@ -20,7 +20,10 @@
     <div class="portal-content">
       <div class="page-heading">
         <div class="page-heading-text"><h1>BBF Claims</h1></div>
-        <button id="btn-export" class="btn btn-outline btn-sm"><i class="fas fa-file-excel"></i> Export</button>
+        <div class="page-heading-actions" style="display:flex;gap:.5rem;flex-wrap:wrap">
+          <button id="btn-new-claim" class="btn btn-gold btn-sm"><i class="fas fa-plus"></i> File Death Claim</button>
+          <button id="btn-export" class="btn btn-outline btn-sm"><i class="fas fa-file-excel"></i> Export</button>
+        </div>
       </div>
       <div class="filter-tabs" id="bbf-tabs">
         <button class="filter-tab active" data-status="">All</button>
@@ -80,7 +83,87 @@
     </div>
   </main>
 </div>
-<script src="/admin/js/admin-api.js?v=20260810a"></script><script src="/admin/js/admin-portal.js?v=20260810a"></script>
+<!-- File Death Claim modal — admin files a BBF death-benefit claim for a deceased member -->
+<div class="portal-modal-overlay" id="new-claim-modal">
+  <div class="portal-modal" style="max-width:640px">
+    <div class="portal-modal-header"><h3>File Death Claim</h3><button class="modal-close-btn" type="button"><i class="fas fa-times"></i></button></div>
+    <div class="portal-modal-body">
+      <p style="font-size:.85rem;color:var(--text-muted);margin-bottom:1rem">Use this when a member has died. The claim is filed on their behalf; the member's identity is taken from their profile, and the next of kin you record receives all claim notifications. Filing this closes the member's account.</p>
+      <div id="new-claim-alert" class="hidden" style="margin-bottom:1rem"></div>
+
+      <div class="form-group">
+        <label>Deceased member <span style="color:var(--red)">*</span></label>
+        <div id="member-picked" class="hidden" style="display:flex;align-items:center;justify-content:space-between;gap:.5rem;padding:.6rem .75rem;background:var(--bg);border:1px solid var(--gold);border-radius:6px">
+          <span id="member-picked-text" style="font-size:.85rem"></span>
+          <button type="button" id="member-clear" class="btn btn-outline btn-xs">Change</button>
+        </div>
+        <div id="member-search-wrap">
+          <input type="search" class="form-control" id="member-search" placeholder="Search by name, TSC number or member number…" autocomplete="off">
+          <div id="member-results" class="hidden" style="border:1px solid var(--border);border-radius:6px;margin-top:.25rem;max-height:220px;overflow:auto"></div>
+        </div>
+        <input type="hidden" id="claim-member-id">
+      </div>
+
+      <div class="grid-2" style="gap:.75rem">
+        <div class="form-group">
+          <label>Date of death <span style="color:var(--red)">*</span></label>
+          <input type="date" class="form-control" id="claim-dod">
+        </div>
+        <div class="form-group">
+          <label>Amount requested (KES)</label>
+          <input type="number" class="form-control" id="claim-amount" min="0" placeholder="Optional">
+        </div>
+      </div>
+
+      <div style="font-size:.72rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--text-muted);border-bottom:2px solid var(--gold);display:inline-block;padding-bottom:.25rem;margin:.5rem 0 .75rem">Next of Kin (claimant)</div>
+      <div class="grid-2" style="gap:.75rem">
+        <div class="form-group">
+          <label>Full name <span style="color:var(--red)">*</span></label>
+          <input type="text" class="form-control" id="nok-name" maxlength="200">
+        </div>
+        <div class="form-group">
+          <label>Relationship to deceased</label>
+          <input type="text" class="form-control" id="nok-relationship" maxlength="100" placeholder="e.g. Spouse, Son">
+        </div>
+        <div class="form-group">
+          <label>Phone <span style="color:var(--red)">*</span></label>
+          <input type="tel" class="form-control" id="nok-phone" maxlength="30" placeholder="e.g. 0712 345678">
+        </div>
+        <div class="form-group">
+          <label>Email</label>
+          <input type="email" class="form-control" id="nok-email" maxlength="255" placeholder="Optional — for email notifications">
+        </div>
+      </div>
+
+      <div style="font-size:.72rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--text-muted);border-bottom:2px solid var(--gold);display:inline-block;padding-bottom:.25rem;margin:.5rem 0 .75rem">Documents</div>
+      <div class="grid-2" style="gap:.75rem">
+        <div class="form-group">
+          <label>TSC Slip <span style="color:var(--red)">*</span></label>
+          <input type="file" class="form-control" id="doc-tsc_slip" accept="application/pdf,image/jpeg,image/png">
+        </div>
+        <div class="form-group">
+          <label>Burial Permit <span style="color:var(--red)">*</span></label>
+          <input type="file" class="form-control" id="doc-burial_permit" accept="application/pdf,image/jpeg,image/png">
+        </div>
+        <div class="form-group">
+          <label>BBF Claim Form <span style="color:var(--red)">*</span></label>
+          <input type="file" class="form-control" id="doc-bbf_claim_form" accept="application/pdf,image/jpeg,image/png">
+        </div>
+        <div class="form-group">
+          <label>Birth Notification</label>
+          <input type="file" class="form-control" id="doc-birth_notification" accept="application/pdf,image/jpeg,image/png">
+        </div>
+      </div>
+      <p style="font-size:.75rem;color:var(--text-muted)">PDF or image, up to 10 MB each.</p>
+    </div>
+    <div class="portal-modal-footer">
+      <button class="modal-close-btn btn btn-outline btn-sm" type="button">Cancel</button>
+      <button id="new-claim-submit" class="btn btn-gold btn-sm"><i class="fas fa-check"></i> File Claim</button>
+    </div>
+  </div>
+</div>
+
+<script src="/admin/js/admin-api.js?v=20260907a"></script><script src="/admin/js/admin-portal.js?v=20260907a"></script>
 <script>
   document.getElementById('sidebar-placeholder').outerHTML = getSidebarHtml();
   document.getElementById('topbar-placeholder').outerHTML = getTopbarHtml('BBF Claims');
@@ -127,6 +210,91 @@
   document.getElementById('date-clear').addEventListener('click',function(){currentFrom='';currentTo='';document.getElementById('date-from').value='';document.getElementById('date-to').value='';bbfOffset=0;loadBbf();});
   // Export mirrors the active filters, not the whole table.
   document.getElementById('btn-export').addEventListener('click',function(){adminApi.bbf.exportExcel(bbfFilters()).catch(e=>alert(e.message));});
+
+  // ── File Death Claim modal ────────────────────────────────────────────────
+  (function(){
+    const modal = document.getElementById('new-claim-modal');
+    const searchInput = document.getElementById('member-search');
+    const resultsBox = document.getElementById('member-results');
+    const pickedBox = document.getElementById('member-picked');
+    const pickedText = document.getElementById('member-picked-text');
+    const searchWrap = document.getElementById('member-search-wrap');
+    const memberIdInput = document.getElementById('claim-member-id');
+    const FIELD_IDS = ['claim-member-id','member-search','claim-dod','claim-amount','nok-name','nok-relationship','nok-phone','nok-email'];
+    const DOC_IDS = ['doc-tsc_slip','doc-burial_permit','doc-bbf_claim_form','doc-birth_notification'];
+
+    function reset(){
+      FIELD_IDS.concat(DOC_IDS).forEach(id=>{const el=document.getElementById(id); if(el) el.value='';});
+      resultsBox.classList.add('hidden'); resultsBox.innerHTML='';
+      pickedBox.classList.add('hidden'); searchWrap.classList.remove('hidden');
+      document.getElementById('new-claim-alert').classList.add('hidden');
+    }
+    function openModal(){ reset(); document.getElementById('claim-dod').max = new Date().toISOString().slice(0,10); modal.classList.add('open'); }
+    function closeModal(){ modal.classList.remove('open'); }
+    document.getElementById('btn-new-claim').addEventListener('click', openModal);
+    modal.querySelectorAll('.modal-close-btn').forEach(b=>b.addEventListener('click', closeModal));
+    modal.addEventListener('click', e=>{ if(e.target===modal) closeModal(); });
+
+    // Member typeahead — only approved members are selectable.
+    let st;
+    searchInput.addEventListener('input', function(){
+      const q = this.value.trim(); clearTimeout(st);
+      if(q.length < 2){ resultsBox.classList.add('hidden'); resultsBox.innerHTML=''; return; }
+      st = setTimeout(async ()=>{
+        try {
+          const res = await adminApi.members.getAll({ search:q, status:'approved', limit:8 });
+          resultsBox.innerHTML = res.data.length
+            ? res.data.map(m=>`<div class="member-result" data-id="${m.id}" data-label="${escHtml(m.full_name+' — '+m.member_number+' (TSC '+m.tsc_number+')')}" style="padding:.55rem .75rem;font-size:.82rem;cursor:pointer;border-bottom:1px solid var(--border)">${escHtml(m.full_name)}<br><small style="color:var(--text-muted)">${escHtml(m.member_number)} · TSC ${escHtml(m.tsc_number)} · ${escHtml(m.sub_county||'')}</small></div>`).join('')
+            : '<div style="padding:.6rem .75rem;font-size:.82rem;color:var(--text-muted)">No approved members match.</div>';
+          resultsBox.classList.remove('hidden');
+        } catch(err){ resultsBox.innerHTML='<div style="padding:.6rem .75rem;font-size:.82rem;color:var(--red)">'+escHtml(err.message)+'</div>'; resultsBox.classList.remove('hidden'); }
+      }, 350);
+    });
+    resultsBox.addEventListener('click', function(e){
+      const row = e.target.closest('.member-result'); if(!row) return;
+      memberIdInput.value = row.dataset.id;
+      pickedText.textContent = row.dataset.label;
+      pickedBox.classList.remove('hidden'); searchWrap.classList.add('hidden'); resultsBox.classList.add('hidden');
+    });
+    document.getElementById('member-clear').addEventListener('click', function(){
+      memberIdInput.value=''; pickedBox.classList.add('hidden'); searchWrap.classList.remove('hidden'); searchInput.value=''; searchInput.focus();
+    });
+
+    document.getElementById('new-claim-submit').addEventListener('click', async function(){
+      const a='new-claim-alert';
+      const memberId = memberIdInput.value;
+      const dod = document.getElementById('claim-dod').value;
+      const nokName = document.getElementById('nok-name').value.trim();
+      const nokPhone = document.getElementById('nok-phone').value.trim();
+      const tsc = document.getElementById('doc-tsc_slip').files[0];
+      const burial = document.getElementById('doc-burial_permit').files[0];
+      const bbfForm = document.getElementById('doc-bbf_claim_form').files[0];
+      if(!memberId) return showAlert(a,'Select the deceased member.');
+      if(!dod) return showAlert(a,'Enter the date of death.');
+      if(!nokName) return showAlert(a,'Enter the next of kin name.');
+      if(!nokPhone) return showAlert(a,'Enter the next of kin phone number.');
+      if(!tsc || !burial || !bbfForm) return showAlert(a,'TSC Slip, Burial Permit and BBF Claim Form are all required.');
+
+      const fd = new FormData();
+      fd.append('member_id', memberId);
+      fd.append('date_of_death', dod);
+      const amt = document.getElementById('claim-amount').value; if(amt) fd.append('amount_requested', amt);
+      fd.append('next_of_kin_name', nokName);
+      fd.append('next_of_kin_relationship', document.getElementById('nok-relationship').value.trim());
+      fd.append('next_of_kin_phone', nokPhone);
+      const nokEmail = document.getElementById('nok-email').value.trim(); if(nokEmail) fd.append('next_of_kin_email', nokEmail);
+      fd.append('tsc_slip', tsc);
+      fd.append('burial_permit', burial);
+      fd.append('bbf_claim_form', bbfForm);
+      const birth = document.getElementById('doc-birth_notification').files[0]; if(birth) fd.append('birth_notification', birth);
+
+      try {
+        const res = await adminApi.bbf.create(fd);
+        window.location.href = '/admin/bbf-detail.html?id=' + res.id;
+      } catch(err){ showAlert(a, err.message); }
+    });
+  })();
+
   loadBbf();
 </script>
 </body>
