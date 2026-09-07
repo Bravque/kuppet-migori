@@ -15,7 +15,14 @@ const validate = (req, res, next) => {
 router.post('/register',
   upload.memberDocs.none(),
   [
-    body('full_name').trim().notEmpty().withMessage('Full name required').isLength({ max: 200 }),
+    body('full_name').trim().notEmpty().withMessage('Full name required').bail()
+      .isLength({ max: 200 }).withMessage('Full name is too long')
+      // Must be a name, not an ID/TSC number: letters + spaces, hyphens, apostrophes and dots only.
+      .matches(/^[\p{L}][\p{L} .'-]*$/u).withMessage('Full name can only contain letters (no ID numbers or digits)')
+      .custom((v) => {
+        if ((String(v).match(/\p{L}/gu) || []).length < 2) throw new Error('Please enter your full name as it appears on your National ID');
+        return true;
+      }),
     body('tsc_number').trim().notEmpty().withMessage('TSC number required').isLength({ max: 50 }),
     body('national_id').trim().notEmpty().withMessage('National ID required').isLength({ max: 30 }),
     body('phone').trim().notEmpty().withMessage('Phone required').isLength({ max: 30 }),

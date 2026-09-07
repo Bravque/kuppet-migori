@@ -257,6 +257,14 @@
       }
     }
     if (step === 1) {
+      // Full name must be a name, not an ID/TSC number (mirrors the server rule in memberAuth.js).
+      const nameInp = panel.querySelector('[name=full_name]');
+      const nameVal = nameInp.value.trim();
+      if (!/^[\p{L}][\p{L} .'-]*$/u.test(nameVal) || (nameVal.match(/\p{L}/gu) || []).length < 2) {
+        nameInp.focus();
+        showReg('Please enter your full name in letters — not an ID or TSC number', 'danger');
+        return false;
+      }
       const pw = panel.querySelector('[name=password]').value;
       const cpw = panel.querySelector('[name=confirm_password]').value;
       // Mirror the server rule (memberAuth.js): ≥8 chars incl. a letter AND a number.
